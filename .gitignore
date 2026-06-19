@@ -1,4 +1,5 @@
 # Python
+.drone_venv/
 .venv/
 venv/
 __pycache__/
