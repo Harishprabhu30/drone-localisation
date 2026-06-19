@@ -12,7 +12,7 @@ paths:
   log_dir: data/raw/zurich_mav_sample/Log_Files
   calibration_file: data/raw/zurich_mav_sample/calibration_data.npz
 
-  onboard_gps_file: data/raw/zurich_mav_sample/Log_Files/OnbordGPS.csv
+  onboard_gps_file: data/raw/zurich_mav_sample/Log_Files/OnboardGPS.csv
   groundtruth_agl_file: data/raw/zurich_mav_sample/Log_Files/GroundTruthAGL.csv
   onboard_pose_file: data/raw/zurich_mav_sample/Log_Files/OnboardPose.csv
   barometer_file: data/raw/zurich_mav_sample/Log_Files/BarometricPressure.csv
