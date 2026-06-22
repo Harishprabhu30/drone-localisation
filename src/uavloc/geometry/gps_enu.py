@@ -61,7 +61,7 @@ def add_local_enu_from_wgs84(
         }
     
     clean["x_enu_m"] = clean["utm_easting_m"] - origin["utm_easting_m"]
-    clean["y_enu_m"] = clean["utm_northing_m"] = origin["utm_northing_m"]
+    clean["y_enu_m"] = clean["utm_northing_m"] - origin["utm_northing_m"]
     clean["z_enu_m"] = clean[alt_col] - origin["alt"]
 
     return clean.reset_index(drop=True), origin
