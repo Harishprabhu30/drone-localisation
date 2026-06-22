@@ -4,7 +4,7 @@
 
 Week 2 — Development environment and baseline data pipeline.
 
-## Current Goal
+## Current Goal & Current Status - 19th June 2026
 
 Build a reusable dataset engine before starting visual localization. The current focus is:
 
