@@ -37,4 +37,5 @@ telemetry:
 
 coordinate:
   local_frame: ENU
-  origin: first_groundtruth_or_gps_point
+  origin: first_gnss_point
+  utm_epsg: 32632

@@ -44,7 +44,7 @@ def add_local_enu_from_wgs84(
 
     easting, northing = transformer.transform(
         clean[lon_col].to_numpy(),
-        clean[lat_col].to_nunmpy().
+        clean[lat_col].to_numpy(),
     )
 
     clean['utm_easting_m'] = easting
@@ -72,5 +72,4 @@ def save_origin_metadata(origin: Dict[str, Any], output_path: Path) -> None:
     
     with output_path.open("w") as f:
         json.dump(origin, f, indent=2)
-        
-         
+
