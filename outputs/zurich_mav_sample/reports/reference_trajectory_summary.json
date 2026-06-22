@@ -1,0 +1,21 @@
+{
+  "source": "onboard_gps_file",
+  "rows_before_filter": 81169,
+  "rows_after_filter": 81169,
+  "used_fix_type_filter": true,
+  "utm_epsg": 32632,
+  "output_reference_trajectory": "outputs/zurich_mav_sample/trajectories/reference_trajectory.csv",
+  "output_origin_metadata": "outputs/zurich_mav_sample/reports/reference_origin.json",
+  "x_range_m": [
+    -193.24799853510922,
+    165.09313861036208
+  ],
+  "y_range_m": [
+    -234.26736840698868,
+    331.58075292687863
+  ],
+  "z_range_m": [
+    -15.954000000000008,
+    54.38999999999993
+  ]
+}
