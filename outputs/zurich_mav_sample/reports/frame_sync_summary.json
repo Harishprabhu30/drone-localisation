@@ -1,0 +1,12 @@
+{
+  "image_count": 350,
+  "reference_rows": 81169,
+  "synced_rows": 350,
+  "rows_with_reference": 350,
+  "rows_missing_reference": 0,
+  "image_imgid_min": 1,
+  "image_imgid_max": 350,
+  "reference_imgid_min": 1,
+  "reference_imgid_max": 81169,
+  "missing_reference_imgids": []
+}
