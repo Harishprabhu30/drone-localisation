@@ -47,7 +47,10 @@ def load_stage07_trajectory(output_dir: Path) -> Path:
 
 
 def attach_synchronized_metadata(traj_df: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
-    sync_csv = output_dir / "metadata" / "synchronized_frames.csv"
+    enriched_csv = output_dir / "metadata" / "synchronized_frames_enriched.csv"
+    normal_csv = output_dir / "metadata" / "synchronized_frames.csv"
+
+    sync_csv = enriched_csv if enriched_csv.exists() else normal_csv
 
     if not sync_csv.exists():
         return traj_df

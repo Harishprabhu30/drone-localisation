@@ -17,19 +17,24 @@
     ]
   },
   "height": {
-    "selection_mode": "fixed_default",
-    "source": "fixed_default",
-    "column": null,
+    "selection_mode": "explicit",
+    "source": "column_with_default_fill",
+    "column": "height_agl_m",
     "default_height_m": 50.0,
     "valid_count": 350,
-    "median_height_m": 50.0
+    "invalid_filled_count": 0,
+    "median_height_m": 4.050716316666637,
+    "min_height_m": 2.38673799999998,
+    "max_height_m": 4.9108062000000245
   },
   "yaw_heading": {
-    "selection_mode": "fixed_heading",
-    "source": "fixed_heading",
-    "column": null,
+    "selection_mode": "explicit",
+    "source": "column_with_fixed_fill",
+    "column": "gt_omega_deg",
     "fixed_heading_deg": 0.0,
-    "valid_count": 350
+    "valid_count": 350,
+    "invalid_filled_count": 0,
+    "median_yaw_deg": 98.34877103333335
   },
   "axis_mapping": {
     "image_x_to_right_sign": 1.0,
@@ -37,14 +42,14 @@
     "heading_convention": "0 deg = North, +90 deg = East"
   },
   "scale_multiplier": 1.0,
-  "estimated_path_length_m": 19.917804564185047,
+  "estimated_path_length_m": 1.4885786260537968,
   "estimated_x_range_m": [
-    0.0,
-    5.03798563991931
+    -0.685024843744706,
+    0.0
   ],
   "estimated_y_range_m": [
-    -9.315973844474879,
-    0.0
+    -0.28814273523253314,
+    0.019339839754989128
   ],
   "confidence": {
     "mean": 0.8884845659130225,
@@ -55,22 +60,22 @@
     "available": true,
     "reference_x_column": "ref_x_enu_m",
     "reference_y_column": "ref_y_enu_m",
-    "rmse_m": 7.090075201091433,
-    "mean_error_m": 6.473039355299427,
-    "median_error_m": 7.683922394806264,
-    "max_error_m": 10.007733408731378,
-    "final_error_m": 9.56935754760392,
+    "rmse_m": 1.7031220863746024,
+    "mean_error_m": 1.6288815883430054,
+    "median_error_m": 1.7847778670883927,
+    "max_error_m": 2.1928274645660712,
+    "final_error_m": 1.3231211442595,
     "reference_path_length_m": 6.0952997676100455,
-    "estimated_path_length_m": 19.917804564185047,
-    "drift_per_100m": 156.9956837636559,
+    "estimated_path_length_m": 1.4885786260537968,
+    "drift_per_100m": 21.707236636505787,
     "shape_alignment": {
       "available": true,
       "note": "Shape alignment uses reference only for evaluation, not for camera-only localization.",
-      "scale": 0.20800855471737123,
-      "rotation_deg": 145.79362321826687,
-      "rmse_m": 0.6564815213515585,
-      "mean_error_m": 0.5864759635998873,
-      "max_error_m": 1.7240747699580223
+      "scale": 2.901125169414034,
+      "rotation_deg": -105.67204819768672,
+      "rmse_m": 0.683832441588246,
+      "mean_error_m": 0.6095570455074503,
+      "max_error_m": 1.8192603102989573
     }
   },
   "outputs": {
