@@ -1,0 +1,67 @@
+{
+  "total_pairs": 349,
+  "good_pairs": 349,
+  "medium_pairs": 0,
+  "weak_pairs": 0,
+  "homography_success_count": 349,
+  "status_counts": {
+    "ok": 349
+  },
+  "quality_counts": {
+    "good": 349
+  },
+  "kp1": {
+    "min": 2000.0,
+    "mean": 2000.0,
+    "median": 2000.0,
+    "max": 2000.0
+  },
+  "kp2": {
+    "min": 2000.0,
+    "mean": 2000.0,
+    "median": 2000.0,
+    "max": 2000.0
+  },
+  "raw_matches": {
+    "min": 2000.0,
+    "mean": 2000.0,
+    "median": 2000.0,
+    "max": 2000.0
+  },
+  "good_matches": {
+    "min": 869.0,
+    "mean": 1340.163323782235,
+    "median": 1347.0,
+    "max": 1662.0
+  },
+  "ransac_inliers": {
+    "min": 629.0,
+    "mean": 1195.8452722063037,
+    "median": 1202.0,
+    "max": 1637.0
+  },
+  "inlier_ratio": {
+    "min": 0.6598639455782312,
+    "mean": 0.8881650374485898,
+    "median": 0.9025787965616046,
+    "max": 0.9932014833127317
+  },
+  "mean_match_distance": {
+    "min": 11.283065512978986,
+    "mean": 19.706788307029093,
+    "median": 20.245548961424333,
+    "max": 23.113427856547123
+  },
+  "median_match_distance": {
+    "min": 7.0,
+    "mean": 17.859598853868196,
+    "median": 19.0,
+    "max": 22.0
+  },
+  "ref_step_distance_m": {
+    "min": 0.0,
+    "mean": 0.0174650423140689,
+    "median": 0.0,
+    "max": 0.3496927467091762
+  }
+}

@@ -217,5 +217,5 @@ def plot_quality_metrics(quality_df: pd.DataFrame, output_path: Path) -> None:
     axes[2].legend()
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=200)
+    plt.savefig(output_path, dpi=300)
     plt.close()

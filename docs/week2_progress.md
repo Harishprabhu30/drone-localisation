@@ -4,7 +4,7 @@
 
 Week 2 — Development environment and baseline data pipeline.
 
-## Current Goal & Current Status - 19th June 2026
+## Achieved Goal & Status - 19th June 2026
 
 Build a reusable dataset engine before starting visual localization. The current focus is:
 
@@ -111,7 +111,7 @@ outputs/zurich_mav_sample/reports/reference_origin.json
 outputs/zurich_mav_sample/reports/reference_trajectory_summary.json
 ```
 
-## Update — Reference Trajectory and Visualization Completed
+## Update (22nd June 2026) — Reference Trajectory and Visualization Completed
 
 Reference trajectory generation is now working for Zurich MAV. The project is currently tested on the Zurich Urban MAV sample dataset.
 
@@ -188,4 +188,125 @@ Next planned block:
 
 ```text
 Frame-to-telemetry synchronization
+```
+
+## Update (25th June 2026)
+
+## 1. Output Organization Decision
+
+From the next implementation block onward, outputs will be grouped by pipeline stage to avoid mixing unrelated plots, reports, and metadata files.
+
+The main canonical files will remain in their simple locations when other scripts depend on them, for example:
+
+```text
+outputs/zurich_mav_sample/trajectories/reference_trajectory.csv
+outputs/zurich_mav_sample/metadata/synchronized_frames.csv
+outputs/zurich_mav_sample/metadata/frame_quality.csv
+```
+
+New diagnostic outputs will use stage folders such as:
+
+```text
+outputs/zurich_mav_sample/metadata/05_orb_pair_diagnostics/
+outputs/zurich_mav_sample/reports/05_orb_pair_diagnostics/
+outputs/zurich_mav_sample/figures/05_orb_pair_diagnostics/
+```
+
+This keeps the pipeline easier to inspect, debug, and explain during Week 3 relative localization work.
+
+
+## 2. ORB Pair and Stride Diagnostics Completed
+
+The ORB frame-pair diagnostics block has been completed successfully on the Zurich MAV sample dataset.
+
+### ORB Consecutive Pair Diagnostics
+
+Implemented files:
+
+```text
+src/uavloc/relative/orb_pair_diagnostics.py
+scripts/run_orb_pair_diagnostics.py
+```
+
+Generated outputs:
+
+```text
+outputs/zurich_mav_sample/metadata/05_orb_pair_diagnostics/orb_pair_quality.csv
+outputs/zurich_mav_sample/reports/05_orb_pair_diagnostics/orb_pair_summary.json
+outputs/zurich_mav_sample/figures/05_orb_pair_diagnostics/orb_pair_quality_plots.png
+outputs/zurich_mav_sample/figures/05_orb_pair_diagnostics/orb_matches_good_pair.png
+outputs/zurich_mav_sample/figures/05_orb_pair_diagnostics/orb_matches_weak_pair.png
+```
+
+Successful summary:
+
+```text
+Total pairs: 349
+Good pairs: 349
+Medium pairs: 0
+Weak pairs: 0
+Homography successes: 349
+Good matches median: 1347
+RANSAC inliers median: 1202
+Inlier ratio median: 0.903
+```
+
+Interpretation:
+
+The Zurich MAV sample segment is highly suitable for ORB-based relative localization. Consecutive frames have strong visual overlap, many valid ORB matches, and very high RANSAC inlier ratios. The earlier image-quality weak candidates are therefore diagnostic warnings only, not confirmed localization failures.
+
+### ORB Stride Diagnostics
+
+Implemented file:
+
+```text
+scripts/run_orb_stride_diagnostics.py
+```
+
+Generated outputs:
+
+```text
+outputs/zurich_mav_sample/metadata/06_orb_stride_diagnostics/orb_stride_pair_quality.csv
+outputs/zurich_mav_sample/metadata/06_orb_stride_diagnostics/orb_stride_summary.csv
+outputs/zurich_mav_sample/reports/06_orb_stride_diagnostics/orb_stride_summary.json
+outputs/zurich_mav_sample/figures/06_orb_stride_diagnostics/orb_stride_quality_summary.png
+outputs/zurich_mav_sample/figures/06_orb_stride_diagnostics/orb_stride_reference_distance.png
+```
+
+Successful stride summary:
+
+```text
+stride 1:  good pairs 349/349, median inlier ratio 0.903
+stride 2:  good pairs 348/348, median inlier ratio 0.860
+stride 3:  good pairs 347/347, median inlier ratio 0.830
+stride 5:  good pairs 345/345, median inlier ratio 0.781
+stride 10: good pairs 340/340, median inlier ratio 0.692
+```
+
+Interpretation:
+
+ORB matching remains stable even when skipping frames. For the first relative localization baseline, stride 1 will be used because it is safest and easiest to debug. Stride 5 can be tested later as a faster/efficient version. Stride 10 works on this sample but should not be selected first because harder datasets may have less overlap.
+
+### Important Note
+
+The reference frame-to-frame displacement is often very small or zero for short strides. This likely comes from low-rate, quantized, or repeated GNSS/reference positions relative to the image sequence. Therefore, GNSS should be used mainly for accumulated trajectory evaluation, not for judging every tiny frame-to-frame visual step.
+
+### Next Planned Block
+
+```text
+Block: First ORB relative motion estimation
+```
+
+Goal:
+
+```text
+matched ORB points + homography
+↓
+estimate frame-to-frame image motion
+↓
+accumulate relative motion
+↓
+produce estimated local XY trajectory
+↓
+compare estimated trajectory shape against reference trajectory
 ```

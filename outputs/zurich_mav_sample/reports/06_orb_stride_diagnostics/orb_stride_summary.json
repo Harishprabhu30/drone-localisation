@@ -1,0 +1,78 @@
+{
+  "strides": [
+    1,
+    2,
+    3,
+    5,
+    10
+  ],
+  "max_starts": null,
+  "total_tested_pairs": 1729,
+  "summary": [
+    {
+      "stride": 1,
+      "total_pairs": 349,
+      "good_pairs": 349,
+      "medium_pairs": 0,
+      "weak_pairs": 0,
+      "homography_success_rate": 1.0,
+      "good_matches_median": 1347.0,
+      "ransac_inliers_median": 1202.0,
+      "inlier_ratio_median": 0.9025787965616046,
+      "ref_step_distance_m_median": 0.0,
+      "ref_step_distance_m_max": 0.3496927467091762
+    },
+    {
+      "stride": 2,
+      "total_pairs": 348,
+      "good_pairs": 348,
+      "medium_pairs": 0,
+      "weak_pairs": 0,
+      "homography_success_rate": 1.0,
+      "good_matches_median": 1268.0,
+      "ransac_inliers_median": 1089.0,
+      "inlier_ratio_median": 0.8600256816970686,
+      "ref_step_distance_m_median": 0.0,
+      "ref_step_distance_m_max": 0.3496927467091762
+    },
+    {
+      "stride": 3,
+      "total_pairs": 347,
+      "good_pairs": 347,
+      "medium_pairs": 0,
+      "weak_pairs": 0,
+      "homography_success_rate": 1.0,
+      "good_matches_median": 1200.0,
+      "ransac_inliers_median": 993.0,
+      "inlier_ratio_median": 0.8300198807157058,
+      "ref_step_distance_m_median": 0.0,
+      "ref_step_distance_m_max": 0.3496927467091762
+    },
+    {
+      "stride": 5,
+      "total_pairs": 345,
+      "good_pairs": 345,
+      "medium_pairs": 0,
+      "weak_pairs": 0,
+      "homography_success_rate": 1.0,
+      "good_matches_median": 1127.0,
+      "ransac_inliers_median": 873.0,
+      "inlier_ratio_median": 0.7814845704753962,
+      "ref_step_distance_m_median": 0.07816014071148514,
+      "ref_step_distance_m_max": 0.3496927467091762
+    },
+    {
+      "stride": 10,
+      "total_pairs": 340,
+      "good_pairs": 340,
+      "medium_pairs": 0,
+      "weak_pairs": 0,
+      "homography_success_rate": 1.0,
+      "good_matches_median": 1000.5,
+      "ransac_inliers_median": 694.0,
+      "inlier_ratio_median": 0.6922789104412119,
+      "ref_step_distance_m_median": 0.1356581007577633,
+      "ref_step_distance_m_max": 0.467748205474756
+    }
+  ]
+}
