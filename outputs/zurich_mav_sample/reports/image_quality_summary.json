@@ -1,0 +1,45 @@
+{
+  "total_frames": 350,
+  "valid_images": 350,
+  "failed_images": 0,
+  "image_width": {
+    "min": 1920.0,
+    "mean": 1920.0,
+    "median": 1920.0,
+    "max": 1920.0
+  },
+  "image_height": {
+    "min": 1080.0,
+    "mean": 1080.0,
+    "median": 1080.0,
+    "max": 1080.0
+  },
+  "brightness_mean": {
+    "min": 106.90038869598766,
+    "mean": 109.86304892250881,
+    "median": 109.24931206597222,
+    "max": 115.9671305941358
+  },
+  "contrast_std": {
+    "min": 60.6468715888741,
+    "mean": 62.45892546670215,
+    "median": 62.384478901873976,
+    "max": 63.631475889361354
+  },
+  "blur_score_laplacian_var": {
+    "min": 387.7867121082699,
+    "mean": 1015.4955212922122,
+    "median": 1019.3901850739869,
+    "max": 1604.7028909987644
+  },
+  "orb_keypoints": {
+    "min": 1000.0,
+    "mean": 1000.0,
+    "median": 1000.0,
+    "max": 1000.0
+  },
+  "weak_frame_candidates": 142,
+  "low_blur_score_frames": 88,
+  "low_feature_count_frames": 0,
+  "low_contrast_frames": 88
+}
