@@ -1,0 +1,48 @@
+{
+  "dataset_name": "zurich_mav_sample",
+  "stage": "07_orb_relative_motion",
+  "method": "ORB + BFMatcher + ratio test + RANSAC homography, stride=5",
+  "input_synchronized_csv": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/metadata/synchronized_frames.csv",
+  "frames_used": 70,
+  "attempted_pairs": 69,
+  "ok_pairs": 69,
+  "failed_pairs": 0,
+  "status_counts": {
+    "ok": 69,
+    "start": 1
+  },
+  "median_good_matches": 1122.0,
+  "median_ransac_inliers": 872.0,
+  "median_inlier_ratio": 0.7754919499105546,
+  "raw_path_length_px": 361.4321294275082,
+  "raw_x_range_px": [
+    0.0,
+    96.53439331054688
+  ],
+  "raw_y_range_px": [
+    -211.31768798828125,
+    0.0
+  ],
+  "alignment_to_reference": {
+    "available": true,
+    "note": "Similarity alignment is for shape comparison/evaluation only. It is not used as GNSS input to the visual algorithm.",
+    "scale_m_per_px": 0.008225720809849136,
+    "rotation_rad": 2.5628327848955426,
+    "rotation_deg": 146.83950217227374,
+    "translation_x_m": 0.9424928533692895,
+    "translation_y_m": -1.1401758559028867,
+    "valid_points": 70,
+    "aligned_rmse_m": 0.624128214509173,
+    "aligned_mean_error_m": 0.5520520288900475,
+    "aligned_max_error_m": 1.4792882616434382
+  },
+  "runtime_seconds": 12.078307812000276,
+  "average_fps_processed": 5.795513832695358,
+  "outputs": {
+    "trajectory_csv": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/trajectories/07_orb_relative_motion/orb_relative_trajectory.csv",
+    "summary_json": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/reports/07_orb_relative_motion/orb_relative_motion_summary.json",
+    "raw_plot": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/figures/07_orb_relative_motion/orb_relative_xy.png",
+    "comparison_plot": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/figures/07_orb_relative_motion/orb_reference_comparison_xy.png"
+  },
+  "important_warning": "This first version accumulates image-plane motion. Metric scale, yaw handling, altitude/camera calibration scaling, and IMU fusion are intentionally left for later blocks."
+}
