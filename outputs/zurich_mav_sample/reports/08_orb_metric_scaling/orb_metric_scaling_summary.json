@@ -1,0 +1,84 @@
+{
+  "dataset_name": "zurich_mav_sample",
+  "stage": "08_orb_metric_scaling",
+  "input_stage07_csv": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/trajectories/07_orb_relative_motion/orb_relative_trajectory.csv",
+  "frames": 350,
+  "camera_intrinsics": {
+    "available": true,
+    "source": "/Users/harishprabhu/Documents/drone-localisation/data/raw/zurich_mav_sample/calibration_data.npz",
+    "fx": 893.3901081378665,
+    "fy": 898.3264861625313,
+    "cx": 951.1310042974931,
+    "cy": 555.1335007742958,
+    "used_key": "intrinsic_matrix",
+    "npz_keys": [
+      "intrinsic_matrix",
+      "distCoeff"
+    ]
+  },
+  "height": {
+    "selection_mode": "fixed_default",
+    "source": "fixed_default",
+    "column": null,
+    "default_height_m": 50.0,
+    "valid_count": 350,
+    "median_height_m": 50.0
+  },
+  "yaw_heading": {
+    "selection_mode": "fixed_heading",
+    "source": "fixed_heading",
+    "column": null,
+    "fixed_heading_deg": 0.0,
+    "valid_count": 350
+  },
+  "axis_mapping": {
+    "image_x_to_right_sign": 1.0,
+    "image_y_to_forward_sign": 1.0,
+    "heading_convention": "0 deg = North, +90 deg = East"
+  },
+  "scale_multiplier": 1.0,
+  "estimated_path_length_m": 19.917804564185047,
+  "estimated_x_range_m": [
+    0.0,
+    5.03798563991931
+  ],
+  "estimated_y_range_m": [
+    -9.315973844474879,
+    0.0
+  ],
+  "confidence": {
+    "mean": 0.8884845659130225,
+    "median": 0.9027575875140813,
+    "min": 0.6598639455782312
+  },
+  "reference_evaluation": {
+    "available": true,
+    "reference_x_column": "ref_x_enu_m",
+    "reference_y_column": "ref_y_enu_m",
+    "rmse_m": 7.090075201091433,
+    "mean_error_m": 6.473039355299427,
+    "median_error_m": 7.683922394806264,
+    "max_error_m": 10.007733408731378,
+    "final_error_m": 9.56935754760392,
+    "reference_path_length_m": 6.0952997676100455,
+    "estimated_path_length_m": 19.917804564185047,
+    "drift_per_100m": 156.9956837636559,
+    "shape_alignment": {
+      "available": true,
+      "note": "Shape alignment uses reference only for evaluation, not for camera-only localization.",
+      "scale": 0.20800855471737123,
+      "rotation_deg": 145.79362321826687,
+      "rmse_m": 0.6564815213515585,
+      "mean_error_m": 0.5864759635998873,
+      "max_error_m": 1.7240747699580223
+    }
+  },
+  "outputs": {
+    "trajectory_csv": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/trajectories/08_orb_metric_scaling/orb_metric_trajectory.csv",
+    "summary_json": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/reports/08_orb_metric_scaling/orb_metric_scaling_summary.json",
+    "metric_plot": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/figures/08_orb_metric_scaling/orb_metric_xy.png",
+    "comparison_plot": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/figures/08_orb_metric_scaling/orb_metric_reference_comparison_xy.png",
+    "error_plot": "/Users/harishprabhu/Documents/drone-localisation/outputs/zurich_mav_sample/figures/08_orb_metric_scaling/orb_metric_error_over_frame.png"
+  },
+  "important_warning": "This is an approximate metric conversion. It assumes a mostly nadir camera, small frame-to-frame motion, planar ground, usable height above ground, and correct camera-to-body axis mapping. GNSS/reference is used only for evaluation."
+}
