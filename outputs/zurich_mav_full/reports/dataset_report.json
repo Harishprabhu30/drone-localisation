@@ -1,0 +1,291 @@
+{
+  "dataset_name": "zurich_mav_full",
+  "dataset_type": "zurich_mav",
+  "paths": {
+    "raw_data_dir": "data/raw/zurich_mav_full",
+    "output_dir": "outputs/zurich_mav_full",
+    "raw_data_dir_exists": true,
+    "output_dir_exists": true
+  },
+  "image_folders": {
+    "mav_images": {
+      "path": "data/raw/zurich_mav_full/MAV_Images",
+      "exists": true,
+      "image_count": 81169,
+      "extensions": [
+        ".jpg"
+      ],
+      "first_image": "data/raw/zurich_mav_full/MAV_Images/00001.jpg",
+      "last_image": "data/raw/zurich_mav_full/MAV_Images/81169.jpg"
+    },
+    "calib_images": {
+      "path": "data/raw/zurich_mav_full/MAV_Images_Calib",
+      "exists": true,
+      "image_count": 30,
+      "extensions": [
+        ".png"
+      ],
+      "first_image": "data/raw/zurich_mav_full/MAV_Images_Calib/Calibration_Image_01.png",
+      "last_image": "data/raw/zurich_mav_full/MAV_Images_Calib/Calibration_Image_30.png"
+    },
+    "streetview_images": {
+      "path": "data/raw/zurich_mav_full/Street_View_Images",
+      "exists": true,
+      "image_count": 113,
+      "extensions": [
+        ".jpg"
+      ],
+      "first_image": "data/raw/zurich_mav_full/Street_View_Images/left-001.jpg",
+      "last_image": "data/raw/zurich_mav_full/Street_View_Images/left-113.jpg"
+    }
+  },
+  "log_files": {
+    "onboard_gps_file": {
+      "rows": 81169,
+      "columns": [
+        "timestamp",
+        "imgid",
+        "lat_raw",
+        "lon_raw",
+        "alt_raw",
+        "s_variance_m_s",
+        "c_variance_rad",
+        "fix_type",
+        "eph_m",
+        "epv_m",
+        "vel_n_m_s",
+        "vel_e_m_s",
+        "vel_d_m_s",
+        "num_sat"
+      ],
+      "nan_counts": {
+        "timestamp": 0,
+        "imgid": 0,
+        "lat_raw": 0,
+        "lon_raw": 0,
+        "alt_raw": 0,
+        "s_variance_m_s": 0,
+        "c_variance_rad": 0,
+        "fix_type": 0,
+        "eph_m": 0,
+        "epv_m": 0,
+        "vel_n_m_s": 0,
+        "vel_e_m_s": 0,
+        "vel_d_m_s": 0,
+        "num_sat": 0
+      },
+      "timestamp_min": 7009129.0,
+      "timestamp_max": 2720692353.0,
+      "duration_raw_units": 2713683224.0,
+      "lat_deg_min": 47.3822502,
+      "lat_deg_max": 47.3873331,
+      "lon_deg_min": 8.5425953,
+      "lon_deg_max": 8.547358,
+      "alt_m_min": 448.956,
+      "alt_m_max": 519.3
+    },
+    "groundtruth_agl_file": {
+      "rows": 2708,
+      "columns": [
+        "imgid",
+        "x_gt",
+        "y_gt",
+        "z_gt",
+        "omega_yaw_deg",
+        "phi_pitch_deg",
+        "kappa_roll_deg",
+        "x_gps",
+        "y_gps",
+        "z_gps"
+      ],
+      "nan_counts": {
+        "imgid": 0,
+        "x_gt": 0,
+        "y_gt": 0,
+        "z_gt": 0,
+        "omega_yaw_deg": 0,
+        "phi_pitch_deg": 0,
+        "kappa_roll_deg": 0,
+        "x_gps": 0,
+        "y_gps": 0,
+        "z_gps": 0
+      }
+    },
+    "onboard_pose_file": {
+      "rows": 135098,
+      "columns": [
+        "timestamp",
+        "omega_x",
+        "omega_y",
+        "omega_z",
+        "accel_x",
+        "accel_y",
+        "accel_z",
+        "vel_x",
+        "vel_y",
+        "vel_z",
+        "acc_bias_x",
+        "acc_bias_y",
+        "acc_bias_z",
+        "azimuth",
+        "attitude_w",
+        "attitude_x",
+        "attitude_y",
+        "attitude_z",
+        "height",
+        "altitude",
+        "veh_pitch",
+        "tether_angle",
+        "tether_angle_dot",
+        "tether_force",
+        "gps_on"
+      ],
+      "nan_counts": {
+        "timestamp": 0,
+        "omega_x": 0,
+        "omega_y": 0,
+        "omega_z": 0,
+        "accel_x": 0,
+        "accel_y": 0,
+        "accel_z": 0,
+        "vel_x": 0,
+        "vel_y": 0,
+        "vel_z": 0,
+        "acc_bias_x": 0,
+        "acc_bias_y": 0,
+        "acc_bias_z": 0,
+        "azimuth": 0,
+        "attitude_w": 0,
+        "attitude_x": 0,
+        "attitude_y": 0,
+        "attitude_z": 0,
+        "height": 0,
+        "altitude": 0,
+        "veh_pitch": 0,
+        "tether_angle": 0,
+        "tether_angle_dot": 0,
+        "tether_force": 0,
+        "gps_on": 0
+      },
+      "timestamp_min": 7014977.0,
+      "timestamp_max": 2720698717.0,
+      "duration_raw_units": 2713683740.0
+    },
+    "barometer_file": {
+      "rows": 27052,
+      "columns": [
+        "timestamp",
+        "pressure",
+        "altitude",
+        "temperature"
+      ],
+      "nan_counts": {
+        "timestamp": 0,
+        "pressure": 0,
+        "altitude": 0,
+        "temperature": 0
+      },
+      "timestamp_min": 7068959.0,
+      "timestamp_max": 2720760491.0,
+      "duration_raw_units": 2713691532.0
+    },
+    "raw_accel_file": {
+      "rows": 27050,
+      "columns": [
+        "timestamp",
+        "error_count",
+        "x",
+        "y",
+        "z",
+        "temperature",
+        "range_rad_s",
+        "scaling",
+        "x_raw",
+        "y_raw",
+        "z_raw",
+        "temperature_raw"
+      ],
+      "nan_counts": {
+        "timestamp": 0,
+        "error_count": 0,
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "temperature": 0,
+        "range_rad_s": 0,
+        "scaling": 0,
+        "x_raw": 0,
+        "y_raw": 0,
+        "z_raw": 0,
+        "temperature_raw": 0
+      },
+      "timestamp_min": 7090906.0,
+      "timestamp_max": 2720794657.0,
+      "duration_raw_units": 2713703751.0
+    },
+    "raw_gyro_file": {
+      "rows": 27050,
+      "columns": [
+        "timestamp",
+        "error_count",
+        "x",
+        "y",
+        "z",
+        "temperature",
+        "range_rad_s",
+        "scaling",
+        "x_raw",
+        "y_raw",
+        "z_raw",
+        "temperature_raw"
+      ],
+      "nan_counts": {
+        "timestamp": 0,
+        "error_count": 0,
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "temperature": 0,
+        "range_rad_s": 0,
+        "scaling": 0,
+        "x_raw": 0,
+        "y_raw": 0,
+        "z_raw": 0,
+        "temperature_raw": 0
+      },
+      "timestamp_min": 7089907.0,
+      "timestamp_max": 2720789699.0,
+      "duration_raw_units": 2713699792.0
+    },
+    "streetview_gps_file": {
+      "rows": 113,
+      "columns": [
+        "latitude",
+        "longitude",
+        "yaw_degree",
+        "tilt_yaw_degree",
+        "tilt_pitch_degree",
+        "auxiliary"
+      ],
+      "nan_counts": {
+        "latitude": 0,
+        "longitude": 0,
+        "yaw_degree": 0,
+        "tilt_yaw_degree": 0,
+        "tilt_pitch_degree": 0,
+        "auxiliary": 0
+      }
+    }
+  },
+  "calibration": {
+    "available": true,
+    "path": "data/raw/zurich_mav_full/calibration_data.npz",
+    "keys": [
+      "intrinsic_matrix",
+      "distCoeff"
+    ]
+  },
+  "notes": [
+    "All main Zurich MAV log files found."
+  ]
+}

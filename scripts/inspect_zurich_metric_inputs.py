@@ -48,6 +48,18 @@ def read_clean_csv(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path, engine="python")
     df.columns = [str(c).strip() for c in df.columns]
 
+    # Normalize known Zurich timestamp column spellings.
+    timestamp_aliases = {
+        "Timpstemp": "timestamp",
+        "Timestamp": "timestamp",
+        "timeStamp": "timestamp",
+    }
+    df = df.rename(columns={
+        c: timestamp_aliases.get(str(c).strip(), str(c).strip())
+        for c in df.columns
+    })
+
+
     keep_cols = []
     for c in df.columns:
         c_clean = str(c).strip()
