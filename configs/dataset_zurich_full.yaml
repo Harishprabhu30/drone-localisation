@@ -1,0 +1,41 @@
+dataset_name: zurich_mav_full
+dataset_type: zurich_mav
+
+paths:
+  raw_data_dir: data/raw/zurich_mav_full/
+  output_dir: outputs/zurich_mav_full
+
+  mav_images_dir: data/raw/zurich_mav_full/MAV_Images
+  calib_images_dir: data/raw/zurich_mav_full/MAV_Images_Calib
+  streetview_images_dir: data/raw/zurich_mav_full/Street_View_Images
+
+  log_dir: data/raw/zurich_mav_full/Log_Files
+  calibration_file: data/raw/zurich_mav_full/calibration_data.npz
+
+  onboard_gps_file: data/raw/zurich_mav_full/Log_Files/OnboardGPS.csv
+  groundtruth_agl_file: data/raw/zurich_mav_full/Log_Files/GroundTruthAGL.csv
+  onboard_pose_file: data/raw/zurich_mav_full/Log_Files/OnboardPose.csv
+  barometer_file: data/raw/zurich_mav_full/Log_Files/BarometricPressure.csv
+  raw_accel_file: data/raw/zurich_mav_full/Log_Files/RawAccel.csv
+  raw_gyro_file: data/raw/zurich_mav_full/Log_Files/RawGyro.csv
+  streetview_gps_file: data/raw/zurich_mav_full/Log_Files/StreetViewGPS.csv
+
+processing:
+  max_frames: 500
+  sample_every_n_frames: 30
+
+camera:
+  view: forward_or_oblique
+  calibration_available: true
+  calibration_format: npz
+
+telemetry:
+  timestamp_unit: unknown
+  gps_latlon_scale: 1.0 # 1e-7 
+  gps_alt_scale: 1.0 # 1e-3
+  groundtruth_coordinate_system: WGS84_UTM_32N
+
+coordinate:
+  local_frame: ENU
+  origin: first_gnss_point
+  utm_epsg: 32632
