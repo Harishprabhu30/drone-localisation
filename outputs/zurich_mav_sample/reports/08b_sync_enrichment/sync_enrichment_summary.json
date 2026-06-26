@@ -7,6 +7,7 @@
   "source_status": {
     "GroundTruthAGL.csv": {
       "available": true,
+      "path": "/Users/harishprabhu/Documents/drone-localisation/data/raw/zurich_mav_sample/Log_Files/GroundTruthAGL.csv",
       "rows": 2708,
       "columns": [
         "imgid",
@@ -23,6 +24,7 @@
     },
     "OnboardPose.csv": {
       "available": true,
+      "path": "/Users/harishprabhu/Documents/drone-localisation/data/raw/zurich_mav_sample/Log_Files/OnboardPose.csv",
       "rows": 135098,
       "columns": [
         "timestamp",
@@ -56,6 +58,7 @@
     },
     "BarometricPressure.csv": {
       "available": true,
+      "path": "/Users/harishprabhu/Documents/drone-localisation/data/raw/zurich_mav_sample/Log_Files/BarometricPressure.csv",
       "rows": 27052,
       "columns": [
         "timestamp",
@@ -69,20 +72,32 @@
     }
   },
   "selection_summary": {
-    "selected_height_source": "abs(gt_z_minus_gps_z_m)_approx",
-    "selected_yaw_source": "pose_azimuth_deg",
+    "selected_height_source": "abs_gt_z_minus_gps_z_m",
+    "selected_height_quality": "approximate_debug_not_true_agl",
+    "selected_yaw_source": "gt_omega_deg",
+    "selected_yaw_quality": "groundtruth_orientation_candidate",
     "height_agl_m": {
       "valid_count": 350,
       "median": 4.050716316666637,
       "min": 2.38673799999998,
-      "max": 4.9108062000000245
+      "max": 4.9108062000000245,
+      "source": "abs_gt_z_minus_gps_z_m",
+      "quality": "approximate_debug_not_true_agl"
     },
     "yaw_deg": {
       "valid_count": 350,
-      "median": 0.0,
-      "min": 0.0,
-      "max": 0.0
-    }
+      "median": 98.34877103333334,
+      "min": 95.538828,
+      "max": 100.267149,
+      "source": "gt_omega_deg",
+      "quality": "groundtruth_orientation_candidate"
+    },
+    "warnings": [
+      "OnboardPose Height is not usable because it is constant/zero or invalid.",
+      "OnboardPose Azimuth is not usable because it is constant/zero or invalid.",
+      "Selected height_agl_m is approximate/debug only, not verified true AGL.",
+      "Selected yaw_deg comes from GroundTruthAGL omega_gt because OnboardPose Azimuth is unusable."
+    ]
   },
   "columns": [
     "imgid",
@@ -114,6 +129,7 @@
     "gt_y_gps_utm_m",
     "gt_z_gps_m",
     "gt_z_minus_gps_z_m",
+    "abs_gt_z_minus_gps_z_m",
     "gt_interpolated_by_imgid",
     "pose_azimuth_raw",
     "pose_height_m",
@@ -132,9 +148,13 @@
     "barometer_temperature",
     "barometer_error_count",
     "height_agl_m",
+    "height_agl_source",
+    "height_agl_quality",
     "pose_azimuth_deg",
     "yaw_deg",
+    "yaw_source",
+    "yaw_quality",
     "pose_veh_pitch_deg"
   ],
-  "important_note": "height_agl_m and yaw_deg are added for metric visual-motion scaling. GNSS/reference remains for evaluation only."
+  "important_note": "height_agl_m and yaw_deg are added for metric visual-motion scaling. For Zurich sample, height may be approximate/debug because true AGL is not clearly available. GNSS/reference remains for evaluation only."
 }

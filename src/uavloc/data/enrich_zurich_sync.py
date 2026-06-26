@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -17,7 +18,6 @@ def read_clean_csv(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path, engine="python")
     df.columns = [str(c).strip() for c in df.columns]
 
-    # Drop empty columns caused by trailing commas.
     keep_cols = []
     for c in df.columns:
         c_clean = str(c).strip()
@@ -27,18 +27,15 @@ def read_clean_csv(path: Path) -> pd.DataFrame:
 
     df = df[keep_cols].copy()
 
-    # Convert numeric-looking columns, but keep text columns safely.
     for c in df.columns:
-        try:
-            df[c] = pd.to_numeric(df[c], errors="raise")
-        except Exception:
-            pass
+        converted = pd.to_numeric(df[c], errors="coerce")
+        if converted.notna().sum() > 0:
+            df[c] = converted
 
     return df
 
 
 def find_raw_file(raw_dir: Path, filename: str) -> Optional[Path]:
-    """Find Zurich MAV raw log files robustly, including Log_Files subfolder."""
     filename_lower = filename.lower()
 
     search_roots = [
@@ -75,25 +72,52 @@ def find_raw_file(raw_dir: Path, filename: str) -> Optional[Path]:
     return None
 
 
+def numeric_series(df: pd.DataFrame, col: str) -> pd.Series:
+    return pd.to_numeric(df[col], errors="coerce")
+
+
 def numeric_array(df: pd.DataFrame, col: str) -> np.ndarray:
-    return pd.to_numeric(df[col], errors="coerce").to_numpy(dtype=float)
+    return numeric_series(df, col).to_numpy(dtype=float)
 
 
-def maybe_angle_to_deg(values: np.ndarray) -> np.ndarray:
-    values = np.asarray(values, dtype=float)
+def is_usable_numeric(
+    values: pd.Series | np.ndarray,
+    min_valid: int = 5,
+    reject_mostly_zero: bool = True,
+    mostly_zero_threshold: float = 0.95,
+) -> bool:
+    s = pd.to_numeric(pd.Series(values), errors="coerce").dropna()
 
-    finite = values[np.isfinite(values)]
+    if len(s) < min_valid:
+        return False
+
+    if s.nunique(dropna=True) <= 1:
+        return False
+
+    if float(s.std()) < 1e-12:
+        return False
+
+    if reject_mostly_zero:
+        zero_ratio = float((s == 0).sum() / len(s))
+        if zero_ratio >= mostly_zero_threshold:
+            return False
+
+    return True
+
+
+def maybe_angle_to_deg(values: pd.Series | np.ndarray) -> np.ndarray:
+    arr = pd.to_numeric(pd.Series(values), errors="coerce").to_numpy(dtype=float)
+    finite = arr[np.isfinite(arr)]
 
     if len(finite) == 0:
-        return values
+        return arr
 
     max_abs = float(np.nanmax(np.abs(finite)))
 
-    # If values look like radians, convert to degrees.
-    if max_abs <= 7.0:
-        return np.rad2deg(values)
+    if max_abs <= 2 * math.pi + 0.5:
+        return np.rad2deg(arr)
 
-    return values
+    return arr
 
 
 def merge_nearest_timestamp(
@@ -101,9 +125,9 @@ def merge_nearest_timestamp(
     telemetry_df: pd.DataFrame,
     rename_map: Dict[str, str],
     tolerance: Optional[float],
-) -> pd.DataFrame:
+) -> Tuple[pd.DataFrame, int]:
     if "timestamp" not in sync_df.columns or "timestamp" not in telemetry_df.columns:
-        return sync_df
+        return sync_df, 0
 
     left = sync_df.copy()
     right = telemetry_df.copy()
@@ -121,8 +145,9 @@ def merge_nearest_timestamp(
     left_invalid = left[left["timestamp"].isna()].copy()
     right = right[right["timestamp"].notna()].copy()
 
-    # Zurich timestamps are integer-like microsecond values.
-    # Pandas merge_asof requires tolerance type to match timestamp dtype.
+    if left_valid.empty or right.empty:
+        return sync_df, 0
+
     left_valid["timestamp"] = left_valid["timestamp"].round().astype("int64")
     right["timestamp"] = right["timestamp"].round().astype("int64")
 
@@ -142,7 +167,10 @@ def merge_nearest_timestamp(
     merged = pd.concat([merged_valid, left_invalid], axis=0, ignore_index=True)
     merged = merged.sort_values("_row_order").drop(columns=["_row_order"])
 
-    return merged
+    matched_col = next((v for v in rename_map.values() if v in merged.columns), None)
+    matched_rows = int(pd.to_numeric(merged[matched_col], errors="coerce").notna().sum()) if matched_col else 0
+
+    return merged, matched_rows
 
 
 def interpolate_groundtruth_by_imgid(sync_df: pd.DataFrame, gt_df: pd.DataFrame) -> pd.DataFrame:
@@ -181,80 +209,113 @@ def interpolate_groundtruth_by_imgid(sync_df: pd.DataFrame, gt_df: pd.DataFrame)
 
     if "gt_z_m" in out.columns and "gt_z_gps_m" in out.columns:
         out["gt_z_minus_gps_z_m"] = out["gt_z_m"] - out["gt_z_gps_m"]
+        out["abs_gt_z_minus_gps_z_m"] = out["gt_z_minus_gps_z_m"].abs()
 
     out["gt_interpolated_by_imgid"] = True
 
     return out
 
 
-def select_height_and_yaw(df: pd.DataFrame) -> tuple[pd.DataFrame, Dict[str, Any]]:
+def select_height_and_yaw(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     out = df.copy()
     summary: Dict[str, Any] = {}
 
     height_source = None
+    height_quality = None
 
-    if "pose_height_m" in out.columns:
-        h = pd.to_numeric(out["pose_height_m"], errors="coerce").to_numpy(dtype=float)
-        finite = h[np.isfinite(h)]
-
-        if len(finite) > 0 and 0.1 <= np.nanmedian(finite) <= 200.0:
+    if "pose_height_m" in out.columns and is_usable_numeric(out["pose_height_m"]):
+        h = numeric_series(out, "pose_height_m")
+        if 0.1 <= float(h.median()) <= 200.0:
             out["height_agl_m"] = h
+            out["height_agl_source"] = "pose_height_m"
+            out["height_agl_quality"] = "preferred_if_verified"
             height_source = "pose_height_m"
+            height_quality = "preferred_if_verified"
 
-    if height_source is None and "gt_z_minus_gps_z_m" in out.columns:
-        h = pd.to_numeric(out["gt_z_minus_gps_z_m"], errors="coerce").to_numpy(dtype=float)
-        finite = h[np.isfinite(h)]
+    if height_source is None and "abs_gt_z_minus_gps_z_m" in out.columns and is_usable_numeric(out["abs_gt_z_minus_gps_z_m"], reject_mostly_zero=False):
+        h = numeric_series(out, "abs_gt_z_minus_gps_z_m")
+        if 0.05 <= float(h.median()) <= 200.0:
+            out["height_agl_m"] = h
+            out["height_agl_source"] = "abs_gt_z_minus_gps_z_m"
+            out["height_agl_quality"] = "approximate_debug_not_true_agl"
+            height_source = "abs_gt_z_minus_gps_z_m"
+            height_quality = "approximate_debug_not_true_agl"
 
-        if len(finite) > 0 and 0.1 <= np.nanmedian(np.abs(finite)) <= 200.0:
-            out["height_agl_m"] = np.abs(h)
-            height_source = "abs(gt_z_minus_gps_z_m)_approx"
-
-    if height_source is None and "barometer_altitude_m" in out.columns:
-        # Do not use absolute barometer altitude as AGL directly.
-        # Convert it to relative height from the first valid value as a fallback diagnostic.
-        alt = pd.to_numeric(out["barometer_altitude_m"], errors="coerce").to_numpy(dtype=float)
-        finite = alt[np.isfinite(alt)]
-
-        if len(finite) > 0:
-            out["height_agl_m"] = np.abs(alt - finite[0])
-            height_source = "relative_barometer_altitude_from_start_debug"
+    if height_source is None and "barometer_altitude_m" in out.columns and is_usable_numeric(out["barometer_altitude_m"]):
+        alt = numeric_series(out, "barometer_altitude_m")
+        first_valid = alt.dropna().iloc[0]
+        out["height_agl_m"] = (alt - first_valid).abs()
+        out["height_agl_source"] = "relative_barometer_altitude_from_start"
+        out["height_agl_quality"] = "debug_relative_only_not_true_agl"
+        height_source = "relative_barometer_altitude_from_start"
+        height_quality = "debug_relative_only_not_true_agl"
 
     yaw_source = None
+    yaw_quality = None
 
     if "pose_azimuth_raw" in out.columns:
-        yaw_raw = pd.to_numeric(out["pose_azimuth_raw"], errors="coerce").to_numpy(dtype=float)
-        out["pose_azimuth_deg"] = maybe_angle_to_deg(yaw_raw)
-        out["yaw_deg"] = out["pose_azimuth_deg"]
-        yaw_source = "pose_azimuth_deg"
+        pose_azimuth_deg = maybe_angle_to_deg(out["pose_azimuth_raw"])
+        out["pose_azimuth_deg"] = pose_azimuth_deg
 
-    if yaw_source is None and "gt_omega_deg" in out.columns:
-        out["yaw_deg"] = pd.to_numeric(out["gt_omega_deg"], errors="coerce")
-        yaw_source = "gt_omega_deg_interpolated"
+        if is_usable_numeric(pd.Series(pose_azimuth_deg)):
+            out["yaw_deg"] = pose_azimuth_deg
+            out["yaw_source"] = "pose_azimuth_deg"
+            out["yaw_quality"] = "preferred_if_verified"
+            yaw_source = "pose_azimuth_deg"
+            yaw_quality = "preferred_if_verified"
+
+    if yaw_source is None and "gt_omega_deg" in out.columns and is_usable_numeric(out["gt_omega_deg"]):
+        out["yaw_deg"] = numeric_series(out, "gt_omega_deg")
+        out["yaw_source"] = "gt_omega_deg"
+        out["yaw_quality"] = "groundtruth_orientation_candidate"
+        yaw_source = "gt_omega_deg"
+        yaw_quality = "groundtruth_orientation_candidate"
 
     if "pose_veh_pitch_raw" in out.columns:
-        pitch_raw = pd.to_numeric(out["pose_veh_pitch_raw"], errors="coerce").to_numpy(dtype=float)
-        out["pose_veh_pitch_deg"] = maybe_angle_to_deg(pitch_raw)
+        out["pose_veh_pitch_deg"] = maybe_angle_to_deg(out["pose_veh_pitch_raw"])
 
     summary["selected_height_source"] = height_source
+    summary["selected_height_quality"] = height_quality
     summary["selected_yaw_source"] = yaw_source
+    summary["selected_yaw_quality"] = yaw_quality
 
     if "height_agl_m" in out.columns:
-        h = pd.to_numeric(out["height_agl_m"], errors="coerce")
+        h = numeric_series(out, "height_agl_m")
         summary["height_agl_m"] = {
             "valid_count": int(h.notna().sum()),
             "median": float(h.median()),
             "min": float(h.min()),
             "max": float(h.max()),
+            "source": height_source,
+            "quality": height_quality,
         }
 
     if "yaw_deg" in out.columns:
-        y = pd.to_numeric(out["yaw_deg"], errors="coerce")
+        y = numeric_series(out, "yaw_deg")
         summary["yaw_deg"] = {
             "valid_count": int(y.notna().sum()),
             "median": float(y.median()),
             "min": float(y.min()),
             "max": float(y.max()),
+            "source": yaw_source,
+            "quality": yaw_quality,
         }
+
+    warnings = []
+
+    if "pose_height_m" in out.columns and not is_usable_numeric(out["pose_height_m"]):
+        warnings.append("OnboardPose Height is not usable because it is constant/zero or invalid.")
+
+    if "pose_azimuth_deg" in out.columns and not is_usable_numeric(out["pose_azimuth_deg"]):
+        warnings.append("OnboardPose Azimuth is not usable because it is constant/zero or invalid.")
+
+    if height_quality and "not_true_agl" in height_quality:
+        warnings.append("Selected height_agl_m is approximate/debug only, not verified true AGL.")
+
+    if yaw_source == "gt_omega_deg":
+        warnings.append("Selected yaw_deg comes from GroundTruthAGL omega_gt because OnboardPose Azimuth is unusable.")
+
+    summary["warnings"] = warnings
 
     return out, summary
 
@@ -278,7 +339,6 @@ def run_enrich_zurich_sync(
     sync_df.columns = [str(c).strip() for c in sync_df.columns]
 
     enriched = sync_df.copy()
-
     source_status: Dict[str, Any] = {}
 
     gt_path = find_raw_file(raw_dir, "GroundTruthAGL.csv")
@@ -290,11 +350,12 @@ def run_enrich_zurich_sync(
         enriched = interpolate_groundtruth_by_imgid(enriched, gt_df)
         source_status["GroundTruthAGL.csv"] = {
             "available": True,
+            "path": str(gt_path),
             "rows": int(len(gt_df)),
             "columns": list(gt_df.columns),
         }
     else:
-        source_status["GroundTruthAGL.csv"] = {"available": False}
+        source_status["GroundTruthAGL.csv"] = {"available": False, "path": str(gt_path) if gt_path else None}
 
     if pose_path is not None and pose_path.exists():
         pose_df = read_clean_csv(pose_path)
@@ -314,24 +375,23 @@ def run_enrich_zurich_sync(
             "GPS_on": "pose_gps_on",
         }
 
-        enriched = merge_nearest_timestamp(
+        enriched, matched = merge_nearest_timestamp(
             enriched,
             pose_df,
             rename_map=pose_map,
             tolerance=pose_tolerance,
         )
 
-        matched = int(pd.to_numeric(enriched.get("pose_height_m"), errors="coerce").notna().sum()) if "pose_height_m" in enriched.columns else 0
-
         source_status["OnboardPose.csv"] = {
             "available": True,
+            "path": str(pose_path),
             "rows": int(len(pose_df)),
             "columns": list(pose_df.columns),
-            "nearest_timestamp_tolerance": pose_tolerance,
-            "matched_rows": matched,
+            "nearest_timestamp_tolerance": float(pose_tolerance),
+            "matched_rows": int(matched),
         }
     else:
-        source_status["OnboardPose.csv"] = {"available": False}
+        source_status["OnboardPose.csv"] = {"available": False, "path": str(pose_path) if pose_path else None}
 
     if baro_path is not None and baro_path.exists():
         baro_df = read_clean_csv(baro_path)
@@ -343,24 +403,23 @@ def run_enrich_zurich_sync(
             "Error_count": "barometer_error_count",
         }
 
-        enriched = merge_nearest_timestamp(
+        enriched, matched = merge_nearest_timestamp(
             enriched,
             baro_df,
             rename_map=baro_map,
             tolerance=barometer_tolerance,
         )
 
-        matched = int(pd.to_numeric(enriched.get("barometer_altitude_m"), errors="coerce").notna().sum()) if "barometer_altitude_m" in enriched.columns else 0
-
         source_status["BarometricPressure.csv"] = {
             "available": True,
+            "path": str(baro_path),
             "rows": int(len(baro_df)),
             "columns": list(baro_df.columns),
-            "nearest_timestamp_tolerance": barometer_tolerance,
-            "matched_rows": matched,
+            "nearest_timestamp_tolerance": float(barometer_tolerance),
+            "matched_rows": int(matched),
         }
     else:
-        source_status["BarometricPressure.csv"] = {"available": False}
+        source_status["BarometricPressure.csv"] = {"available": False, "path": str(baro_path) if baro_path else None}
 
     enriched, selection_summary = select_height_and_yaw(enriched)
 
@@ -385,6 +444,7 @@ def run_enrich_zurich_sync(
         "columns": list(enriched.columns),
         "important_note": (
             "height_agl_m and yaw_deg are added for metric visual-motion scaling. "
+            "For Zurich sample, height may be approximate/debug because true AGL is not clearly available. "
             "GNSS/reference remains for evaluation only."
         ),
     }

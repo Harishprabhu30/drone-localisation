@@ -30,7 +30,7 @@
   "yaw_heading": {
     "selection_mode": "explicit",
     "source": "column_with_fixed_fill",
-    "column": "gt_omega_deg",
+    "column": "yaw_deg",
     "fixed_heading_deg": 0.0,
     "valid_count": 350,
     "invalid_filled_count": 0,
