@@ -33,6 +33,11 @@ src/uavloc/relative/orb_relative_motion.py
 scripts/run_orb_relative_motion.py
 ```
 
+```bash
+export PYTHONPATH=$PWD/src
+python scripts/run_orb_relative_motion.py --config configs/dataset_zurich.yaml
+```
+
 Generated outputs:
 
 ```text
@@ -72,6 +77,11 @@ src/uavloc/relative/orb_metric_scaling.py
 scripts/run_orb_metric_scaling.py
 ```
 
+```bash
+export PYTHONPATH=$PWD/src
+python scripts/run_orb_metric_scaling.py --config configs/dataset_zurich.yaml
+```
+
 Initial run used fixed height and fixed heading:
 
 ```text
@@ -93,6 +103,11 @@ Implemented files:
 src/uavloc/data/enrich_zurich_sync.py
 scripts/enrich_zurich_synchronized_frames.py
 scripts/inspect_zurich_metric_inputs.py
+```
+
+```bash
+export PYTHONPATH=$PWD/src
+python scripts/inspect_zurich_metric_inputs.py --config configs/dataset_zurich.yaml
 ```
 
 Generated outputs:
