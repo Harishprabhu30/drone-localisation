@@ -192,3 +192,141 @@ Planned sequence:
 12. Compare sample vs full dataset behavior.
 ```
 
+Update 26th June 2026 : 
+
+## Block 09A — Full Dataset ORB Stride Subset Diagnostics
+
+### Goal
+
+Before running ORB relative motion on the full Zurich MAV dataset, a stride diagnostic test was performed to understand how much frame skipping can be used without losing reliable feature matching.
+
+The purpose was to evaluate whether larger frame strides can speed up future trajectory estimation while maintaining enough ORB feature matches and RANSAC inliers.
+
+### Dataset
+
+Zurich MAV full dataset.
+
+```text
+Total synchronized frames: 81169
+Dataset config: configs/dataset_zurich_full.yaml
+```
+
+### Implemented Script
+
+```text
+scripts/run_orb_stride_subset_diagnostics.py
+```
+
+The script supports selected full-dataset windows using:
+
+```text
+--start-imgid
+--end-imgid
+--strides
+--run-name
+```
+
+For each selected segment, it evaluates ORB matching quality for multiple frame strides and saves pair-level diagnostics, summary CSV/JSON files, and quality plots.
+
+### Tested Segments
+
+Five representative full-dataset segments were tested:
+
+```text
+full_00001_01000
+full_20000_21000
+full_40000_41000
+full_60000_61000
+full_80000_81169
+```
+
+Each segment was tested with:
+
+```text
+strides = 1, 2, 3, 5, 10
+```
+
+### Results Summary
+
+All tested segments showed strong ORB matching performance.
+
+Across all tested windows:
+
+```text
+stride 1  → ok_ratio 1.000, strongest inlier ratio
+stride 2  → ok_ratio 1.000, still very strong
+stride 3  → ok_ratio 1.000, strong
+stride 5  → ok_ratio 1.000, strong fast-mode candidate
+stride 10 → ok_ratio 1.000, usable but lower inlier ratio
+```
+
+Median inlier ratio range across tested segments:
+
+```text
+stride 1:  0.982 to 0.992
+stride 2:  0.960 to 0.985
+stride 3:  0.936 to 0.974
+stride 5:  0.901 to 0.944
+stride 10: 0.828 to 0.916
+```
+
+This shows that ORB feature matching is robust across the full Zurich MAV dataset, not only on the small sample subset.
+
+### Runtime Observation
+
+Each approximately 1000-frame segment with five tested strides required several minutes to process.
+
+Example runtimes:
+
+```text
+full_00001_01000: 471.02 s
+full_20000_21000: 473.35 s
+full_40000_41000: 454.24 s
+full_60000_61000: 462.35 s
+full_80000_81169: 773.86 s
+```
+
+This confirms that running all strides across all 81169 frames would be computationally heavy. Future full-dataset experiments should use selected strides and run-specific output folders.
+
+### Interpretation
+
+The stride test confirms that ORB tracking is stable across early, middle, late, and end sections of the full Zurich MAV sequence.
+
+The main conclusion is:
+
+```text
+stride 1  = safest and most accurate baseline
+stride 5  = practical fast-mode candidate
+stride 10 = possible coarse-mode experiment, but not first baseline
+```
+
+The decrease in inlier ratio with increasing stride is expected because larger stride means larger viewpoint/motion difference between compared frames.
+
+### Important Note on Reference Distance
+
+For small strides, the median reference displacement was often close to `0.000 m`. This does not mean the drone was not moving. It means that GNSS/reference displacement between very close image frames can be too small or quantized for frame-to-frame interpretation.
+
+Therefore, reference evaluation should focus on accumulated trajectory error over longer windows instead of individual tiny frame-pair displacements.
+
+### Decision
+
+Block 09A is successful.
+
+The next step should be Block 09B:
+
+```text
+ORB Relative Motion Subset Runs
+```
+
+In Block 09B, actual accumulated ORB trajectories should be generated on selected full-dataset windows using controlled frame ranges and run names.
+
+Planned first tests:
+
+```text
+full_00001_01000_stride1
+full_00001_01000_stride5
+full_40000_41000_stride1
+full_40000_41000_stride5
+```
+
+The goal is to compare actual accumulated trajectory drift, not only pairwise feature-matching quality.
