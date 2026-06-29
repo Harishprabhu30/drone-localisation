@@ -13,7 +13,7 @@ import pandas as pd
 import yaml
 
 
-STAGE_NAME = "07_orb_relative_motion"
+STAGE_NAME = "09b_orb_relative_motion_subset"
 IMAGE_EXTENSIONS = ("*.jpg", "*.jpeg", "*.png", "*.bmp", "*.tif", "*.tiff")
 
 
@@ -120,6 +120,45 @@ def resolve_project_paths(config_path: str | Path) -> Tuple[Dict[str, Any], Path
 
     return config, repo_root, raw_dir, output_dir, dataset_name
 
+def summarize_stride_used_frames(
+    synced_df: pd.DataFrame,
+    used_indices: list[int],
+    imgid_col: Optional[str],
+    stride: int,
+) -> Dict[str, Any]:
+    summary: Dict[str, Any] = {
+        "stride": int(stride),
+        "rows_after_stride_sampling": int(len(used_indices)),
+        "first_used_row_index": int(used_indices[0]) if used_indices else None,
+        "last_used_row_index": int(used_indices[-1]) if used_indices else None,
+        "first_used_imgid": None,
+        "last_used_imgid": None,
+        "actual_pair_gap_imgid_min": None,
+        "actual_pair_gap_imgid_median": None,
+        "actual_pair_gap_imgid_max": None,
+    }
+
+    if not used_indices or imgid_col is None or imgid_col not in synced_df.columns:
+        return summary
+
+    used_imgids = pd.to_numeric(
+        synced_df.iloc[used_indices][imgid_col],
+        errors="coerce",
+    ).dropna()
+
+    if used_imgids.empty:
+        return summary
+
+    summary["first_used_imgid"] = int(used_imgids.iloc[0])
+    summary["last_used_imgid"] = int(used_imgids.iloc[-1])
+
+    if len(used_imgids) >= 2:
+        gaps = np.diff(used_imgids.to_numpy(dtype=float))
+        summary["actual_pair_gap_imgid_min"] = float(np.nanmin(gaps))
+        summary["actual_pair_gap_imgid_median"] = float(np.nanmedian(gaps))
+        summary["actual_pair_gap_imgid_max"] = float(np.nanmax(gaps))
+
+    return summary
 
 def natural_sort_key(path: Path) -> List[Any]:
     parts = re.split(r"(\d+)", path.name)
@@ -350,6 +389,100 @@ def find_timestamp_column(df: pd.DataFrame) -> Optional[str]:
         ],
     )
 
+def sanitize_run_name(
+    run_name: Optional[str],
+    start_imgid: Optional[int],
+    end_imgid: Optional[int],
+    frame_step: int,
+    stride: int,
+) -> str:
+    if run_name is not None and str(run_name).strip():
+        name = str(run_name).strip()
+    else:
+        start_txt = f"{start_imgid:05d}" if start_imgid is not None else "start"
+        end_txt = f"{end_imgid:05d}" if end_imgid is not None else "end"
+        name = f"imgid_{start_txt}_{end_txt}_step{frame_step}_stride{stride}"
+
+    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("._-")
+    if not name:
+        raise ValueError("Run name became empty after sanitization.")
+    return name
+
+
+def filter_synchronized_frames(
+    synced_df: pd.DataFrame,
+    start_imgid: Optional[int],
+    end_imgid: Optional[int],
+    frame_step: int,
+) -> tuple[pd.DataFrame, Dict[str, Any]]:
+    if frame_step < 1:
+        raise ValueError("--frame-step must be >= 1")
+
+    df = synced_df.copy()
+    df["source_frame_index"] = np.arange(len(df))
+
+    imgid_col = _first_existing_column(df, ["imgid", "image_id", "frame_id", "id"])
+
+    if start_imgid is not None or end_imgid is not None:
+        if imgid_col is None:
+            raise ValueError(
+                "--start-imgid/--end-imgid requested, but no imgid-like column was found "
+                "in synchronized_frames.csv"
+            )
+
+        imgids = pd.to_numeric(df[imgid_col], errors="coerce")
+        mask = np.ones(len(df), dtype=bool)
+
+        if start_imgid is not None:
+            mask &= imgids >= int(start_imgid)
+        if end_imgid is not None:
+            mask &= imgids <= int(end_imgid)
+
+        df = df.loc[mask].copy()
+
+    before_frame_step = len(df)
+
+    if frame_step > 1:
+        df = df.iloc[::frame_step].copy()
+
+    df = df.reset_index(drop=True)
+
+    if len(df) < 2:
+        raise ValueError(
+            "Subset has fewer than 2 frames after filtering. "
+            f"start_imgid={start_imgid}, end_imgid={end_imgid}, frame_step={frame_step}"
+        )
+
+    imgid_min = None
+    imgid_max = None
+    if imgid_col is not None and imgid_col in df.columns:
+        imgids_out = pd.to_numeric(df[imgid_col], errors="coerce")
+        imgid_min = int(imgids_out.min())
+        imgid_max = int(imgids_out.max())
+
+    summary = {
+        "start_imgid_requested": start_imgid,
+        "end_imgid_requested": end_imgid,
+        "frame_step": int(frame_step),
+        "rows_before_subset": int(len(synced_df)),
+        "rows_after_imgid_filter_before_frame_step": int(before_frame_step),
+        "rows_after_subset": int(len(df)),
+        "imgid_column": imgid_col,
+        "imgid_min_used": imgid_min,
+        "imgid_max_used": imgid_max,
+    }
+
+    return df, summary
+
+
+def safe_median_value(series: pd.Series) -> Optional[float]:
+    if series.empty:
+        return None
+    value = series.median()
+    if pd.isna(value):
+        return None
+    return float(value)
+
 
 def create_orb_detector(nfeatures: int):
     import cv2
@@ -456,8 +589,7 @@ def match_orb_pair(
     feature_dy_px = float(np.median(displacement[:, 1]))
 
     # Feature motion is image-content motion.
-    # For a downward-looking camera, camera/drone translation is approximately
-    # the opposite direction in the image plane.
+    # For a downward-looking camera, camera/drone translation is approximately the opposite direction in the image plane.
     delta_x_img_px = -feature_dx_px
     delta_y_img_px = -feature_dy_px
 
@@ -569,7 +701,10 @@ def plot_raw_trajectory(trajectory_df: pd.DataFrame, output_path: Path) -> None:
         label="end",
     )
 
-    ax.set_title("ORB Relative Trajectory — Raw Image-Motion Units")
+    ax.set_title(
+        f"ORB Relative Trajectory — Raw Image-Motion Units\n"
+ #       f"{safe_run_name} | stride={stride} | frames used={len(trajectory_df)}"
+    )    
     ax.set_xlabel("Accumulated image motion x [px]")
     ax.set_ylabel("Accumulated image motion y [px]")
     ax.axis("equal")
@@ -612,7 +747,10 @@ def plot_reference_comparison(trajectory_df: pd.DataFrame, output_path: Path) ->
         label="reference end",
     )
 
-    ax.set_title("ORB Relative Trajectory vs Reference — Shape Comparison")
+    ax.set_title(
+        f"ORB vs Reference — Shape Check Only, Not Metric Localization\n"
+#        f"{safe_run_name} | similarity aligned"
+    )    
     ax.set_xlabel("x ENU relative [m]")
     ax.set_ylabel("y ENU relative [m]")
     ax.axis("equal")
@@ -629,6 +767,10 @@ def run_orb_relative_motion(
     stride: int = 1,
     max_frames: Optional[int] = None,
     orb_cfg: Optional[OrbRelativeMotionConfig] = None,
+    start_imgid: Optional[int] = None,
+    end_imgid: Optional[int] = None,
+    frame_step: int = 1,
+    run_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     start_time = time.perf_counter()
 
@@ -650,21 +792,38 @@ def run_orb_relative_motion(
     synced_df = pd.read_csv(synced_csv)
     synced_df.columns = [str(col).strip() for col in synced_df.columns]
 
+    synced_df, subset_summary = filter_synchronized_frames(
+        synced_df=synced_df,
+        start_imgid=start_imgid,
+        end_imgid=end_imgid,
+        frame_step=frame_step,
+    )
+
     if max_frames is not None:
         synced_df = synced_df.head(max_frames).copy()
+        subset_summary["max_frames_debug_limit"] = int(max_frames)
+        subset_summary["rows_after_max_frames"] = int(len(synced_df))
 
     if len(synced_df) < 2:
         raise ValueError("Need at least 2 synchronized frames for relative motion estimation.")
-
+    
     image_paths = resolve_image_paths(synced_df, config, raw_dir, repo_root)
 
     x_col, y_col = find_reference_xy_columns(synced_df)
     timestamp_col = find_timestamp_column(synced_df)
     imgid_col = _first_existing_column(synced_df, ["imgid", "image_id", "frame_id", "id"])
 
-    traj_dir = output_dir / "trajectories" / STAGE_NAME
-    report_dir = output_dir / "reports" / STAGE_NAME
-    figure_dir = output_dir / "figures" / STAGE_NAME
+    safe_run_name = sanitize_run_name(
+        run_name=run_name,
+        start_imgid=start_imgid,
+        end_imgid=end_imgid,
+        frame_step=frame_step,
+        stride=stride,
+    )
+
+    traj_dir = output_dir / "trajectories" / STAGE_NAME / safe_run_name
+    report_dir = output_dir / "reports" / STAGE_NAME / safe_run_name
+    figure_dir = output_dir / "figures" / STAGE_NAME / safe_run_name
 
     for d in [traj_dir, report_dir, figure_dir]:
         d.mkdir(parents=True, exist_ok=True)
@@ -710,10 +869,29 @@ def run_orb_relative_motion(
     first_row["raw_y_px"] = raw_y
     rows.append(first_row)
 
-    previous_image = read_gray_image(image_paths[0])
-    previous_index = 0
+    used_indices = list(range(0, len(synced_df), stride))
 
-    for curr_index in range(stride, len(synced_df), stride):
+    if len(used_indices) < 2:
+        raise ValueError(
+            "Need at least 2 frames after stride sampling. "
+            f"Rows after subset: {len(synced_df)}, stride: {stride}"
+        )
+
+    imgid_col = subset_summary.get("imgid_column")
+
+    stride_used_summary = summarize_stride_used_frames(
+        synced_df=synced_df,
+        used_indices=used_indices,
+        imgid_col=imgid_col,
+        stride=stride,
+    )
+
+    subset_summary.update(stride_used_summary)
+
+    previous_index = used_indices[0]
+    previous_image = read_gray_image(image_paths[previous_index])
+
+    for curr_index in used_indices[1:]:
         current_image = read_gray_image(image_paths[curr_index])
         pair_result = match_orb_pair(previous_image, current_image, orb, orb_cfg)
 
@@ -812,6 +990,15 @@ def run_orb_relative_motion(
     summary = {
         "dataset_name": dataset_name,
         "stage": STAGE_NAME,
+        "run_name": safe_run_name,
+        "subset": subset_summary,
+        "frame_step": int(frame_step),
+        "stride": int(stride),
+        "selected_rows_before_stride": int(subset_summary.get("rows_after_subset", len(synced_df))),
+        "frames_used_after_stride": int(subset_summary.get("rows_after_stride_sampling", len(trajectory_df))),
+        "first_used_imgid": subset_summary.get("first_used_imgid"),
+        "last_used_imgid": subset_summary.get("last_used_imgid"),
+        "actual_pair_gap_imgid_median": subset_summary.get("actual_pair_gap_imgid_median"),
         "method": f"ORB + BFMatcher + ratio test + RANSAC homography, stride={stride}",
         "input_synchronized_csv": str(synced_csv),
         "frames_used": int(len(trajectory_df)),
@@ -819,9 +1006,9 @@ def run_orb_relative_motion(
         "ok_pairs": ok_pairs,
         "failed_pairs": int(attempted_pairs - ok_pairs),
         "status_counts": {str(k): int(v) for k, v in statuses.items()},
-        "median_good_matches": float(pair_rows["good_matches"].median()),
-        "median_ransac_inliers": float(pair_rows["ransac_inliers"].median()),
-        "median_inlier_ratio": float(pair_rows["inlier_ratio"].median()),
+        "median_good_matches": safe_median_value(pair_rows["good_matches"]),
+        "median_ransac_inliers": safe_median_value(pair_rows["ransac_inliers"]),
+        "median_inlier_ratio": safe_median_value(pair_rows["inlier_ratio"]),
         "raw_path_length_px": compute_path_length(raw_xy),
         "raw_x_range_px": [float(np.nanmin(raw_xy[:, 0])), float(np.nanmax(raw_xy[:, 0]))],
         "raw_y_range_px": [float(np.nanmin(raw_xy[:, 1])), float(np.nanmax(raw_xy[:, 1]))],
