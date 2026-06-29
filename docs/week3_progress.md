@@ -330,3 +330,191 @@ full_40000_41000_stride5
 ```
 
 The goal is to compare actual accumulated trajectory drift, not only pairwise feature-matching quality.
+
+## Update (29th June 2026) — Block 09C.4 and 09D: Zurich MAV Relative Localization Evaluation
+
+### Phase
+
+Week 3 — Relative localization baseline and evaluation.
+
+### Goal
+
+The goal of this stage was to complete the Zurich MAV relative localization analysis by separating:
+
+1. ORB image-to-image tracking quality.
+2. Metric ENU trajectory conversion.
+3. Diagnostic/failure-analysis runs.
+
+This avoids mixing tracking success with metric localization accuracy.
+
+### Implemented / Updated Files
+
+```text
+scripts/build_relative_evaluation_summary.py
+scripts/inspect_metric_geometry_inputs.py
+scripts/run_orb_metric_scaling.py
+scripts/run_orb_metric_scaling_sweep.py
+src/uavloc/relative/orb_metric_scaling.py
+```
+
+### Generated Summary Outputs
+
+```text
+outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary_all_runs.csv
+outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary_official_runs.csv
+outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary_diagnostic_runs.csv
+outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary.json
+```
+
+The evaluation summary separates:
+
+```text
+official runs:   8
+diagnostic runs: 119
+all runs:        127
+```
+
+The official runs contain the main Week 3 result. The diagnostic runs contain sweep, sign-flip, yaw-offset, and scale-multiplier experiments.
+
+### Official ORB Tracking Results
+
+ORB image-to-image tracking remained strong on the selected Zurich MAV full-dataset windows.
+
+```text
+full_00001_01000_stride1: median inlier ratio = 0.915
+full_00001_01000_stride5: median inlier ratio = 0.803
+
+full_40000_41000_stride1: median inlier ratio = 0.914
+full_40000_41000_stride5: median inlier ratio = 0.661
+```
+
+Interpretation:
+
+```text
+stride 1 = safest and strongest tracking baseline
+stride 5 = practical fast-mode candidate, but confidence drops
+```
+
+The lower inlier ratio for stride 5 is expected because frames are farther apart and viewpoint change becomes larger.
+
+### Official Metric Scaling Results
+
+Metric conversion was tested using the current pinhole/nadir-style approximation:
+
+```text
+image motion
+↓
+height / focal length scale
+↓
+yaw rotation
+↓
+local ENU trajectory
+```
+
+Official metric results:
+
+```text
+full_00001_01000_stride1:
+estimated path = 5.961 m
+reference path = 19.312 m
+RMSE = 3.548 m
+final error = 6.799 m
+drift = 35.208 m / 100 m
+
+full_00001_01000_stride5:
+estimated path = 6.423 m
+reference path = 19.056 m
+RMSE = 3.481 m
+final error = 6.744 m
+drift = 35.389 m / 100 m
+
+full_40000_41000_stride1:
+estimated path = 24.911 m
+reference path = 41.235 m
+RMSE = 22.675 m
+final error = 28.345 m
+drift = 68.741 m / 100 m
+
+full_40000_41000_stride5:
+estimated path = 26.288 m
+reference path = 41.235 m
+RMSE = 20.519 m
+final error = 24.774 m
+drift = 60.080 m / 100 m
+```
+
+### Main Finding
+
+The main Week 3 finding is:
+
+```text
+ORB image-to-image tracking works well.
+The weak part is converting image motion into metric ENU motion using approximate height, yaw, and nadir/ground-plane assumptions.
+```
+
+This means the current issue is not primarily feature matching. The issue is the physical conversion layer.
+
+### Geometry and Telemetry Diagnostics
+
+A separate diagnostic script was added to inspect geometry and telemetry assumptions:
+
+```text
+scripts/inspect_metric_geometry_inputs.py
+```
+
+Generated outputs:
+
+```text
+outputs/zurich_mav_full/metadata/09c3_geometry_telemetry_diagnostics/metric_geometry_inputs_by_frame.csv
+outputs/zurich_mav_full/reports/09c3_geometry_telemetry_diagnostics/metric_geometry_summary.json
+outputs/zurich_mav_full/figures/09c3_geometry_telemetry_diagnostics/height_candidates.png
+outputs/zurich_mav_full/figures/09c3_geometry_telemetry_diagnostics/yaw_vs_reference_course.png
+```
+
+The diagnostics showed that:
+
+```text
+height_agl_m is not reliable enough as a true AGL scale source across all segments.
+barometer altitude is smoother, but it is relative/pressure altitude, not direct height above visible ground.
+yaw/course comparison is noisy when computed frame-to-frame and should be smoothed over larger gaps.
+Zurich MAV is useful for ORB tracking and failure analysis, but it is not ideal for simple downward-camera altitude-based metric scaling.
+```
+
+### Diagnostic Sweep Result
+
+A yaw/sign/scale sweep improved the early segment, but the same tuning did not generalize to the middle segment. This confirms that the tuned parameters should not be treated as a real calibration.
+
+The diagnostic sweep is useful for understanding sensitivity, but it is not selected as the official localization model.
+
+### Conclusion
+
+Block 09C.4 and 09D are complete.
+
+Zurich MAV is now documented as:
+
+```text
+successful for:
+- full-dataset loader validation
+- synchronization
+- ORB relative tracking
+- stride testing
+- failure analysis
+
+limited for:
+- simple nadir-style metric scaling
+- stable ENU conversion without reliable true AGL and camera-to-body calibration
+```
+
+The next dataset should be a cleaner downward/nadir dataset such as SatLoc or a company-provided drone dataset with known camera angle, altitude source, and reference trajectory.
+
+### Next Step
+
+After Zurich Week 3 is documented, the next implementation direction is:
+
+```text
+1. Add SatLoc/company dataset loader when folder structure is available.
+2. Reuse the same ORB + metric evaluation pipeline.
+3. Compare Zurich oblique/urban behavior against a clean nadir dataset.
+4. Then move to map alignment and optical-flow/sensor-fusion extensions.
+```
+
