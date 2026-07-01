@@ -1,0 +1,34 @@
+dataset:
+  name: satloc_part1
+  type: satloc
+
+paths:
+  raw_data_dir: data/raw/satloc/part_1
+  output_dir: outputs/satloc
+
+  uav_data_dir: "UAV Data"
+  satellite_data_dir: "Satellite Data"
+
+  satellite_geotiff: "Satellite Data/CS_Area1.tif"
+  satellite_ref_csv: "Satellite Data/ref_sample.csv"
+  satellite_tile_dir: "Satellite Data/sat_image_ref"
+
+satloc:
+  uav_sequence_glob: "traj*"
+
+  image_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".bmp"
+    - ".tif"
+    - ".tiff"
+    - ".webp"
+
+  parse_coordinates_from_filenames: true
+  coordinate_order_hint: unknown
+
+outputs:
+  save_uav_index: true
+  save_satellite_tile_index: true
+  save_report: true
