@@ -10,6 +10,15 @@ from uavloc.relative.orb_metric_scaling import run_orb_metric_scaling
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run ORB metric scaling and reference evaluation.")
     parser.add_argument("--config", required=True, help="Path to dataset YAML config.")
+    parser.add_argument("--run-name", default=None, help="Run name matching the 09B ORB subset output.")
+    parser.add_argument("--input-csv", default=None, help="Optional explicit ORB trajectory CSV.")
+    parser.add_argument(
+        "--input-stage-name",
+        default="09b_orb_relative_motion_subset",
+        help="Input ORB stage folder name.",
+    )
+    parser.add_argument("--height-column", default="height_agl_m", help="Explicit column to use as AGL height in meters, e.g. height or height_agl_m.")
+    parser.add_argument("--yaw-column", default="yaw_deg", help="Explicit yaw/heading column, e.g. azimuth or yaw_deg.")
 
     parser.add_argument(
         "--default-height-m",
@@ -17,11 +26,11 @@ def parse_args() -> argparse.Namespace:
         default=50.0,
         help="Fallback AGL height in meters when no safe height column is found.",
     )
-    parser.add_argument(
-        "--height-column",
-        default=None,
-        help="Explicit column to use as AGL height in meters, e.g. height or height_agl_m.",
-    )
+#    parser.add_argument(
+#        "--height-column",
+#        default=None,
+#        help="Explicit column to use as AGL height in meters, e.g. height or height_agl_m.",
+#    )
     parser.add_argument(
         "--allow-absolute-altitude",
         action="store_true",
@@ -34,11 +43,11 @@ def parse_args() -> argparse.Namespace:
         default=0.0,
         help="Fallback heading/yaw in degrees. Convention: 0=N, 90=E.",
     )
-    parser.add_argument(
-        "--yaw-column",
-        default=None,
-        help="Explicit yaw/heading column, e.g. azimuth or yaw_deg.",
-    )
+    # parser.add_argument(
+    #     "--yaw-column",
+    #     default=None,
+    #     help="Explicit yaw/heading column, e.g. azimuth or yaw_deg.",
+    # )
 
     parser.add_argument("--fx", type=float, default=None, help="Optional focal length x in pixels.")
     parser.add_argument("--fy", type=float, default=None, help="Optional focal length y in pixels.")
@@ -63,7 +72,7 @@ def parse_args() -> argparse.Namespace:
         default=1.0,
         help="Debug scale multiplier. Keep 1.0 for normal runs.",
     )
-
+    parser.add_argument("--yaw-offset-deg", type=float, default=0.0)
     return parser.parse_args()
 
 
@@ -76,16 +85,23 @@ def main() -> None:
         fixed_heading_deg=args.fixed_heading_deg,
         height_column=args.height_column,
         yaw_column=args.yaw_column,
+        run_name=args.run_name,
+        input_csv=args.input_csv,
+        input_stage_name=args.input_stage_name,
         allow_absolute_altitude=args.allow_absolute_altitude,
         fx=args.fx,
         fy=args.fy,
         image_x_to_right_sign=args.image_x_to_right_sign,
         image_y_to_forward_sign=args.image_y_to_forward_sign,
         scale_multiplier=args.scale_multiplier,
+        yaw_offset_deg=args.yaw_offset_deg,
     )
 
     print("ORB metric scaling generated")
     print("----------------------------")
+    print(f"Run name:        {summary.get('run_name')}")
+    print(f"Dataset:         {summary.get('dataset_name')}")
+    print(f"Input ORB CSV:   {summary.get('input_orb_trajectory_csv')}")
     print(f"Frames:                 {summary['frames']}")
     print(f"Camera fx/fy [px]:      {summary['camera_intrinsics']['fx']:.3f} / {summary['camera_intrinsics']['fy']:.3f}")
     print(f"Calibration source:     {summary['camera_intrinsics']['source']}")

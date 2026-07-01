@@ -4,14 +4,28 @@ import argparse
 import json
 from pathlib import Path
 
-from uavloc.relative.orb_relative_motion import OrbRelativeMotionConfig, run_orb_relative_motion
+from uavloc.relative.orb_relative_motion import (
+    OrbRelativeMotionConfig,
+    run_orb_relative_motion,
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run first ORB relative motion baseline.")
+    parser = argparse.ArgumentParser(
+        description="Run ORB relative motion baseline on full or selected dataset windows."
+    )
+
     parser.add_argument("--config", required=True, help="Path to dataset YAML config.")
-    parser.add_argument("--stride", type=int, default=1, help="Frame stride. Use 1 for first baseline.")
-    parser.add_argument("--max-frames", type=int, default=None, help="Optional debug limit, e.g. 50.")
+
+    parser.add_argument("--stride", type=int, default=1, help="Frame stride used for ORB pair accumulation.")
+    parser.add_argument("--frame-step", type=int, default=1, help="Optional pre-subset step inside the selected imgid window.")
+
+    parser.add_argument("--start-imgid", type=int, default=None, help="Inclusive starting imgid for subset run.")
+    parser.add_argument("--end-imgid", type=int, default=None, help="Inclusive ending imgid for subset run.")
+    parser.add_argument("--run-name", default=None, help="Run-specific output folder name.")
+
+    parser.add_argument("--max-frames", type=int, default=None, help="Optional debug limit after subset filtering.")
+
     parser.add_argument("--nfeatures", type=int, default=2000, help="ORB feature count.")
     parser.add_argument("--ratio-test", type=float, default=0.75, help="Lowe ratio test threshold.")
     parser.add_argument("--max-hamming-distance", type=int, default=96, help="Maximum ORB descriptor distance kept.")
@@ -19,6 +33,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-good-matches", type=int, default=30, help="Minimum good matches required.")
     parser.add_argument("--min-ransac-inliers", type=int, default=20, help="Minimum RANSAC inliers required.")
     parser.add_argument("--max-reasonable-step-px", type=float, default=250.0, help="Reject very large image-motion jumps.")
+
     return parser.parse_args()
 
 
@@ -27,6 +42,11 @@ def main() -> None:
 
     if args.stride < 1:
         raise ValueError("--stride must be >= 1")
+    if args.frame_step < 1:
+        raise ValueError("--frame-step must be >= 1")
+    if args.start_imgid is not None and args.end_imgid is not None:
+        if args.start_imgid > args.end_imgid:
+            raise ValueError("--start-imgid must be <= --end-imgid")
 
     orb_cfg = OrbRelativeMotionConfig(
         stride=args.stride,
@@ -44,26 +64,44 @@ def main() -> None:
         stride=args.stride,
         max_frames=args.max_frames,
         orb_cfg=orb_cfg,
+        start_imgid=args.start_imgid,
+        end_imgid=args.end_imgid,
+        frame_step=args.frame_step,
+        run_name=args.run_name,
     )
 
     print("ORB relative motion generated")
     print("-----------------------------")
-    print(f"Frames used:         {summary['frames_used']}")
-    print(f"Attempted pairs:     {summary['attempted_pairs']}")
-    print(f"OK pairs:            {summary['ok_pairs']}")
-    print(f"Failed pairs:        {summary['failed_pairs']}")
-    print(f"Median matches:      {summary['median_good_matches']:.1f}")
-    print(f"Median inliers:      {summary['median_ransac_inliers']:.1f}")
-    print(f"Median inlier ratio: {summary['median_inlier_ratio']:.3f}")
+    print(f"Run name:        {summary['run_name']}")
+    print(f"Dataset:         {summary['dataset_name']}")
+    print(f"Frames used:     {summary['frames_used']}")
+    print(f"Selected rows:   {summary.get('selected_rows_before_stride')}")
+    print(f"Frames after stride sampling: {summary.get('frames_used_after_stride')}")
+    print(f"First used imgid: {summary.get('first_used_imgid')}")
+    print(f"Last used imgid:  {summary.get('last_used_imgid')}")
+    print(f"Median imgid gap: {summary.get('actual_pair_gap_imgid_median')}")    
+    print(f"Attempted pairs: {summary['attempted_pairs']}")
+    print(f"OK pairs:        {summary['ok_pairs']}")
+    print(f"Failed pairs:    {summary['failed_pairs']}")
+
+    if summary["median_good_matches"] is not None:
+        print(f"Median matches:  {summary['median_good_matches']:.1f}")
+    if summary["median_ransac_inliers"] is not None:
+        print(f"Median inliers:  {summary['median_ransac_inliers']:.1f}")
+    if summary["median_inlier_ratio"] is not None:
+        print(f"Median inlier ratio: {summary['median_inlier_ratio']:.3f}")
 
     alignment = summary.get("alignment_to_reference", {})
-
     if alignment.get("available", False):
-        print(f"Aligned RMSE [m]:    {alignment['aligned_rmse_m']:.3f}")
-        print(f"Scale [m/px]:        {alignment['scale_m_per_px']:.6f}")
-        print(f"Rotation [deg]:      {alignment['rotation_deg']:.2f}")
+        print(f"Aligned RMSE [m]: {alignment['aligned_rmse_m']:.3f}")
+        print(f"Scale [m/px]:     {alignment['scale_m_per_px']:.6f}")
+        print(f"Rotation [deg]:   {alignment['rotation_deg']:.2f}")
     else:
-        print(f"Alignment:           not available ({alignment.get('reason', 'unknown reason')})")
+        print(f"Alignment: not available ({alignment.get('reason', 'unknown reason')})")
+
+    print("\nSubset")
+    print("------")
+    print(json.dumps(summary["subset"], indent=2))
 
     print("\nOutputs")
     print("-------")

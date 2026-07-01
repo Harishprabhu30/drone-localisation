@@ -15,8 +15,8 @@ from uavloc.relative.orb_relative_motion import (
 )
 
 
-STAGE07_NAME = "07_orb_relative_motion"
-STAGE08_NAME = "08_orb_metric_scaling"
+ORB_INPUT_STAGE_NAME = "09b_orb_relative_motion_subset"
+STAGE_NAME = "09c_orb_metric_scaling_subset"
 
 
 def first_existing_column(df: pd.DataFrame, candidates: list[str]) -> Optional[str]:
@@ -33,8 +33,42 @@ def safe_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
 
 
+def resolve_orb_input_trajectory(
+    output_dir: Path,
+    run_name: Optional[str],
+    input_csv: Optional[str | Path] = None,
+    input_stage_name: str = ORB_INPUT_STAGE_NAME,
+) -> Path:
+    if input_csv is not None:
+        path = Path(input_csv)
+        if not path.exists():
+            raise FileNotFoundError(f"Explicit ORB trajectory CSV not found: {path}")
+        return path
+
+    if run_name is None or not str(run_name).strip():
+        # Backward-compatible old sample/default path.
+        path = output_dir / "trajectories" / "07_orb_relative_motion" / "orb_relative_trajectory.csv"
+    else:
+        path = (
+            output_dir
+            / "trajectories"
+            / input_stage_name
+            / str(run_name)
+            / "orb_relative_trajectory.csv"
+        )
+
+    if not path.exists():
+        raise FileNotFoundError(
+            "ORB input trajectory not found.\n"
+            f"Expected: {path}\n"
+            "Run Block 09B first, or pass --input-csv explicitly."
+        )
+
+    return path
+
+
 def load_stage07_trajectory(output_dir: Path) -> Path:
-    path = output_dir / "trajectories" / STAGE07_NAME / "orb_relative_trajectory.csv"
+    path = output_dir / "trajectories" / ORB_INPUT_STAGE_NAME / "orb_relative_trajectory.csv"
 
     if not path.exists():
         raise FileNotFoundError(
@@ -522,6 +556,9 @@ def plot_error_over_frame(df: pd.DataFrame, output_path: Path) -> None:
 
 def run_orb_metric_scaling(
     config_path: str | Path,
+    run_name: Optional[str] = None,
+    input_csv: Optional[str | Path] = None,
+    input_stage_name: str = ORB_INPUT_STAGE_NAME,
     default_height_m: float = 50.0,
     fixed_heading_deg: float = 0.0,
     height_column: Optional[str] = None,
@@ -532,11 +569,18 @@ def run_orb_metric_scaling(
     image_x_to_right_sign: float = 1.0,
     image_y_to_forward_sign: float = 1.0,
     scale_multiplier: float = 1.0,
+    yaw_offset_deg: float = 0.0,
 ) -> Dict[str, Any]:
     _, _, raw_dir, output_dir, dataset_name = resolve_project_paths(config_path)
 
-    stage07_csv = load_stage07_trajectory(output_dir)
-    traj_df = pd.read_csv(stage07_csv)
+    orb_csv = resolve_orb_input_trajectory(
+        output_dir=output_dir,
+        run_name=run_name,
+        input_csv=input_csv,
+        input_stage_name=input_stage_name,
+    )
+
+    traj_df = pd.read_csv(orb_csv)
     traj_df.columns = [str(c).strip() for c in traj_df.columns]
 
     df = attach_synchronized_metadata(traj_df, output_dir)
@@ -555,23 +599,25 @@ def run_orb_metric_scaling(
     chosen_yaw_col, yaw_mode = choose_yaw_column(df, explicit_yaw_column=yaw_column)
     yaw_rad, yaw_summary = build_yaw_rad(df, chosen_yaw_col, fixed_heading_deg)
 
+    if abs(float(yaw_offset_deg)) > 1e-12:
+        yaw_rad = yaw_rad + math.radians(float(yaw_offset_deg))
+
+    yaw_summary["yaw_offset_deg"] = float(yaw_offset_deg)
+
     dx_px = safe_numeric(df["delta_x_img_px"]).fillna(0.0).to_numpy(dtype=float)
     dy_px = safe_numeric(df["delta_y_img_px"]).fillna(0.0).to_numpy(dtype=float)
 
-    # Pinhole approximation for small nadir-view motions:
-    # ground meters per pixel ≈ height_above_ground / focal_length_px.
     meters_per_px_x = (height_m / fx_px) * float(scale_multiplier)
     meters_per_px_y = (height_m / fy_px) * float(scale_multiplier)
 
     camera_right_m = float(image_x_to_right_sign) * dx_px * meters_per_px_x
     camera_forward_m = float(image_y_to_forward_sign) * dy_px * meters_per_px_y
 
-    # Heading convention used here:
+    # Heading convention:
     # yaw/heading = 0 deg points North, +90 deg points East.
     delta_east_m = camera_forward_m * np.sin(yaw_rad) + camera_right_m * np.cos(yaw_rad)
     delta_north_m = camera_forward_m * np.cos(yaw_rad) - camera_right_m * np.sin(yaw_rad)
 
-    # Keep start at zero.
     if len(delta_east_m) > 0:
         delta_east_m[0] = 0.0
         delta_north_m[0] = 0.0
@@ -590,9 +636,16 @@ def run_orb_metric_scaling(
 
     reference_metrics = compute_reference_metrics(df)
 
-    traj_dir = output_dir / "trajectories" / STAGE08_NAME
-    report_dir = output_dir / "reports" / STAGE08_NAME
-    figure_dir = output_dir / "figures" / STAGE08_NAME
+    if run_name is not None and str(run_name).strip():
+        safe_run_name = str(run_name).strip()
+        traj_dir = output_dir / "trajectories" / STAGE_NAME / safe_run_name
+        report_dir = output_dir / "reports" / STAGE_NAME / safe_run_name
+        figure_dir = output_dir / "figures" / STAGE_NAME / safe_run_name
+    else:
+        safe_run_name = "default"
+        traj_dir = output_dir / "trajectories" / STAGE_NAME
+        report_dir = output_dir / "reports" / STAGE_NAME
+        figure_dir = output_dir / "figures" / STAGE_NAME
 
     for d in [traj_dir, report_dir, figure_dir]:
         d.mkdir(parents=True, exist_ok=True)
@@ -611,12 +664,19 @@ def run_orb_metric_scaling(
 
     estimated_xy = df[["estimated_x_enu_m", "estimated_y_enu_m"]].to_numpy(dtype=float)
 
+    ref_eval = reference_metrics if reference_metrics.get("available", False) else {}
+
     summary = {
         "dataset_name": dataset_name,
-        "stage": STAGE08_NAME,
-        "input_stage07_csv": str(stage07_csv),
+        "stage": STAGE_NAME,
+        "run_name": safe_run_name,
+        "input_orb_trajectory_csv": str(orb_csv),
+        "input_stage_name": input_stage_name,
+        "output_stage_name": STAGE_NAME,
         "frames": int(len(df)),
         "camera_intrinsics": camera,
+        "height_column": chosen_height_col,
+        "yaw_column": chosen_yaw_col,
         "height": {
             "selection_mode": height_mode,
             **height_summary,
@@ -631,6 +691,7 @@ def run_orb_metric_scaling(
             "heading_convention": "0 deg = North, +90 deg = East",
         },
         "scale_multiplier": float(scale_multiplier),
+        "yaw_offset_deg": float(yaw_offset_deg),
         "estimated_path_length_m": compute_path_length(estimated_xy),
         "estimated_x_range_m": [
             float(np.nanmin(df["estimated_x_enu_m"])),
@@ -646,6 +707,16 @@ def run_orb_metric_scaling(
             "min": float(np.nanmin(df["confidence"])),
         },
         "reference_evaluation": reference_metrics,
+
+        # Convenience top-level fields for terminal printing.
+        "reference_path_length_m": ref_eval.get("reference_path_length_m"),
+        "rmse_m": ref_eval.get("rmse_m"),
+        "mean_error_m": ref_eval.get("mean_error_m"),
+        "median_error_m": ref_eval.get("median_error_m"),
+        "max_error_m": ref_eval.get("max_error_m"),
+        "final_error_m": ref_eval.get("final_error_m"),
+        "drift_per_100m": ref_eval.get("drift_per_100m"),
+
         "outputs": {
             "trajectory_csv": str(trajectory_csv),
             "summary_json": str(summary_json),
