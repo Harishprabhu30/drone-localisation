@@ -9,9 +9,7 @@ Status: SatLoc loader and visual diagnostics are working. Next step is S4A ORB t
 
 ## 1. Why this block was added
 
-After Zurich MAV closeout, the project shifted from oblique-camera relative localization to SatLoc map-based localization. SatLoc provides UAV images, satellite/map tiles, and coordinate labels encoded in UAV filenames. This makes it suitable for the internship task direction: UAV-to-satellite / UAV-to-map localization, candidate coordinate output, and evaluation against withheld/reference labels.
-
-Before implementing full tile retrieval, we added a short visual-domain diagnostics block because UAV-to-satellite matching has a strong visual gap:
+Before implementing full tile retrieval, adding visual-domain diagnostics block because UAV-to-satellite matching has a strong visual gap:
 
 - UAV frames are sharper, closer, and sometimes view-dependent.
 - Satellite tiles are blurrier, lower-detail, and map-like.
