@@ -367,7 +367,7 @@ Interpretation:
 ![True tile matching with satelite ref images](assets/week4_satloc_visual_diagnostics/traj01_frame_0100_true_tile_orb_matches.png)
 
 
-## Conclusion:
+Conclusion:
 
 ```text
 A visual-domain preprocessing study was conducted on SatLoc traj01. Luma, CLAHE-luma, bilateral+CLAHE, and mild-CLAHE+bilateral variants were compared using ORB keypoint distribution and true-tile UAV-to-satellite matching. Although CLAHE and mild bilateral preprocessing slightly improved average true-tile matching over raw luma, all classical ORB variants produced low match counts and low RANSAC inlier counts. This suggests that direct ORB homography to a single ground-truth tile is unstable under UAV-to-satellite appearance, scale, blur, texture, and viewpoint mismatch. The next step is therefore to test top-k satellite tile retrieval and candidate localization, not to continue tuning visual preprocessing.
