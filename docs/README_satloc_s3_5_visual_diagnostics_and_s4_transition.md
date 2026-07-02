@@ -356,15 +356,15 @@ Interpretation:
 - Preprocessing alone is not enough to solve UAV-to-satellite localization.
 
 ### Important Figures:
-![Satloc Traj01 reference trajectory [ENU]](docs/assets/week4_satloc_visual_diagnostics/satloc_all_global_enu.png)
+![Satloc Traj01 reference trajectory [ENU]](assets/week4_satloc_visual_diagnostics/satloc_all_global_enu.png)
 
-![Satloc Traj01 reference trajectory [Lon/Lat]](docs/assets/week4_satloc_visual_diagnostics/satloc_all_lonlat.png)
+![Satloc Traj01 reference trajectory [Lon/Lat]](assets/week4_satloc_visual_diagnostics/satloc_all_lonlat.png)
 
-![Feature Preprocessing Trials](docs/assets/week4_satloc_visual_diagnostics/traj01_frame_0100_focused_sobel.png)
+![Feature Preprocessing Trials](assets/week4_satloc_visual_diagnostics/traj01_frame_0100_focused_sobel.png)
 
-![ORB preprocessing Comparision on different Feature Extraction methods](docs/assets/week4_satloc_visual_diagnostics/traj01_frame_0100_orb_preprocessing_comparison.png)
+![ORB preprocessing Comparision on different Feature Extraction methods](assets/week4_satloc_visual_diagnostics/traj01_frame_0100_orb_preprocessing_comparison.png)
 
-![True tile matching with satelite ref images](docs/assets/week4_satloc_visual_diagnostics/traj01_frame_0100_true_tile_orb_matches.png)
+![True tile matching with satelite ref images](assets/week4_satloc_visual_diagnostics/traj01_frame_0100_true_tile_orb_matches.png)
 
 
 ## Conclusion:
