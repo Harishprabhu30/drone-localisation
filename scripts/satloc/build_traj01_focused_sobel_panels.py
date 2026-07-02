@@ -94,19 +94,40 @@ def make_luma(rgb: np.ndarray) -> np.ndarray:
     return np.clip(luma, 0, 255).astype(np.uint8)
 
 
-def make_clahe(gray: np.ndarray, clip_limit: float = 2.0) -> np.ndarray:
-    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
+# def make_clahe(gray: np.ndarray, clip_limit: float = 2.0) -> np.ndarray:
+#     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
+#     return clahe.apply(gray)
+
+
+# def make_bilateral(gray: np.ndarray) -> np.ndarray:
+#     return cv2.bilateralFilter(
+#         gray,
+#         d=7,
+#         sigmaColor=75,
+#         sigmaSpace=75,
+#     )
+
+# adding adjustable make_clahe and make_bilateral
+def make_clahe(gray: np.ndarray, clip_limit: float = 2.0, tile_size: int = 8) -> np.ndarray:
+    clahe = cv2.createCLAHE(
+        clipLimit=clip_limit,
+        tileGridSize=(tile_size, tile_size),
+    )
     return clahe.apply(gray)
 
 
-def make_bilateral(gray: np.ndarray) -> np.ndarray:
+def make_bilateral(
+    gray: np.ndarray,
+    d: int = 9,
+    sigma_color: float = 55,
+    sigma_space: float = 55,
+) -> np.ndarray:
     return cv2.bilateralFilter(
         gray,
-        d=7,
-        sigmaColor=75,
-        sigmaSpace=75,
+        d=d,
+        sigmaColor=sigma_color,
+        sigmaSpace=sigma_space,
     )
-
 
 def sobel_mag(gray: np.ndarray) -> np.ndarray:
     gray_f = gray.astype(np.float32) / 255.0
@@ -118,7 +139,19 @@ def sobel_mag(gray: np.ndarray) -> np.ndarray:
     return normalize_uint8(mag)
 
 
-def build_focused_panel(row: pd.Series, output_path: Path, max_dim: int = 1000) -> None:
+# def build_focused_panel(row: pd.Series, output_path: Path, max_dim: int = 1000) -> None: --> old
+def build_focused_panel(
+    row: pd.Series,
+    output_path: Path,
+    max_dim: int = 1000,
+    clahe_clip_limit: float = 2.0,
+    clahe_tile_size: int = 8,
+    small_clahe_clip_limit: float = 1.0,
+    small_clahe_tile_size: int = 8,
+    bilateral_d: int = 9,
+    bilateral_sigma_color: float = 55,
+    bilateral_sigma_space: float = 55,
+) -> None:
     image_path = Path(row["image_path"])
 
     img_bgr = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
@@ -128,34 +161,65 @@ def build_focused_panel(row: pd.Series, output_path: Path, max_dim: int = 1000) 
     img_bgr = resize_to_max_dim(img_bgr, max_dim=max_dim)
     rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
-    luma = make_luma(rgb)
-    clahe_luma = make_clahe(luma)
+# old v1
+    # luma = make_luma(rgb)
+    # clahe_luma = make_clahe(luma)
 
-    bilateral_luma = make_bilateral(luma)
-    bilateral_on_clahe = make_bilateral(clahe_luma)
+    # bilateral_luma = make_bilateral(luma)
+    # bilateral_on_clahe = make_bilateral(clahe_luma)
+
+    # sobel_luma = sobel_mag(luma)
+    # sobel_clahe_luma = sobel_mag(clahe_luma)
+    # sobel_bilateral_luma = sobel_mag(bilateral_luma)
+    # sobel_bilateral_on_clahe = sobel_mag(bilateral_on_clahe)
+
+# v2 
+    luma = make_luma(rgb)
+
+    clahe_luma = make_clahe(
+        luma,
+        clip_limit=clahe_clip_limit,
+        tile_size=clahe_tile_size,
+    )
+
+    small_clahe_luma = make_clahe(
+        luma,
+        clip_limit=small_clahe_clip_limit,
+        tile_size=small_clahe_tile_size,
+    )
+
+    bilateral_on_clahe = make_bilateral(
+        clahe_luma,
+        d=bilateral_d,
+        sigma_color=bilateral_sigma_color,
+        sigma_space=bilateral_sigma_space,
+    )
+
+    bilateral_on_small_clahe = make_bilateral(
+        small_clahe_luma,
+        d=bilateral_d,
+        sigma_color=bilateral_sigma_color,
+        sigma_space=bilateral_sigma_space,
+    )
 
     sobel_luma = sobel_mag(luma)
     sobel_clahe_luma = sobel_mag(clahe_luma)
-    sobel_bilateral_luma = sobel_mag(bilateral_luma)
     sobel_bilateral_on_clahe = sobel_mag(bilateral_on_clahe)
+    sobel_bilateral_on_small_clahe = sobel_mag(bilateral_on_small_clahe)
 
     panels = [
         ("RGB original", rgb, None),
-        ("Luma", luma, "gray"),
-        ("CLAHE on luma", clahe_luma, "gray"),
-
-        ("Bilateral on luma", bilateral_luma, "gray"),
-        ("Bilateral on CLAHE-luma", bilateral_on_clahe, "gray"),
         ("Sobel on luma", sobel_luma, "gray"),
-
         ("Sobel on CLAHE-luma", sobel_clahe_luma, "gray"),
-        ("Sobel on bilateral-luma", sobel_bilateral_luma, "gray"),
-        ("Sobel on bilateral-CLAHE-luma", sobel_bilateral_on_clahe, "gray"),
+
+        ("CLAHE-luma (normal)", clahe_luma, "gray"),
+        ("Sobel on bilateral( CLAHE-luma )", sobel_bilateral_on_clahe, "gray"),
+        ("Sobel on bilateral( small-CLAHE-luma )", sobel_bilateral_on_small_clahe, "gray"),
     ]
 
     ensure_dir(output_path.parent)
 
-    fig, axes = plt.subplots(3, 3, figsize=(15, 12))
+    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
     axes_flat = axes.flatten()
 
     for ax, (title, img, cmap) in zip(axes_flat, panels):
@@ -206,6 +270,16 @@ def main() -> None:
     parser.add_argument("--ranges", default=None, help="Example: 1-150:6,250-350:6,400-500:6")
     parser.add_argument("--max-dim", type=int, default=1000)
     parser.add_argument("--max-panels", type=int, default=80)
+
+    parser.add_argument("--clahe-clip-limit", type=float, default=2.0)
+    parser.add_argument("--clahe-tile-size", type=int, default=12)
+
+    parser.add_argument("--small-clahe-clip-limit", type=float, default=2.0)
+    parser.add_argument("--small-clahe-tile-size", type=int, default=4)
+
+    parser.add_argument("--bilateral-d", type=int, default=9)
+    parser.add_argument("--bilateral-sigma-color", type=float, default=55.0)
+    parser.add_argument("--bilateral-sigma-space", type=float, default=55.0)
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -241,7 +315,19 @@ def main() -> None:
         frame_idx = int(row["frame_index_in_sequence"])
         output_path = panel_dir / f"traj01_frame_{frame_idx:04d}_focused_sobel.png"
 
-        build_focused_panel(row, output_path, max_dim=args.max_dim)
+        # build_focused_panel(row, output_path, max_dim=args.max_dim) --> old
+        build_focused_panel(
+            row,
+            output_path,
+            max_dim=args.max_dim,
+            clahe_clip_limit=args.clahe_clip_limit,
+            clahe_tile_size=args.clahe_tile_size,
+            small_clahe_clip_limit=args.small_clahe_clip_limit,
+            small_clahe_tile_size=args.small_clahe_tile_size,
+            bilateral_d=args.bilateral_d,
+            bilateral_sigma_color=args.bilateral_sigma_color,
+            bilateral_sigma_space=args.bilateral_sigma_space,
+        )    
 
         panel_paths.append(str(output_path))
         print(f"Saved frame {frame_idx}: {output_path}")
