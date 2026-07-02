@@ -20,6 +20,9 @@ def ensure_dir(path: str | Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def absdiff_uint8(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return cv2.absdiff(a, b)
+
 
 def load_config(config_path: str | Path) -> dict:
     with Path(config_path).open("r", encoding="utf-8") as f:
@@ -173,7 +176,7 @@ def build_focused_panel(
     # sobel_bilateral_luma = sobel_mag(bilateral_luma)
     # sobel_bilateral_on_clahe = sobel_mag(bilateral_on_clahe)
 
-# v2 
+# v3 
     luma = make_luma(rgb)
 
     clahe_luma = make_clahe(
@@ -182,7 +185,7 @@ def build_focused_panel(
         tile_size=clahe_tile_size,
     )
 
-    small_clahe_luma = make_clahe(
+    alt_clahe_luma = make_clahe(
         luma,
         clip_limit=small_clahe_clip_limit,
         tile_size=small_clahe_tile_size,
@@ -195,8 +198,8 @@ def build_focused_panel(
         sigma_space=bilateral_sigma_space,
     )
 
-    bilateral_on_small_clahe = make_bilateral(
-        small_clahe_luma,
+    bilateral_on_alt_clahe = make_bilateral(
+        alt_clahe_luma,
         d=bilateral_d,
         sigma_color=bilateral_sigma_color,
         sigma_space=bilateral_sigma_space,
@@ -205,16 +208,29 @@ def build_focused_panel(
     sobel_luma = sobel_mag(luma)
     sobel_clahe_luma = sobel_mag(clahe_luma)
     sobel_bilateral_on_clahe = sobel_mag(bilateral_on_clahe)
-    sobel_bilateral_on_small_clahe = sobel_mag(bilateral_on_small_clahe)
+    sobel_bilateral_on_alt_clahe = sobel_mag(bilateral_on_alt_clahe)
+
+    diff_bilateral = absdiff_uint8(bilateral_on_clahe, bilateral_on_alt_clahe)
+    diff_sobel = absdiff_uint8(sobel_bilateral_on_clahe, sobel_bilateral_on_alt_clahe)
+
+    diff_bilateral_mean = float(diff_bilateral.mean())
+    diff_bilateral_p95 = float(np.percentile(diff_bilateral, 95))
+
+    diff_sobel_mean = float(diff_sobel.mean())
+    diff_sobel_p95 = float(np.percentile(diff_sobel, 95))
 
     panels = [
         ("RGB original", rgb, None),
         ("Sobel on luma", sobel_luma, "gray"),
         ("Sobel on CLAHE-luma", sobel_clahe_luma, "gray"),
 
-        ("CLAHE-luma (normal)", clahe_luma, "gray"),
+        ("Bilateral( CLAHE-luma )", bilateral_on_clahe, "gray"),
+        ("Bilateral( alt-CLAHE-luma )", bilateral_on_alt_clahe, "gray"),
+        ("Abs diff: bilateral variants", diff_bilateral, "gray"),
+
         ("Sobel on bilateral( CLAHE-luma )", sobel_bilateral_on_clahe, "gray"),
-        ("Sobel on bilateral( small-CLAHE-luma )", sobel_bilateral_on_small_clahe, "gray"),
+        ("Sobel on bilateral( alt-CLAHE-luma )", sobel_bilateral_on_alt_clahe, "gray"),
+        ("Abs diff: Sobel bilateral variants", diff_sobel, "gray"),
     ]
 
     ensure_dir(output_path.parent)
@@ -228,8 +244,10 @@ def build_focused_panel(
         ax.axis("off")
 
     fig.suptitle(
-        f"Focused Sobel preprocessing — traj01 frame {int(row['frame_index_in_sequence'])} — {row['filename']}",
-        fontsize=13,
+        f"Focused bilateral+CLAHE comparison — traj01 frame {int(row['frame_index_in_sequence'])} — {row['filename']}\n"
+        f"diff_bilateral_mean={diff_bilateral_mean:.2f}, diff_bilateral_p95={diff_bilateral_p95:.2f}, "
+        f"diff_sobel_mean={diff_sobel_mean:.2f}, diff_sobel_p95={diff_sobel_p95:.2f}",
+        fontsize=12,
     )
 
     plt.tight_layout()
