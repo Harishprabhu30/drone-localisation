@@ -1,0 +1,5 @@
+variant,frames,good_matches_mean,good_matches_median,ransac_inliers_mean,ransac_inliers_median,inlier_ratio_mean,homography_success_rate,score_mean,elapsed_ms_mean
+V1_luma,10,7.0,7.0,1.9,0.0,0.18888888888888888,0.4,2.6,71.65759929994238
+V2_clahe_luma,10,7.3,7.0,2.5,2.0,0.22918192918192917,0.5,3.2300000000000004,78.3052171998861
+V3_bilateral_clahe,10,6.8,6.5,1.0,0.0,0.09166666666666667,0.2,1.6800000000000002,71.72334179995232
+V4_bilateral_alt_clahe,10,7.8,7.0,2.3,2.0,0.23128787878787876,0.5,3.08,52.59098849983275
