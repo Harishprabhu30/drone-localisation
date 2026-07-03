@@ -228,8 +228,6 @@ ORB-only global UAV-to-satellite retrieval failed on the 10-query benchmark.
 Recall@1, Recall@5, and Recall@10 were all 0.0.
 ```
 
-This does not mean the code failed. It means the classical ORB signal is not distinctive enough for global map retrieval in this SatLoc setting.
-
 Failure pattern:
 
 1. ORB matches local binary corner-like patches.
@@ -242,9 +240,7 @@ The closest correct tile often had low physical error, around 15 m median, but i
 
 ---
 
-## 6. Baseline conclusion for report
-
-Use this paragraph directly in the progress report:
+## 6. Conclusion
 
 > A classical ORB feature-matching baseline was implemented for SatLoc UAV-to-satellite tile retrieval. Satellite ORB descriptors were precomputed for all 8625 map tiles and UAV query frames were ranked using Lowe-ratio descriptor matching followed by RANSAC homography scoring. While local-subset experiments sometimes placed the correct tile within the top candidates, full-map retrieval over all 8625 tiles failed to retrieve the GT-containing tile within top-10 for 10 sampled `traj01` queries. The benchmark produced Recall@1/5/10 = 0.0, median first-correct rank 271, and median top-1 error 1488.65 m. Evidence diagnostics showed that vegetation, shadows, and repetitive local textures created stronger false-positive ORB matches than the correct map tile. Therefore, ORB is retained as a reproducible classical baseline, but a more global/structural or learned retrieval method is required for the next stage.
 
