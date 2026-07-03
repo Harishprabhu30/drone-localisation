@@ -2,6 +2,7 @@
 
 **Project:** GNSS-denied drone localization / UAV-to-map visual localization  
 **Dataset:** SatLoc `part_1`, sequence `traj01`  
+**Github Branch:** `feature/satloc-baseline-map`
 **Baseline method:** ORB feature matching + Lowe ratio test + RANSAC homography scoring  
 **Stage covered:** S4A.1 to S4A.4
 
