@@ -58,13 +58,13 @@ Key finding:
 
 Example local subset figures:
 
-![S4A.2 token 1 top-10 panel](assets/s4a2_token0001_subset_top10_panel.png)
+![S4A.2 token 1 top-10 panel](assets/satloc_s4a_orb_fullmap_baseline/s4a2_token0001_subset_top10_panel.png)
 
-![S4A.2 token 1 score by rank](assets/s4a2_token0001_subset_score_by_rank.png)
+![S4A.2 token 1 score by rank](assets/satloc_s4a_orb_fullmap_baseline/s4a2_token0001_subset_score_by_rank.png)
 
-![S4A.2 token 100 top-10 panel](assets/s4a2_token0100_subset_top10_panel.png)
+![S4A.2 token 100 top-10 panel](assets/satloc_s4a_orb_fullmap_baseline/s4a2_token0100_subset_top10_panel.png)
 
-![S4A.2 token 100 score by rank](assets/s4a2_token0100_subset_score_by_rank.png)
+![S4A.2 token 100 score by rank](assets/satloc_s4a_orb_fullmap_baseline/s4a2_token0100_subset_score_by_rank.png)
 
 ### S4A.2B — Retrieval evidence diagnostics
 
@@ -176,7 +176,7 @@ python scripts/satloc/s4a_4_multi_query_orb_full_benchmark.py \
 | 9 | 919 | 4220 | 1896.4 | 155 | false | false | false | 175.9 |
 | 10 | 1034 | 5177 | 421.2 | 537 | false | false | false | 224.7 |
 
-CSV copy of this table: [`assets/s4a4_query_summary.csv`](assets/s4a4_query_summary.csv)
+CSV copy of this table: [`assets/satloc_s4a_orb_fullmap_baseline/s4a4_query_summary.csv`](assets/satloc_s4a_orb_fullmap_baseline/s4a4_query_summary.csv)
 
 ### Aggregate metrics
 
@@ -193,7 +193,7 @@ CSV copy of this table: [`assets/s4a4_query_summary.csv`](assets/s4a4_query_summ
 | Runtime per query mean | 191.26 s |
 | Total benchmark runtime | 1966.00 s |
 
-JSON copy of aggregate metrics: [`assets/s4a4_aggregate_metrics.json`](assets/s4a4_aggregate_metrics.json)
+JSON copy of aggregate metrics: [`assets/satloc_s4a_orb_fullmap_baseline/s4a4_aggregate_metrics.json`](assets/satloc_s4a_orb_fullmap_baseline/s4a4_aggregate_metrics.json)
 
 ---
 
@@ -201,19 +201,19 @@ JSON copy of aggregate metrics: [`assets/s4a4_aggregate_metrics.json`](assets/s4
 
 ### Recall summary
 
-![S4A.4 recall summary](assets/s4a4_recall_summary.png)
+![S4A.4 recall summary](assets/satloc_s4a_orb_fullmap_baseline/s4a4_recall_summary.png)
 
 ### First correct rank per query
 
-![S4A.4 first correct rank](assets/s4a4_first_correct_rank.png)
+![S4A.4 first correct rank](assets/satloc_s4a_orb_fullmap_baseline/s4a4_first_correct_rank.png)
 
 ### Top-1 error per query
 
-![S4A.4 top1 error](assets/s4a4_top1_error.png)
+![S4A.4 top1 error](assets/satloc_s4a_orb_fullmap_baseline/s4a4_top1_error.png)
 
 ### Runtime per query
 
-![S4A.4 runtime](assets/s4a4_runtime.png)
+![S4A.4 runtime](assets/satloc_s4a_orb_fullmap_baseline/s4a4_runtime.png)
 
 ---
 
