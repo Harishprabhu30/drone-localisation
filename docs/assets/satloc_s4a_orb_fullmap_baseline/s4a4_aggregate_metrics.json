@@ -1,0 +1,27 @@
+{
+  "run_id": "traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10",
+  "sequence": "traj01",
+  "variant": "V2_clahe_luma",
+  "nfeatures": 1200,
+  "ratio": 0.75,
+  "ransac_thresh": 5.0,
+  "query_count": 10,
+  "tiles_ranked_per_query": 8625,
+  "recall_at_1": 0.0,
+  "recall_at_5": 0.0,
+  "recall_at_10": 0.0,
+  "first_correct_rank_median": 271.0,
+  "first_correct_rank_mean": 324.4,
+  "top1_error_m_median": 1488.649151293641,
+  "top1_error_m_mean": 1437.3742377069982,
+  "closest_correct_error_m_median": 15.851093815589723,
+  "elapsed_per_query_s_mean": 191.26339006969937,
+  "elapsed_total_s": 1966.0027676259997,
+  "summary_csv": "outputs/satloc/metadata/s4a_orb_tile_retrieval/multi_query_benchmark/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10/multi_query_summary.csv",
+  "figures": {
+    "recall_plot": "outputs/satloc/figures/s4a_orb_tile_retrieval/multi_query_benchmark/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10_recall_summary.png",
+    "first_correct_rank_plot": "outputs/satloc/figures/s4a_orb_tile_retrieval/multi_query_benchmark/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10_first_correct_rank.png",
+    "top1_error_plot": "outputs/satloc/figures/s4a_orb_tile_retrieval/multi_query_benchmark/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10_top1_error.png",
+    "runtime_plot": "outputs/satloc/figures/s4a_orb_tile_retrieval/multi_query_benchmark/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10/traj01_multiquery_fullcached_V2_clahe_luma_nf1200_q10_runtime.png"
+  }
+}
