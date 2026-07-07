@@ -10,6 +10,21 @@ This is diagnostic only:
   - UAV filename lon/lat is used only to find GT/nearest tile for visualization/evaluation.
   - No retrieval ranking is performed here.
   - No benchmark is performed here.
+
+code best to run v1:
+(.drone_venv) (base) harishprabhu@Harishs-Air drone-localisation % python scripts/satloc/s4c/s4c_0_macrocontour_preflight.py \
+  --sequence traj01 \
+  --tokens 1,100,166 \
+  --preprocess luma \
+  --resize-size 512 \
+  --edge-method sobel \
+  --blur-ksize 3 \
+  --threshold-mode percentile \
+  --threshold-percentile 65 \
+  --close-ksize 3 \
+  --open-ksize 1 \
+  --min-component-area 25 \
+  --include-s4b-false 
 """
 
 from __future__ import annotations
