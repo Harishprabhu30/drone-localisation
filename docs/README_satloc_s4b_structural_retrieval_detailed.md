@@ -239,7 +239,7 @@ python scripts/satloc/s4b_1d_score_decomposition_panel.py \
 
 #### Figure: token 1 score decomposition panel
 
-![S4B.1d token 1 decomposition](assets/satloc/s4b_structural_retrieval/s4b1d_token0001_luma_hog_edge_modecrop_r512_c8_b9_e32_score_decomposition_panel.png)
+![S4B.1d token 1 decomposition](assets/s4b_structural_retrieval/s4b1d_token0001_luma_hog_edge_modecrop_r512_c8_b9_e32_score_decomposition_panel.png)
 
 How to read:
 
@@ -258,7 +258,7 @@ Interpretation:
 
 #### Figure: token 1 score barplot
 
-![S4B.1d token 1 score barplot](assets/satloc/s4b_structural_retrieval/s4b1d_token0001_luma_hog_edge_modecrop_r512_c8_b9_e32_score_barplot.png)
+![S4B.1d token 1 score barplot](assets/s4b_structural_retrieval/s4b1d_token0001_luma_hog_edge_modecrop_r512_c8_b9_e32_score_barplot.png)
 
 Interpretation:
 
@@ -296,7 +296,7 @@ If another token says file not found, run S4B.1d for that token before S4B.1e.
 
 #### Figure: similarity vs edge density
 
-![S4B.1e edge density](assets/satloc/s4b_structural_retrieval/s4b1e_token0001_similarity_vs_edge_density.png)
+![S4B.1e edge density](assets/s4b_structural_retrieval/s4b1e_token0001_similarity_vs_edge_density.png)
 
 Interpretation:
 
@@ -306,7 +306,7 @@ Interpretation:
 
 #### Figure: similarity vs structural sparsity
 
-![S4B.1e sparsity](assets/satloc/s4b_structural_retrieval/s4b1e_token0001_similarity_vs_sparsity.png)
+![S4B.1e sparsity](assets/s4b_structural_retrieval/s4b1e_token0001_similarity_vs_sparsity.png)
 
 Interpretation:
 
@@ -316,7 +316,7 @@ Interpretation:
 
 #### Figure: sorted texture table
 
-![S4B.1e sorted table](assets/satloc/s4b_structural_retrieval/s4b1e_token0001_sorted_similarity_texture_table.png)
+![S4B.1e sorted table](assets/s4b_structural_retrieval/s4b1e_token0001_sorted_similarity_texture_table.png)
 
 Interpretation:
 
@@ -354,7 +354,7 @@ python scripts/satloc/s4b_1f_texture_penalty_rerank.py \
 
 #### Figure: texture penalty rerank
 
-![S4B.1f rerank](assets/satloc/s4b_structural_retrieval/s4b1f_token0001_texture_penalty_rerank.png)
+![S4B.1f rerank](assets/s4b_structural_retrieval/s4b1f_token0001_texture_penalty_rerank.png)
 
 Interpretation:
 
@@ -411,7 +411,7 @@ Run S4B.1d for a token before running S4B.1g for that token.
 
 #### Figure: token 1 rerank barplot
 
-![S4B.1g token 1 barplot](assets/satloc/s4b_structural_retrieval/s4b1g_token0001_luma_r512_c8_b9_eth0.05_blend0.3_barplot.png)
+![S4B.1g token 1 barplot](assets/s4b_structural_retrieval/s4b1g_token0001_luma_r512_c8_b9_eth0.05_blend0.3_barplot.png)
 
 Interpretation:
 
@@ -421,7 +421,7 @@ Interpretation:
 
 #### Figure: token 1 inspection panel
 
-![S4B.1g token 1 inspection](assets/satloc/s4b_structural_retrieval/s4b1g_token0001_luma_r512_c8_b9_eth0.05_blend0.3_inspection_panel.png)
+![S4B.1g token 1 inspection](assets/s4b_structural_retrieval/s4b1g_token0001_luma_r512_c8_b9_eth0.05_blend0.3_inspection_panel.png)
 
 How to read:
 
@@ -438,7 +438,7 @@ Interpretation:
 
 #### Figure: token 100 rerank barplot
 
-![S4B.1g token 100 barplot](assets/satloc/s4b_structural_retrieval/s4b1g_token0100_luma_r512_c8_b9_eth0.05_blend0.3_barplot.png)
+![S4B.1g token 100 barplot](assets/s4b_structural_retrieval/s4b1g_token0100_luma_r512_c8_b9_eth0.05_blend0.3_barplot.png)
 
 Interpretation:
 
@@ -447,7 +447,7 @@ Interpretation:
 
 #### Figure: token 100 inspection panel
 
-![S4B.1g token 100 inspection](assets/satloc/s4b_structural_retrieval/s4b1g_token0100_luma_r512_c8_b9_eth0.05_blend0.3_inspection_panel.png)
+![S4B.1g token 100 inspection](assets/s4b_structural_retrieval/s4b1g_token0100_luma_r512_c8_b9_eth0.05_blend0.3_inspection_panel.png)
 
 Interpretation:
 
@@ -521,18 +521,3 @@ Recommended directions:
 5. Temporal consistency  
    Use multiple consecutive UAV frames and enforce motion continuity instead of single-frame retrieval.
 
----
-
-## 8. Status
-
-S4B.1 is complete.
-
-This phase should be presented as:
-
-```text
-A classical structural retrieval baseline that improved over ORB,
-identified vegetation/texture false positives,
-and showed why pure HOG/Sobel is not enough for reliable full-map localization.
-```
-
-Next step: start a new candidate method, likely semantic/learned/hybrid retrieval.
