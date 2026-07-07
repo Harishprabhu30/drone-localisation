@@ -119,7 +119,7 @@ python scripts/satloc/s4b_1b_gt_neighborhood_failure_panel.py \
 
 #### Figure: token 166 GT 3x3 neighborhood
 
-![S4B.1b token 166 GT 3x3](assets/satloc/s4b_structural_retrieval/s4b1b_token0166_luma_hog_edge_modecrop_r512_c8_b9_e32_gt3x3_rgb.png)
+![S4B.1b token 166 GT 3x3](assets/s4b_structural_retrieval/s4b1b_token0166_luma_hog_edge_modecrop_r512_c8_b9_e32_gt3x3_rgb.png)
 
 Interpretation:
 
@@ -129,7 +129,7 @@ Interpretation:
 
 #### Figure: token 166 top-k retrieved tiles
 
-![S4B.1b token 166 top-k](assets/satloc/s4b_structural_retrieval/s4b1b_token0166_luma_hog_edge_modecrop_r512_c8_b9_e32_top10_rgb.png)
+![S4B.1b token 166 top-k](assets/s4b_structural_retrieval/s4b1b_token0166_luma_hog_edge_modecrop_r512_c8_b9_e32_top10_rgb.png)
 
 Interpretation:
 
@@ -139,7 +139,7 @@ Interpretation:
 
 #### Figure: token 166 structural decomposition
 
-![S4B.1b token 166 structure](assets/satloc/s4b_structural_retrieval/s4b1b_token0166_luma_hog_edge_modecrop_r512_c8_b9_e32_structure_gt3x3_top5.png)
+![S4B.1b token 166 structure](assets/s4b_structural_retrieval/s4b1b_token0166_luma_hog_edge_modecrop_r512_c8_b9_e32_structure_gt3x3_top5.png)
 
 Interpretation:
 
@@ -149,7 +149,7 @@ Interpretation:
 
 #### Figure: token 1 GT 3x3 neighborhood
 
-![S4B.1b token 1 GT 3x3](assets/satloc/s4b_structural_retrieval/s4b1b_token0001_luma_hog_edge_modecrop_r512_c8_b9_e32_gt3x3_rgb.png)
+![S4B.1b token 1 GT 3x3](assets/s4b_structural_retrieval/s4b1b_token0001_luma_hog_edge_modecrop_r512_c8_b9_e32_gt3x3_rgb.png)
 
 Interpretation:
 
@@ -197,7 +197,7 @@ python scripts/satloc/s4b_1c_shift_tolerance_diagnostic.py \
 
 #### Figure: token 166 shift heatmap
 
-![S4B.1c token 166 shift heatmap](assets/satloc/s4b_structural_retrieval/s4b1c_token0166_luma_modecrop_r512_c8_b9_shift2_shift_heatmaps.png)
+![S4B.1c token 166 shift heatmap](assets/s4b_structural_retrieval/s4b1c_token0166_luma_modecrop_r512_c8_b9_shift2_shift_heatmaps.png)
 
 Interpretation:
 
@@ -208,7 +208,7 @@ Interpretation:
 
 #### Figure: token 1 shift heatmap
 
-![S4B.1c token 1 shift heatmap](assets/satloc/s4b_structural_retrieval/s4b1c_token0001_luma_modecrop_r512_c8_b9_shift2_shift_heatmaps.png)
+![S4B.1c token 1 shift heatmap](assets/s4b_structural_retrieval/s4b1c_token0001_luma_modecrop_r512_c8_b9_shift2_shift_heatmaps.png)
 
 Interpretation:
 
