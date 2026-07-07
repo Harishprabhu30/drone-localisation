@@ -1,4 +1,33 @@
 #!/usr/bin/env python3
+'''
+code to run:
+export PYTHONPATH=$PWD/src                                                                            
+
+python scripts/satloc/s4b_1e_texture_entropy_diagnostic.py \
+  --token 166 \
+  --preprocess luma \
+  --resize-size 512 \   
+  --cells 8 \
+  --bins 9                                                                             
+
+
+insights from this code run:
+
+Token 0001:
+False forest tiles:
+  edge density ≈ 93–94%
+  HOG entropy ≈ 3.14, near max log2(9)=3.17
+  sparsity CV low ≈ 0.10–0.17
+
+GT tile:
+  edge density ≈ 89.7%
+  entropy ≈ 3.10
+  sparsity CV higher ≈ 0.26
+
+Meaning: false forest tiles are dense texture everywhere, and current hog_edge rewards that. 
+The true GT has more structured/sparse edges, but less “edge everywhere”, so it scores lower.
+'''
+
 from __future__ import annotations
 
 import argparse

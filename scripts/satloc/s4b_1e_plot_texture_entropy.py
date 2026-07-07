@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 '''
+
+code to run: python scripts/satloc/s4b_1e_plot_texture_entropy.py --token 1
+
 similarity vs edge density:
   if false positives sit high-right, dense texture is being rewarded.
 
