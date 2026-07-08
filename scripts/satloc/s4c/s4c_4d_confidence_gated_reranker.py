@@ -16,6 +16,15 @@ Important:
   - No reference coordinate is used in scoring/gating.
   - Gates use only PHOG score margin, LSD score gap, shift-boundary flag,
     and rank/score diagnostics.
+
+Code Used:
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s4c/s4c_4d_confidence_gated_reranker.py \
+  --sequence traj01 \
+  --tokens all \
+  --max-good-shift-px 56 \
+  --phog-lsd-agree-rank 5
 """
 
 from __future__ import annotations

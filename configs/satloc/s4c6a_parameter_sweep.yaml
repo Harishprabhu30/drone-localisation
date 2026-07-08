@@ -1,0 +1,120 @@
+stage: S4C.6A_parameter_sensitivity_sweep
+sequence: traj01
+
+inputs:
+  uav_index: outputs/satloc/metadata/uav_frames_index_enriched.csv
+  sat_index: outputs/satloc/metadata/satellite_tiles_index_enriched.csv
+  s4c1_ranked_dir: outputs/satloc/metadata/s4c_macrocontour_phog_chamfer/s4c1_phog_retrieval
+
+sweep:
+  tokens: all
+  phog_top_n: 50
+
+  # Fixed base settings from current best S4C.4C/D path.
+  base_settings:
+    preprocess: luma
+    resize_size: 512
+
+    edge_method: sobel
+    blur_ksize: 3
+    threshold_mode: percentile
+    threshold_percentile: 65
+    close_ksize: 3
+    open_ksize: 1
+    min_component_area: 65
+
+    min_line_length: 24
+    max_lines: 120
+    orientation_bins: 18
+
+    canvas_mode: luma_lsd
+    line_thickness: 2
+    max_shift_px: 48
+    shift_step_px: 8
+    symmetric_weight: 0.25
+    max_points: 8000
+
+  experiments:
+    - name: baseline_current
+      rationale: Current S4C.4C luma-LSD setting.
+      overrides: {}
+
+    - name: macro_more_edges_low_threshold
+      rationale: Lower threshold keeps weak satellite edges and blurred roads/pond boundaries.
+      overrides:
+        threshold_percentile: 55
+        min_component_area: 40
+
+    - name: macro_clean_edges_high_threshold
+      rationale: Higher threshold suppresses vegetation texture and weak noisy edges.
+      overrides:
+        threshold_percentile: 75
+        min_component_area: 100
+
+    - name: smooth_satellite_blur5
+      rationale: Extra blur may reduce UAV-satellite resolution mismatch before edge extraction.
+      overrides:
+        blur_ksize: 5
+
+    - name: lsd_short_dense_lines
+      rationale: Shorter LSD lines may recover small roads/building edges in blurred satellite tiles.
+      overrides:
+        min_line_length: 16
+        max_lines: 160
+
+    - name: lsd_long_clean_lines
+      rationale: Longer LSD lines suppress vegetation clutter and keep stronger road/building lines.
+      overrides:
+        min_line_length: 40
+        max_lines: 80
+
+    - name: thin_line_canvas
+      rationale: Thinner lines make distance-transform alignment stricter.
+      overrides:
+        line_thickness: 1
+
+    - name: thick_line_canvas
+      rationale: Thicker lines give tolerance to blur, slight scale difference, and old satellite edges.
+      overrides:
+        line_thickness: 3
+
+    - name: larger_shift_tolerance
+      rationale: Allows more local crop/FOV displacement.
+      overrides:
+        max_shift_px: 64
+
+    - name: one_way_query_to_candidate
+      rationale: Tests whether symmetric candidate-to-query term is hurting due satellite missing detail.
+      overrides:
+        symmetric_weight: 0.0
+
+    - name: stronger_symmetric_match
+      rationale: Tests whether false line-rich candidates are penalized by stronger symmetry.
+      overrides:
+        symmetric_weight: 0.5
+
+    - name: dense_low_threshold_short_lines_shift64
+      rationale: Aggressive recall setting for weak vegetation/rural/blurred satellite structures.
+      overrides:
+        threshold_percentile: 55
+        min_component_area: 40
+        min_line_length: 16
+        max_lines: 160
+        max_shift_px: 64
+        line_thickness: 3
+
+    - name: clean_high_threshold_long_lines_thin
+      rationale: Conservative precision setting for vegetation clutter suppression.
+      overrides:
+        threshold_percentile: 75
+        min_component_area: 100
+        min_line_length: 40
+        max_lines: 80
+        line_thickness: 1
+
+    - name: blur5_thick_symmetric
+      rationale: Domain-gap setting for old/blurred satellite image with tolerant line matching.
+      overrides:
+        blur_ksize: 5
+        line_thickness: 3
+        symmetric_weight: 0.5
