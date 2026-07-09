@@ -23,6 +23,13 @@ Uses:
 Important:
   - This is analysis only.
   - Reference error is used only after ranking for diagnosis.
+
+Command USed:
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s4c/s4c_6c_failure_group_analysis.py \
+  --threshold-m 40 \
+  --representatives-per-group 4
 """
 
 from __future__ import annotations
