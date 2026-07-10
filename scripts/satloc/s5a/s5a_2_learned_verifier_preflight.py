@@ -29,6 +29,17 @@ python scripts/satloc/s5a/s5a_2_learned_verifier_preflight.py \
   --tokens-per-class 1 \
   --max-pairs 12 \
   --resize-long 768
+
+
+command ran after installing Loftr, lightglue:
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s5a/s5a_2_learned_verifier_preflight.py \
+  --backend lightglue_superpoint \
+  --tokens-per-class 1 \
+  --max-pairs 12 \
+  --resize-long 768 \
+  --max-keypoints 2048
 """
 
 from __future__ import annotations
@@ -404,6 +415,130 @@ def strip_batch_tensor(x: Any):
     return x
 
 
+def _to_numpy_no_batch(x):
+    """
+    Convert torch/list/tuple/numpy LightGlue outputs into a clean numpy object.
+    Handles common LightGlue version differences:
+      tensor [1,K,2] -> [K,2]
+      list length 1  -> first item
+      tuple length 1 -> first item
+    """
+    import numpy as np
+
+    try:
+        import torch
+        if torch.is_tensor(x):
+            y = x.detach().cpu()
+            while y.ndim >= 3 and y.shape[0] == 1:
+                y = y[0]
+            return y.numpy()
+    except Exception:
+        pass
+
+    if isinstance(x, (list, tuple)):
+        if len(x) == 0:
+            return np.zeros((0, 2), dtype=np.int64)
+        if len(x) == 1:
+            return _to_numpy_no_batch(x[0])
+        try:
+            return np.asarray(x)
+        except Exception:
+            return np.array(list(x), dtype=object)
+
+    return x
+
+
+def _extract_lightglue_matches(matches01, feats0, feats1):
+    """
+    Return matched point arrays pts0, pts1 from different LightGlue output formats.
+
+    Supported formats:
+      matches01["matches"]  -> Kx2 tensor/array/list
+      matches01["matches0"] -> N vector where value is matched index in image1 or -1
+    """
+    import numpy as np
+
+    kpts0 = _to_numpy_no_batch(feats0["keypoints"]).astype(np.float32)
+    kpts1 = _to_numpy_no_batch(feats1["keypoints"]).astype(np.float32)
+
+    if "matches" in matches01:
+        matches = _to_numpy_no_batch(matches01["matches"])
+
+        if isinstance(matches, list):
+            matches = np.asarray(matches)
+
+        matches = np.asarray(matches)
+
+        # Some versions may return shape [1,K,2] or object-like list.
+        while matches.ndim >= 3 and matches.shape[0] == 1:
+            matches = matches[0]
+
+        if matches.size == 0:
+            return (
+                np.zeros((0, 2), dtype=np.float32),
+                np.zeros((0, 2), dtype=np.float32),
+            )
+
+        matches = matches.astype(np.int64)
+
+        if matches.ndim != 2 or matches.shape[1] < 2:
+            return (
+                np.zeros((0, 2), dtype=np.float32),
+                np.zeros((0, 2), dtype=np.float32),
+            )
+
+        valid = (
+            (matches[:, 0] >= 0)
+            & (matches[:, 1] >= 0)
+            & (matches[:, 0] < len(kpts0))
+            & (matches[:, 1] < len(kpts1))
+        )
+        matches = matches[valid]
+
+        if len(matches) == 0:
+            return (
+                np.zeros((0, 2), dtype=np.float32),
+                np.zeros((0, 2), dtype=np.float32),
+            )
+
+        pts0 = kpts0[matches[:, 0]]
+        pts1 = kpts1[matches[:, 1]]
+        return pts0.astype(np.float32), pts1.astype(np.float32)
+
+    if "matches0" in matches01:
+        matches0 = _to_numpy_no_batch(matches01["matches0"])
+        matches0 = np.asarray(matches0)
+
+        while matches0.ndim >= 2 and matches0.shape[0] == 1:
+            matches0 = matches0[0]
+
+        matches0 = matches0.astype(np.int64)
+        idx0 = np.where(matches0 > -1)[0]
+        idx1 = matches0[idx0]
+
+        valid = (
+            (idx0 >= 0)
+            & (idx1 >= 0)
+            & (idx0 < len(kpts0))
+            & (idx1 < len(kpts1))
+        )
+        idx0 = idx0[valid]
+        idx1 = idx1[valid]
+
+        if len(idx0) == 0:
+            return (
+                np.zeros((0, 2), dtype=np.float32),
+                np.zeros((0, 2), dtype=np.float32),
+            )
+
+        return kpts0[idx0].astype(np.float32), kpts1[idx1].astype(np.float32)
+
+    return (
+        np.zeros((0, 2), dtype=np.float32),
+        np.zeros((0, 2), dtype=np.float32),
+    )
+
+
 def run_lightglue_superpoint_pair(
     rgb0: np.ndarray,
     rgb1: np.ndarray,
@@ -438,32 +573,7 @@ def run_lightglue_superpoint_pair(
 
         matches01 = matcher({"image0": feats0, "image1": feats1})
 
-    kpts0 = strip_batch_tensor(feats0["keypoints"])
-    kpts1 = strip_batch_tensor(feats1["keypoints"])
-
-    pts0 = np.zeros((0, 2), dtype=np.float32)
-    pts1 = np.zeros((0, 2), dtype=np.float32)
-
-    if "matches" in matches01:
-        matches = matches01["matches"]
-        if torch.is_tensor(matches):
-            if matches.ndim == 3 and matches.shape[0] == 1:
-                matches = matches[0]
-            matches = matches.detach().cpu().numpy()
-        if len(matches) > 0:
-            pts0 = kpts0[matches[:, 0]].detach().cpu().numpy()
-            pts1 = kpts1[matches[:, 1]].detach().cpu().numpy()
-
-    elif "matches0" in matches01:
-        matches0 = matches01["matches0"]
-        if matches0.ndim == 2 and matches0.shape[0] == 1:
-            matches0 = matches0[0]
-        valid = matches0 > -1
-        idx0 = torch.where(valid)[0]
-        idx1 = matches0[valid]
-        if len(idx0) > 0:
-            pts0 = kpts0[idx0].detach().cpu().numpy()
-            pts1 = kpts1[idx1].detach().cpu().numpy()
+    pts0, pts1 = _extract_lightglue_matches(matches01, feats0, feats1)
 
     result["status"] = "ok"
     result["matches"] = int(len(pts0))
@@ -1039,7 +1149,7 @@ def main() -> None:
     print(f"Summary JSON:            {summary_path}")
     print(f"Working panels dir:      {dirs['panels']}")
     print()
-    print("Locked rule: reference/error columns were used only after ranking for diagnostic labels/oracle display.")
+#    print("Locked rule: reference/error columns were used only after ranking for diagnostic labels/oracle display.")
 
 
 if __name__ == "__main__":

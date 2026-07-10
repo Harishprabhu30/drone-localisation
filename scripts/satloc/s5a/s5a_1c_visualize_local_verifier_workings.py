@@ -602,7 +602,7 @@ def main() -> None:
     for p in saved_paths:
         print(f"  {p}")
     print()
-    print("Locked rule: reference/error columns were used only after ranking for diagnostic labels/oracle display.")
+#    print("Locked rule: reference/error columns were used only after ranking for diagnostic labels/oracle display.")
 
 
 if __name__ == "__main__":

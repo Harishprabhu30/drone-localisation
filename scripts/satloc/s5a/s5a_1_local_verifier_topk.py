@@ -747,7 +747,7 @@ def build_summary(query_df: pd.DataFrame, candidate_df: pd.DataFrame, args: argp
         "preprocess": args.preprocess,
         "top_k": args.top_k,
         "threshold_m": args.threshold_m,
-        "locked_rule": "reference coordinates/errors are evaluation-only and are not used for retrieval/ranking/scoring",
+#        "locked_rule": "reference coordinates/errors are evaluation-only and are not used for retrieval/ranking/scoring",
         "num_queries": int(len(query_df)),
         "num_candidates": int(len(candidate_df)),
         "status_counts": query_df["status"].value_counts(dropna=False).to_dict() if "status" in query_df else {},
@@ -943,7 +943,7 @@ def main() -> None:
     print(f"Hit-rate figure:       {hit_fig}")
     print(f"Median-error figure:   {err_fig}")
     print()
-    print("Locked rule: reference coordinates/errors were used only after ranking for evaluation.")
+#    print("Locked rule: reference coordinates/errors were used only after ranking for evaluation.")
 
 
 if __name__ == "__main__":

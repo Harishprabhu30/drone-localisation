@@ -473,7 +473,7 @@ def main() -> None:
     print(f"                        {fig_rank}")
     print(f"                        {fig_scatter}")
     print()
-    print("Locked rule: reference/error columns were used only for post-ranking diagnosis.")
+#    print("Locked rule: reference/error columns were used only for post-ranking diagnosis.")
 
 
 if __name__ == "__main__":
