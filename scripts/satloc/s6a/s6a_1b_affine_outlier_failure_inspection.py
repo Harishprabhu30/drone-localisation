@@ -1,3 +1,16 @@
+'''
+Command Used:
+
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s6a/s6a_1b_affine_outlier_failure_inspection.py \
+  --sequence traj01 \
+  --strides 1,2,5 \
+  --top-per-reason 3 \
+  --max-panels 36 \
+  --max-draw-matches 80
+'''
+
 from __future__ import annotations
 
 import argparse

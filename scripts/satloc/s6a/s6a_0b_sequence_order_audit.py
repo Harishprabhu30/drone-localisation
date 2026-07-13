@@ -1,3 +1,11 @@
+'''
+Command USed: 
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s6a/s6a_0b_sequence_order_audit.py
+
+'''
+
 from __future__ import annotations
 
 import json

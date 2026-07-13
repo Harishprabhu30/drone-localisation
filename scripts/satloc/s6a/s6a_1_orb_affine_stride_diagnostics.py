@@ -1,3 +1,31 @@
+'''
+Command Used:
+1. Trial Run
+
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s6a/s6a_1_orb_affine_stride_diagnostics.py \
+  --sequence traj01 \
+  --strides 1,2,5 \
+  --resize-long 960 \
+  --nfeatures 1200 \
+  --ratio 0.75 \
+  --ransac-thresh 3.0 \
+  --max-frames 150
+
+2. Full run of traj 01:
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s6a/s6a_1_orb_affine_stride_diagnostics.py \
+  --sequence traj01 \
+  --strides 1,2,5 \
+  --resize-long 960 \
+  --nfeatures 1200 \
+  --ratio 0.75 \
+  --ransac-thresh 3.0
+'''
+
+
 from __future__ import annotations
 
 import argparse

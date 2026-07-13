@@ -1,3 +1,16 @@
+'''
+Command USed:
+
+export PYTHONPATH=$PWD/src
+
+python scripts/satloc/s6a/s6a_2_orb_relative_trajectory_and_drift.py \
+  --sequence traj01 \
+  --alignment-prefix-frames 50 \
+  --error-thresholds-m 10,20,40,80 \
+  --sustain-frames 5
+  
+'''
+
 from __future__ import annotations
 
 import argparse
