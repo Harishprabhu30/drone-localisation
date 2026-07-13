@@ -1,0 +1,4 @@
+policy,tokens,hits,hit_rate,median_error_m,oracle_processed_hits,oracle_processed_hit_rate,median_oracle_error_m,median_oracle_lg_rank
+lightglue_only,40,9,0.225,324.8209126576218,12,0.3,89.75725052075056,11.5
+lightglue_plus_union_prior,40,8,0.2,390.24074598055034,12,0.3,89.75725052075056,11.5
+union_rank_only,40,0,0.0,1355.289934961775,12,0.3,89.75725052075056,11.5
