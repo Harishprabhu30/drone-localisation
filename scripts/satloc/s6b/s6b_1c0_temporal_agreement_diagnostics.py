@@ -340,7 +340,8 @@ def add_temporal_features(
         )
 
         frame[f"{prefix}_previous_permissive"] = (
-            permissive.shift(lag).fillna(False)
+            # permissive.shift(lag).fillna(False)
+            permissive.shift(lag, fill_value=False).astype(bool)
         )
 
     for threshold in TEMPORAL_THRESHOLDS_M:
