@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+ABSOLUTE_COORDINATE_ERROR_TOLERANCE_M = 10.0
 
 DEFAULT_FEATURES = Path(
     "outputs/satloc/metadata/s5c_temporal/"
@@ -975,6 +976,205 @@ def main() -> int:
 
     # Validate that each chosen LightGlue result corresponds to one
     # candidate-score row.
+
+    # Convert satellite tile UTM coordinates into the same traj01
+    # start-local frame used by the S6A reference and prefix-aligned
+    # relative trajectory.
+    #
+    # Important:
+    # UAV and satellite x_enu_global_m columns do NOT share an origin.
+    # They were generated independently from the first row of each
+    # dataframe. UTM coordinates are the common projected frame.
+
+    trajectory_origin_utm_x = (
+        pd.to_numeric(
+            manifest["reference_utm_x_m_eval_only"],
+            errors="raise",
+        )
+        - pd.to_numeric(
+            manifest["reference_x_enu_m_eval_only"],
+            errors="raise",
+        )
+    )
+
+    trajectory_origin_utm_y = (
+        pd.to_numeric(
+            manifest["reference_utm_y_m_eval_only"],
+            errors="raise",
+        )
+        - pd.to_numeric(
+            manifest["reference_y_enu_m_eval_only"],
+            errors="raise",
+        )
+    )
+
+    origin_x_spread = float(
+        trajectory_origin_utm_x.max()
+        - trajectory_origin_utm_x.min()
+    )
+    origin_y_spread = float(
+        trajectory_origin_utm_y.max()
+        - trajectory_origin_utm_y.min()
+    )
+
+    if origin_x_spread > 1e-3 or origin_y_spread > 1e-3:
+        raise ValueError(
+            "The traj01 UTM-to-local origin is not constant: "
+            f"x spread={origin_x_spread:.9f} m, "
+            f"y spread={origin_y_spread:.9f} m"
+        )
+
+    traj01_origin_utm_x_m = float(
+        trajectory_origin_utm_x.median()
+    )
+    traj01_origin_utm_y_m = float(
+        trajectory_origin_utm_y.median()
+    )
+
+    manifest[
+        "traj01_origin_utm_x_m_eval_only"
+    ] = traj01_origin_utm_x_m
+
+    manifest[
+        "traj01_origin_utm_y_m_eval_only"
+    ] = traj01_origin_utm_y_m
+
+    # Selected LightGlue tile in traj01 start-local coordinates.
+    manifest["chosen_abs_x_traj01_m"] = (
+        pd.to_numeric(
+            manifest["chosen_abs_utm_x_m"],
+            errors="raise",
+        )
+        - traj01_origin_utm_x_m
+    )
+
+    manifest["chosen_abs_y_traj01_m"] = (
+        pd.to_numeric(
+            manifest["chosen_abs_utm_y_m"],
+            errors="raise",
+        )
+        - traj01_origin_utm_y_m
+    )
+
+    # Evaluation-only oracle tile in traj01 start-local coordinates.
+    manifest["oracle_abs_eval_only_x_traj01_m"] = (
+        pd.to_numeric(
+            manifest[
+                "oracle_abs_eval_only_utm_x_m"
+            ],
+            errors="raise",
+        )
+        - traj01_origin_utm_x_m
+    )
+
+    manifest["oracle_abs_eval_only_y_traj01_m"] = (
+        pd.to_numeric(
+            manifest[
+                "oracle_abs_eval_only_utm_y_m"
+            ],
+            errors="raise",
+        )
+        - traj01_origin_utm_y_m
+    )
+
+    # Verify that S6A reference coordinates and the sequence-manifest
+    # local ENU coordinates represent the same traj01 frame.
+    reference_frame_delta = np.hypot(
+        pd.to_numeric(
+            manifest["reference_x_m"],
+            errors="raise",
+        )
+        - pd.to_numeric(
+            manifest["reference_x_enu_m_eval_only"],
+            errors="raise",
+        ),
+        pd.to_numeric(
+            manifest["reference_y_m"],
+            errors="raise",
+        )
+        - pd.to_numeric(
+            manifest["reference_y_enu_m_eval_only"],
+            errors="raise",
+        ),
+    )
+
+    reference_frame_max_delta = float(
+        reference_frame_delta.max()
+    )
+
+    if reference_frame_max_delta > 1e-3:
+        raise ValueError(
+            "S6A reference coordinates do not match the traj01 "
+            "sequence-local ENU coordinates. "
+            f"Maximum delta={reference_frame_max_delta:.6f} m"
+        )
+
+    # Evaluation-only consistency diagnostics.
+    manifest[
+        "chosen_abs_error_from_traj01_xy_m_eval_only"
+    ] = np.hypot(
+        manifest["chosen_abs_x_traj01_m"]
+        - manifest["reference_x_m"],
+        manifest["chosen_abs_y_traj01_m"]
+        - manifest["reference_y_m"],
+    )
+
+    manifest[
+        "oracle_abs_error_from_traj01_xy_m_eval_only"
+    ] = np.hypot(
+        manifest["oracle_abs_eval_only_x_traj01_m"]
+        - manifest["reference_x_m"],
+        manifest["oracle_abs_eval_only_y_traj01_m"]
+        - manifest["reference_y_m"],
+    )
+
+    chosen_error_delta = np.abs(
+        manifest[
+            "chosen_abs_error_from_traj01_xy_m_eval_only"
+        ]
+        - pd.to_numeric(
+            manifest["chosen_error_m_eval_only"],
+            errors="raise",
+        )
+    )
+
+    oracle_error_delta = np.abs(
+        manifest[
+            "oracle_abs_error_from_traj01_xy_m_eval_only"
+        ]
+        - pd.to_numeric(
+            manifest["oracle_processed_error_m"],
+            errors="raise",
+        )
+    )
+
+    chosen_error_delta_max = float(
+        chosen_error_delta.max()
+    )
+    oracle_error_delta_max = float(
+        oracle_error_delta.max()
+    )
+
+    # Stored errors use geodesic lon/lat distance while the new
+    # coordinates use projected UTM distance. Small differences are
+    # expected, but kilometre-scale differences are not.
+    
+    if (
+        chosen_error_delta_max
+        > ABSOLUTE_COORDINATE_ERROR_TOLERANCE_M
+        or oracle_error_delta_max
+        > ABSOLUTE_COORDINATE_ERROR_TOLERANCE_M
+    ):
+        
+        raise ValueError(
+            "UTM-derived traj01 absolute coordinates do not agree "
+            "with stored geodesic evaluation errors. "
+            f"Tolerance="
+            f"{ABSOLUTE_COORDINATE_ERROR_TOLERANCE_M:.3f} m; "
+            f"chosen max delta={chosen_error_delta_max:.3f} m; "
+            f"oracle max delta={oracle_error_delta_max:.3f} m"
+        )    
+
     selected_candidates = candidate_scores[
         [
             "token",
