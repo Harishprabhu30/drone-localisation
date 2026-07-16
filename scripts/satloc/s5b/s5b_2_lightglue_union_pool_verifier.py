@@ -24,6 +24,25 @@ python scripts/satloc/s5b/s5b_2_lightglue_union_pool_verifier.py \
   --resize-long 512 \
   --max-keypoints 1024 \
   --device cpu
+
+2. to run on full traj 01 frames:
+
+- Since it is long, use tee so the log is saved:
+
+mkdir -p outputs/satloc/reports/s5c_temporal/logs
+
+python scripts/satloc/s5b/s5b_2_lightglue_union_pool_verifier.py \
+  --union-pool outputs/satloc/metadata/s5c_temporal/s5b1c_union_candidate_pool_s5c1_temporal_full263.csv \
+  --out-base outputs/satloc \
+  --run-name s5c2_temporal_union_top50_full263 \
+  --max-tokens 0 \
+  --max-candidates 50 \
+  --threshold-m 40 \
+  --device auto \
+  --resize-long 1024 \
+  --max-keypoints 2048 \
+  --ransac-thresh 5.0 \
+  2>&1 | tee outputs/satloc/reports/s5c_temporal/logs/s5c2_temporal_union_top50_full263.log 
 """
 
 from __future__ import annotations

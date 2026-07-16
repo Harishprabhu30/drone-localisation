@@ -1,0 +1,56 @@
+{
+  "stage": "S5C.2",
+  "description": "Temporal LightGlue verification on S5C.1 union Top-50 candidate pools.",
+  "tokens": 263,
+  "candidate_rows": 13150,
+  "chunks": [
+    "chunk00",
+    "chunk01",
+    "chunk02",
+    "chunk03",
+    "chunk04",
+    "chunk05"
+  ],
+  "policy_summary": [
+    {
+      "policy": "lightglue_only",
+      "tokens": 263,
+      "hits": 68,
+      "hit_rate": 0.2585551330798479,
+      "median_error_m": 138.13829085697634,
+      "oracle_processed_hits": 102,
+      "oracle_processed_hit_rate": 0.38783269961977185,
+      "median_oracle_error_m": 69.92626961209041,
+      "median_oracle_lg_rank": 6.0
+    },
+    {
+      "policy": "lightglue_plus_union_prior",
+      "tokens": 263,
+      "hits": 68,
+      "hit_rate": 0.2585551330798479,
+      "median_error_m": 457.16768259975663,
+      "oracle_processed_hits": 102,
+      "oracle_processed_hit_rate": 0.38783269961977185,
+      "median_oracle_error_m": 69.92626961209041,
+      "median_oracle_lg_rank": 6.0
+    },
+    {
+      "policy": "union_rank_only",
+      "tokens": 263,
+      "hits": 16,
+      "hit_rate": 0.060836501901140684,
+      "median_error_m": 1164.0793210001398,
+      "oracle_processed_hits": 102,
+      "oracle_processed_hit_rate": 0.38783269961977185,
+      "median_oracle_error_m": 69.92626961209041,
+      "median_oracle_lg_rank": 6.0
+    }
+  ],
+  "outputs": {
+    "candidate_scores": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_candidate_scores_top50_full263.csv",
+    "query_summary": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_query_summary_top50_full263.csv",
+    "policy_summary": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_policy_summary_top50_full263.csv",
+    "policy_chunk_summary": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_policy_summary_chunks_top50_full263.csv"
+  },
+  "locked_rule": "Reference/error columns were used only after ranking for evaluation."
+}
