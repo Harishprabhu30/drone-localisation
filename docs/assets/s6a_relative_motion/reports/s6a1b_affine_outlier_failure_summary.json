@@ -1,0 +1,119 @@
+{
+  "stage": "S6A.1B",
+  "sequence": "traj01",
+  "purpose": "Inspect affine outliers before trajectory accumulation; identify low-consensus, large-rotation, scale-change, motion-deviation, and forward/backward-inconsistent pairs.",
+  "configuration": {
+    "manifest": "outputs/satloc/metadata/s6a_relative_motion/s6a_sequence_manifest.csv",
+    "pair_csv": "outputs/satloc/metadata/s6a_relative_motion/s6a1_orb_affine_pair_diagnostics.csv",
+    "s6a1_json": "outputs/satloc/reports/s6a_relative_motion/s6a1_orb_affine_stride_summary.json",
+    "strides": [
+      1,
+      2,
+      5
+    ],
+    "resize_long": 960,
+    "nfeatures": 1200,
+    "ratio": 0.75,
+    "ransac_thresh": 3.0,
+    "top_per_reason": 3,
+    "max_panels": 36,
+    "max_draw_matches": 80
+  },
+  "locked_reference_rule": "Reference displacement is used only for post-estimation motion-residual diagnostics. It is not used for feature matching, affine estimation, forward/backward checking, or estimator-side confidence selection.",
+  "feature_cache_seconds": 96.14363119800691,
+  "forward_backward_seconds": 39.81369867200556,
+  "selected_panel_count": 36,
+  "stride_summaries": [
+    {
+      "stride": 1,
+      "pairs": 1033,
+      "current_weak_pairs": 0,
+      "lowest_inlier_ratio": 0.5614973262032086,
+      "lowest_inliers": 278.0,
+      "largest_abs_rotation_deg": 74.32106555147904,
+      "largest_abs_scale_error": 0.0146301862076057,
+      "largest_fb_cycle_center_error_px": 3.963538899314128,
+      "median_fb_cycle_center_error_px": 0.13643347367555683,
+      "fb_inconsistent_pairs": 2,
+      "largest_eval_abs_log_motion_residual": 3.430456453675334,
+      "eval_px_per_m_median": 3.397863792336302
+    },
+    {
+      "stride": 2,
+      "pairs": 516,
+      "current_weak_pairs": 0,
+      "lowest_inlier_ratio": 0.3983957219251337,
+      "lowest_inliers": 106.0,
+      "largest_abs_rotation_deg": 113.39600164109714,
+      "largest_abs_scale_error": 0.03784600287014761,
+      "largest_fb_cycle_center_error_px": 6.105332775683004,
+      "median_fb_cycle_center_error_px": 0.2663069185149639,
+      "fb_inconsistent_pairs": 4,
+      "largest_eval_abs_log_motion_residual": 3.8229287248209314,
+      "eval_px_per_m_median": 3.3828868058701875
+    },
+    {
+      "stride": 5,
+      "pairs": 206,
+      "current_weak_pairs": 9,
+      "lowest_inlier_ratio": 0.288135593220339,
+      "lowest_inliers": 16.0,
+      "largest_abs_rotation_deg": 113.11452785402234,
+      "largest_abs_scale_error": 0.04552269503307205,
+      "largest_fb_cycle_center_error_px": 30.51589883114471,
+      "median_fb_cycle_center_error_px": 0.4909837417411572,
+      "fb_inconsistent_pairs": 3,
+      "largest_eval_abs_log_motion_residual": 2.9572634776166047,
+      "eval_px_per_m_median": 3.364365999430095
+    }
+  ],
+  "stride_thresholds": [
+    {
+      "stride": 1,
+      "pairs": 1033,
+      "inlier_ratio_q05": 0.7425171620270126,
+      "inliers_q05": 448.6,
+      "abs_rotation_deg_q99": 1.920943871939704,
+      "abs_scale_error_q99": 0.006195552486429182,
+      "fb_cycle_center_error_px_q99": 1.3314439390476025,
+      "eval_abs_log_motion_residual_q99": 0.7872454837417887,
+      "eval_px_per_m_median": 3.397863792336302,
+      "current_weak_count": 0,
+      "fb_inconsistent_count": 2
+    },
+    {
+      "stride": 2,
+      "pairs": 516,
+      "inlier_ratio_q05": 0.5690951339529797,
+      "inliers_q05": 230.75,
+      "abs_rotation_deg_q99": 3.7672996466270825,
+      "abs_scale_error_q99": 0.010656047590025872,
+      "fb_cycle_center_error_px_q99": 2.503994555778072,
+      "eval_abs_log_motion_residual_q99": 0.9827378877170382,
+      "eval_px_per_m_median": 3.3828868058701875,
+      "current_weak_count": 0,
+      "fb_inconsistent_count": 4
+    },
+    {
+      "stride": 5,
+      "pairs": 206,
+      "inlier_ratio_q05": 0.37062872023809523,
+      "inliers_q05": 29.5,
+      "abs_rotation_deg_q99": 75.02340457301727,
+      "abs_scale_error_q99": 0.03032235363983139,
+      "fb_cycle_center_error_px_q99": 12.87510090192803,
+      "eval_abs_log_motion_residual_q99": 0.8869771869921961,
+      "eval_px_per_m_median": 3.364365999430095,
+      "current_weak_count": 9,
+      "fb_inconsistent_count": 3
+    }
+  ],
+  "outputs": {
+    "enriched_pair_csv": "outputs/satloc/metadata/s6a_relative_motion/s6a1b_pair_diagnostics_enriched.csv",
+    "forward_backward_csv": "outputs/satloc/metadata/s6a_relative_motion/s6a1b_forward_backward_consistency.csv",
+    "thresholds_csv": "outputs/satloc/metadata/s6a_relative_motion/s6a1b_stride_outlier_thresholds.csv",
+    "selected_pairs_csv": "outputs/satloc/metadata/s6a_relative_motion/s6a1b_selected_outlier_pairs.csv",
+    "summary_csv": "outputs/satloc/metadata/s6a_relative_motion/s6a1b_outlier_failure_summary.csv",
+    "panels_dir": "outputs/satloc/figures/s6a_relative_motion/s6a1b_affine_outlier_panels"
+  }
+}

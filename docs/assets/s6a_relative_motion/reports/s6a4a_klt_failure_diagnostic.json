@@ -1,0 +1,28 @@
+{
+  "stage": "S6A.4A_failure_diagnostic",
+  "sequence": "traj01",
+  "frames_processed": 1034,
+  "pairs_processed": 1033,
+  "failed_affine_pairs": 1,
+  "failure_rate": 0.000968054211035818,
+  "status_counts": {
+    "insufficient_fb_tracks": 1
+  },
+  "failed_pairs": [
+    {
+      "frame_index_a": 560,
+      "frame_index_b": 561,
+      "token0_a": 561,
+      "token0_b": 562,
+      "status": "insufficient_fb_tracks",
+      "detected_corners": 1200,
+      "tracked_forward": 978,
+      "fb_consistent_tracks": 0,
+      "inliers": 0,
+      "inlier_ratio": 0.0,
+      "fb_error_median_px": NaN,
+      "reference_step_m": 0.0
+    }
+  ],
+  "important_interpretation": "The fixed-parameter KLT baseline cannot form a complete trajectory chain when any affine pair fails. This is a method result, not a script crash. Inspect whether failures coincide with sharp turns, large displacement, low overlap, or weak tracks before adding retries or ORB fallback."
+}

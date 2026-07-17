@@ -1,0 +1,184 @@
+{
+  "stage": "S6B.0",
+  "relative_variant": "se2_scale_normalized",
+  "available_relative_variants": [
+    "se2_scale_normalized",
+    "sim2_local_step"
+  ],
+  "important_warning": "prefix_aligned_x_m and prefix_aligned_y_m are evaluation-aligned trajectory fields. They may be used for controlled replay evaluation but are not raw online localization outputs.",
+  "inputs": {
+    "features": "outputs/satloc/metadata/s5c_temporal/s5c3_lightglue_confidence_features_full263.csv",
+    "gates": "outputs/satloc/metadata/s5c_temporal/s5c3_recommended_confidence_gates_full263.csv",
+    "query_summary": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_query_summary_top50_full263.csv",
+    "candidate_scores": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_candidate_scores_top50_full263.csv",
+    "sequence_manifest": "outputs/satloc/metadata/s6a_relative_motion/s6a_sequence_manifest.csv",
+    "relative_trajectory": "outputs/satloc/metadata/s6a_relative_motion/s6a2_orb_relative_trajectory_aligned_eval_only.csv",
+    "satellite_index": "outputs/satloc/metadata/satellite_tiles_index_enriched.csv"
+  },
+  "rows": {
+    "correction_manifest": 263,
+    "balanced_accepted": 33,
+    "permissive_accepted": 80,
+    "oracle_processed_available": 102
+  },
+  "frozen_s5c_checks": {
+    "lightglue_hits": {
+      "actual": 68,
+      "expected": 68,
+      "passed": true
+    },
+    "oracle_accepts": {
+      "actual": 102,
+      "expected": 102,
+      "passed": true
+    },
+    "balanced_accepts": {
+      "actual": 33,
+      "expected": 33,
+      "passed": true
+    },
+    "balanced_true": {
+      "actual": 25,
+      "expected": 25,
+      "passed": true
+    },
+    "balanced_false": {
+      "actual": 8,
+      "expected": 8,
+      "passed": true
+    },
+    "balanced_dangerous": {
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    "permissive_accepts": {
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    }
+  },
+  "join_rules": {
+    "s5c_to_sequence": "token == token0_id",
+    "sequence_to_trajectory": "sequence_frame_id + token0_id after filtering variant == se2_scale_normalized",
+    "chosen_tile": "chosen_tile_id == tile_index",
+    "oracle_tile_eval_only": "oracle_tile_id == tile_index",
+    "selected_candidate": "token + chosen_tile_id == token + tile_id"
+  },
+  "candidate_validation": {
+    "lg_score_max_delta": 0.0,
+    "inliers_max_delta": 0.0,
+    "matches_max_delta": 0.0,
+    "coverage_max_delta": 0.0,
+    "union_rank_max_delta": 0.0
+  },
+  "s5c2_s5c3_score_max_delta": 0.0,
+  "gate_definitions": {
+    "balanced_precision_0p75": {
+      "source_gate": "s0_i48_m0_c0.5_gap0_ur999",
+      "recommended_profile": "balanced_precision_0p75",
+      "score_min": 0,
+      "inliers_min": 48,
+      "matches_min": 0,
+      "coverage_min": 0.5,
+      "margin_min": 0,
+      "union_rank_max": 999
+    },
+    "permissive_precision_0p65": {
+      "source_gate": "s0_i0_m0_c0.375_gap2_ur999",
+      "recommended_profile": "permissive_precision_0p65",
+      "score_min": 0,
+      "inliers_min": 0,
+      "matches_min": 0,
+      "coverage_min": 0.375,
+      "margin_min": 2,
+      "union_rank_max": 999
+    },
+    "exploratory_precision_0p55": {
+      "source_gate": "s0_i8_m120_c0.1875_gap0_ur999",
+      "recommended_profile": "exploratory_precision_0p55",
+      "score_min": 0,
+      "inliers_min": 8,
+      "matches_min": 120,
+      "coverage_min": 0.1875,
+      "margin_min": 0,
+      "union_rank_max": 999
+    }
+  },
+  "policy_spacing_and_accuracy": {
+    "oracle_accept_eval_only": {
+      "accept_column": "oracle_accept_eval_only",
+      "accepted": 102,
+      "true_accepts_eval_only": 102,
+      "false_accepts_eval_only": 0,
+      "dangerous_false_accepts_gt100m_eval_only": 0,
+      "precision_eval_only": 1.0,
+      "accepted_error_source_eval_only": "oracle_processed_error_m",
+      "median_accepted_error_m_eval_only": 21.58077981709392,
+      "inter_correction_gap_median": 56.36371783867611,
+      "inter_correction_gap_p95": 388.04646710309294,
+      "inter_correction_gap_max": 1000.4037094687133,
+      "coverage_gap_including_boundaries_max_m": 1000.4037094687133,
+      "first_accepted_frame": 0,
+      "last_accepted_frame": 1033
+    },
+    "balanced_accept_online": {
+      "accept_column": "balanced_accept_online",
+      "accepted": 33,
+      "true_accepts_eval_only": 25,
+      "false_accepts_eval_only": 8,
+      "dangerous_false_accepts_gt100m_eval_only": 0,
+      "precision_eval_only": 0.7575757575757576,
+      "accepted_error_source_eval_only": "chosen_error_m_eval_only",
+      "median_accepted_error_m_eval_only": 30.989288717602594,
+      "inter_correction_gap_median": 60.396282700639404,
+      "inter_correction_gap_p95": 1015.7197036712836,
+      "inter_correction_gap_max": 3016.2109948242523,
+      "coverage_gap_including_boundaries_max_m": 3016.2109948242523,
+      "first_accepted_frame": 0,
+      "last_accepted_frame": 1005
+    },
+    "permissive_accept_online": {
+      "accept_column": "permissive_accept_online",
+      "accepted": 80,
+      "true_accepts_eval_only": 52,
+      "false_accepts_eval_only": 28,
+      "dangerous_false_accepts_gt100m_eval_only": 1,
+      "precision_eval_only": 0.65,
+      "accepted_error_source_eval_only": "chosen_error_m_eval_only",
+      "median_accepted_error_m_eval_only": 33.779378916387756,
+      "inter_correction_gap_median": 59.849059278612,
+      "inter_correction_gap_p95": 473.0040405418774,
+      "inter_correction_gap_max": 976.46380744112,
+      "coverage_gap_including_boundaries_max_m": 976.46380744112,
+      "first_accepted_frame": 0,
+      "last_accepted_frame": 1033
+    },
+    "exploratory_accept_online": {
+      "accept_column": "exploratory_accept_online",
+      "accepted": 110,
+      "true_accepts_eval_only": 63,
+      "false_accepts_eval_only": 47,
+      "dangerous_false_accepts_gt100m_eval_only": 4,
+      "precision_eval_only": 0.5727272727272728,
+      "accepted_error_source_eval_only": "chosen_error_m_eval_only",
+      "median_accepted_error_m_eval_only": 36.14721053659799,
+      "inter_correction_gap_median": 54.86253149951244,
+      "inter_correction_gap_p95": 396.3462444860174,
+      "inter_correction_gap_max": 976.46380744112,
+      "coverage_gap_including_boundaries_max_m": 976.46380744112,
+      "first_accepted_frame": 0,
+      "last_accepted_frame": 1033
+    }
+  },
+  "trajectory": {
+    "frames": 1034,
+    "reference_total_distance_m_eval_only": 10768.615718302131
+  },
+  "outputs": {
+    "manifest": "outputs/satloc/metadata/s6b_relative_absolute/s6b0_absolute_correction_manifest.csv",
+    "balanced_corrections": "outputs/satloc/metadata/s6b_relative_absolute/s6b0_balanced_accepted_corrections.csv",
+    "permissive_corrections": "outputs/satloc/metadata/s6b_relative_absolute/s6b0_permissive_accepted_corrections.csv",
+    "spacing": "outputs/satloc/metadata/s6b_relative_absolute/s6b0_correction_spacing_by_policy.csv"
+  }
+}

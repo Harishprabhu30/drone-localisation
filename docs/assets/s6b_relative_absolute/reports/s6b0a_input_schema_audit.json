@@ -1,0 +1,2659 @@
+{
+  "stage": "S6B.0A",
+  "purpose": "Inspect frozen S5C/S6A schemas before manifest construction",
+  "inputs": {
+    "s5c3_features": {
+      "path": "outputs/satloc/metadata/s5c_temporal/s5c3_lightglue_confidence_features_full263.csv",
+      "rows": 263,
+      "columns_count": 35,
+      "columns": [
+        "policy",
+        "token",
+        "processed_candidates",
+        "chosen_tile_id",
+        "chosen_error_m",
+        "hit_le_threshold",
+        "chosen_union_rank",
+        "chosen_lightglue_rank",
+        "chosen_hybrid_rank",
+        "chosen_lg_score",
+        "chosen_hybrid_score",
+        "chosen_inliers",
+        "chosen_matches",
+        "chosen_min_coverage",
+        "union_top1_error_m",
+        "union_top1_hit_le_threshold",
+        "oracle_processed_error_m",
+        "oracle_processed_hit_le_threshold",
+        "oracle_lightglue_rank",
+        "oracle_hybrid_rank",
+        "oracle_union_rank",
+        "oracle_tile_id",
+        "s5c2_chunk",
+        "hit_eval_only",
+        "chosen_error_m_eval_only",
+        "dangerous_false_eval_only",
+        "lg_score",
+        "lg_inliers",
+        "lg_matches",
+        "min_coverage",
+        "chosen_lg_rank",
+        "top1_lg_score",
+        "top2_lg_score",
+        "lg_score_margin_top1_top2",
+        "lg_score_ratio_top1_top2"
+      ],
+      "interesting_columns": [
+        "token",
+        "chosen_tile_id",
+        "chosen_error_m",
+        "hit_le_threshold",
+        "chosen_union_rank",
+        "chosen_lightglue_rank",
+        "chosen_hybrid_rank",
+        "chosen_lg_score",
+        "chosen_hybrid_score",
+        "chosen_inliers",
+        "chosen_matches",
+        "chosen_min_coverage",
+        "union_top1_error_m",
+        "union_top1_hit_le_threshold",
+        "oracle_processed_error_m",
+        "oracle_processed_hit_le_threshold",
+        "oracle_lightglue_rank",
+        "oracle_hybrid_rank",
+        "oracle_union_rank",
+        "oracle_tile_id",
+        "hit_eval_only",
+        "chosen_error_m_eval_only",
+        "lg_score",
+        "lg_inliers",
+        "lg_matches",
+        "min_coverage",
+        "chosen_lg_rank",
+        "top1_lg_score",
+        "top2_lg_score",
+        "lg_score_margin_top1_top2",
+        "lg_score_ratio_top1_top2"
+      ],
+      "column_stats": {
+        "token": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            1,
+            6,
+            11,
+            16,
+            21
+          ]
+        },
+        "chosen_tile_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 208,
+          "duplicate_non_null_count": 91,
+          "sample_values": [
+            3546,
+            3545,
+            3419,
+            3418,
+            4035
+          ]
+        },
+        "chosen_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            30.989288717602594,
+            25.173257925336667,
+            51.61635866557166,
+            112.94767658882404,
+            476.54532383922754
+          ]
+        },
+        "hit_le_threshold": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 2,
+          "duplicate_non_null_count": 263,
+          "sample_values": [
+            true,
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        "chosen_union_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 50,
+          "duplicate_non_null_count": 261,
+          "sample_values": [
+            20.0,
+            1.0,
+            38.0,
+            24.0,
+            31.0
+          ]
+        },
+        "chosen_lightglue_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 1,
+          "duplicate_non_null_count": 263,
+          "sample_values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "chosen_hybrid_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 26,
+          "duplicate_non_null_count": 257,
+          "sample_values": [
+            1.0,
+            1.0,
+            1.0,
+            4.0,
+            5.0
+          ]
+        },
+        "chosen_lg_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 241,
+          "duplicate_non_null_count": 38,
+          "sample_values": [
+            99.62016129032256,
+            90.9976126126126,
+            93.8040291262136,
+            13.999606741573034,
+            15.68061403508772
+          ]
+        },
+        "chosen_hybrid_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            103.96180207682244,
+            102.9976126126126,
+            97.77735765299816,
+            18.22435161296462,
+            19.75824584724837
+          ]
+        },
+        "chosen_inliers": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 81,
+          "duplicate_non_null_count": 220,
+          "sample_values": [
+            75.0,
+            68.0,
+            72.0,
+            7.0,
+            7.0
+          ]
+        },
+        "chosen_matches": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 161,
+          "duplicate_non_null_count": 157,
+          "sample_values": [
+            465.0,
+            444.0,
+            412.0,
+            89.0,
+            114.0
+          ]
+        },
+        "chosen_min_coverage": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 12,
+          "duplicate_non_null_count": 261,
+          "sample_values": [
+            0.5625,
+            0.4375,
+            0.4375,
+            0.1875,
+            0.3125
+          ]
+        },
+        "union_top1_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            15.072437260721763,
+            25.173257925336667,
+            786.0766109262555,
+            796.9439481997352,
+            857.9458375932353
+          ]
+        },
+        "union_top1_hit_le_threshold": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 2,
+          "duplicate_non_null_count": 263,
+          "sample_values": [
+            true,
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        "oracle_processed_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            15.072437260721763,
+            25.173257925336667,
+            32.90649485062182,
+            112.94767658882404,
+            191.49474629961097
+          ]
+        },
+        "oracle_processed_hit_le_threshold": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 2,
+          "duplicate_non_null_count": 263,
+          "sample_values": [
+            true,
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        "oracle_lightglue_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 45,
+          "duplicate_non_null_count": 255,
+          "sample_values": [
+            2.0,
+            1.0,
+            2.0,
+            1.0,
+            22.0
+          ]
+        },
+        "oracle_hybrid_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 49,
+          "duplicate_non_null_count": 254,
+          "sample_values": [
+            2.0,
+            1.0,
+            2.0,
+            4.0,
+            4.0
+          ]
+        },
+        "oracle_union_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 50,
+          "duplicate_non_null_count": 262,
+          "sample_values": [
+            1.0,
+            1.0,
+            30.0,
+            24.0,
+            4.0
+          ]
+        },
+        "oracle_tile_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 202,
+          "duplicate_non_null_count": 105,
+          "sample_values": [
+            3545,
+            3545,
+            3420,
+            3418,
+            3543
+          ]
+        },
+        "hit_eval_only": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 2,
+          "duplicate_non_null_count": 263,
+          "sample_values": [
+            true,
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        "chosen_error_m_eval_only": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            30.989288717602594,
+            25.173257925336667,
+            51.61635866557166,
+            112.94767658882404,
+            476.54532383922754
+          ]
+        },
+        "lg_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 241,
+          "duplicate_non_null_count": 38,
+          "sample_values": [
+            99.62016129032256,
+            90.9976126126126,
+            93.8040291262136,
+            13.999606741573034,
+            15.68061403508772
+          ]
+        },
+        "lg_inliers": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 81,
+          "duplicate_non_null_count": 220,
+          "sample_values": [
+            75.0,
+            68.0,
+            72.0,
+            7.0,
+            7.0
+          ]
+        },
+        "lg_matches": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 161,
+          "duplicate_non_null_count": 157,
+          "sample_values": [
+            465.0,
+            444.0,
+            412.0,
+            89.0,
+            114.0
+          ]
+        },
+        "min_coverage": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 12,
+          "duplicate_non_null_count": 261,
+          "sample_values": [
+            0.5625,
+            0.4375,
+            0.4375,
+            0.1875,
+            0.3125
+          ]
+        },
+        "chosen_lg_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 1,
+          "duplicate_non_null_count": 263,
+          "sample_values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "top1_lg_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 241,
+          "duplicate_non_null_count": 38,
+          "sample_values": [
+            99.62016129032256,
+            90.9976126126126,
+            93.8040291262136,
+            13.999606741573034,
+            15.68061403508772
+          ]
+        },
+        "top2_lg_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 221,
+          "duplicate_non_null_count": 73,
+          "sample_values": [
+            84.89274826789838,
+            88.48672839506173,
+            75.57157894736842,
+            13.215,
+            13.478064516129033
+          ]
+        },
+        "lg_score_margin_top1_top2": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            14.727413022424171,
+            2.510884217550867,
+            18.232450178845184,
+            0.7846067415730342,
+            2.202549518958687
+          ]
+        },
+        "lg_score_ratio_top1_top2": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 263,
+          "unique_count": 263,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            1.1734825803488946,
+            1.028375828365364,
+            1.2412606754126854,
+            1.0593724359873655,
+            1.1634173449995675
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "token": 1,
+          "chosen_tile_id": 3546,
+          "chosen_error_m": 30.989288717602594,
+          "hit_le_threshold": true,
+          "chosen_union_rank": 20.0,
+          "chosen_lightglue_rank": 1.0,
+          "chosen_hybrid_rank": 1.0,
+          "chosen_lg_score": 99.62016129032256,
+          "chosen_hybrid_score": 103.96180207682244,
+          "chosen_inliers": 75.0,
+          "chosen_matches": 465.0,
+          "chosen_min_coverage": 0.5625,
+          "union_top1_error_m": 15.072437260721763,
+          "union_top1_hit_le_threshold": true,
+          "oracle_processed_error_m": 15.072437260721763,
+          "oracle_processed_hit_le_threshold": true,
+          "oracle_lightglue_rank": 2.0,
+          "oracle_hybrid_rank": 2.0,
+          "oracle_union_rank": 1.0,
+          "oracle_tile_id": 3545,
+          "hit_eval_only": true,
+          "chosen_error_m_eval_only": 30.989288717602594,
+          "lg_score": 99.62016129032256,
+          "lg_inliers": 75.0,
+          "lg_matches": 465.0,
+          "min_coverage": 0.5625,
+          "chosen_lg_rank": 1.0,
+          "top1_lg_score": 99.62016129032256,
+          "top2_lg_score": 84.89274826789838,
+          "lg_score_margin_top1_top2": 14.727413022424171
+        },
+        {
+          "token": 6,
+          "chosen_tile_id": 3545,
+          "chosen_error_m": 25.173257925336667,
+          "hit_le_threshold": true,
+          "chosen_union_rank": 1.0,
+          "chosen_lightglue_rank": 1.0,
+          "chosen_hybrid_rank": 1.0,
+          "chosen_lg_score": 90.9976126126126,
+          "chosen_hybrid_score": 102.9976126126126,
+          "chosen_inliers": 68.0,
+          "chosen_matches": 444.0,
+          "chosen_min_coverage": 0.4375,
+          "union_top1_error_m": 25.173257925336667,
+          "union_top1_hit_le_threshold": true,
+          "oracle_processed_error_m": 25.173257925336667,
+          "oracle_processed_hit_le_threshold": true,
+          "oracle_lightglue_rank": 1.0,
+          "oracle_hybrid_rank": 1.0,
+          "oracle_union_rank": 1.0,
+          "oracle_tile_id": 3545,
+          "hit_eval_only": true,
+          "chosen_error_m_eval_only": 25.173257925336667,
+          "lg_score": 90.9976126126126,
+          "lg_inliers": 68.0,
+          "lg_matches": 444.0,
+          "min_coverage": 0.4375,
+          "chosen_lg_rank": 1.0,
+          "top1_lg_score": 90.9976126126126,
+          "top2_lg_score": 88.48672839506173,
+          "lg_score_margin_top1_top2": 2.510884217550867
+        }
+      ]
+    },
+    "s5c3_gates": {
+      "path": "outputs/satloc/metadata/s5c_temporal/s5c3_recommended_confidence_gates_full263.csv",
+      "rows": 3,
+      "columns_count": 19,
+      "columns": [
+        "gate",
+        "accepted",
+        "accepted_rate",
+        "true_hits",
+        "false_accepts",
+        "precision_eval_only",
+        "absolute_hit_rate_eval_only",
+        "hit_retention_vs_lg_hits_eval_only",
+        "dangerous_false_accepts_gt100m_eval_only",
+        "median_error_m_eval_only",
+        "p95_error_m_eval_only",
+        "max_error_m_eval_only",
+        "score_min",
+        "inliers_min",
+        "matches_min",
+        "coverage_min",
+        "margin_min",
+        "union_rank_max",
+        "recommended_profile"
+      ],
+      "interesting_columns": [
+        "accepted",
+        "accepted_rate",
+        "true_hits",
+        "false_accepts",
+        "absolute_hit_rate_eval_only",
+        "hit_retention_vs_lg_hits_eval_only",
+        "dangerous_false_accepts_gt100m_eval_only",
+        "median_error_m_eval_only",
+        "p95_error_m_eval_only",
+        "max_error_m_eval_only",
+        "score_min",
+        "inliers_min",
+        "matches_min",
+        "coverage_min",
+        "margin_min",
+        "union_rank_max"
+      ],
+      "column_stats": {
+        "accepted": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            33,
+            80,
+            110
+          ]
+        },
+        "accepted_rate": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.1254752851711026,
+            0.3041825095057034,
+            0.4182509505703422
+          ]
+        },
+        "true_hits": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            25,
+            52,
+            63
+          ]
+        },
+        "false_accepts": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            8,
+            28,
+            47
+          ]
+        },
+        "absolute_hit_rate_eval_only": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.0950570342205323,
+            0.1977186311787072,
+            0.2395437262357414
+          ]
+        },
+        "hit_retention_vs_lg_hits_eval_only": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.3676470588235294,
+            0.7647058823529411,
+            0.9264705882352942
+          ]
+        },
+        "dangerous_false_accepts_gt100m_eval_only": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0,
+            1,
+            4
+          ]
+        },
+        "median_error_m_eval_only": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            30.989288717602594,
+            33.77937891638776,
+            36.14721053659799
+          ]
+        },
+        "p95_error_m_eval_only": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            51.344568387659535,
+            74.3659858570117,
+            98.22725450848166
+          ]
+        },
+        "max_error_m_eval_only": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            66.16138734737686,
+            109.49760986283496,
+            122.52994855877648
+          ]
+        },
+        "score_min": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 1,
+          "duplicate_non_null_count": 3,
+          "sample_values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "inliers_min": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            48,
+            0,
+            8
+          ]
+        },
+        "matches_min": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 2,
+          "duplicate_non_null_count": 2,
+          "sample_values": [
+            0,
+            0,
+            120
+          ]
+        },
+        "coverage_min": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 3,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.5,
+            0.375,
+            0.1875
+          ]
+        },
+        "margin_min": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 2,
+          "duplicate_non_null_count": 2,
+          "sample_values": [
+            0,
+            2,
+            0
+          ]
+        },
+        "union_rank_max": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 3,
+          "unique_count": 1,
+          "duplicate_non_null_count": 3,
+          "sample_values": [
+            999,
+            999,
+            999
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "accepted": 33,
+          "accepted_rate": 0.1254752851711026,
+          "true_hits": 25,
+          "false_accepts": 8,
+          "absolute_hit_rate_eval_only": 0.0950570342205323,
+          "hit_retention_vs_lg_hits_eval_only": 0.3676470588235294,
+          "dangerous_false_accepts_gt100m_eval_only": 0,
+          "median_error_m_eval_only": 30.989288717602594,
+          "p95_error_m_eval_only": 51.344568387659535,
+          "max_error_m_eval_only": 66.16138734737686,
+          "score_min": 0,
+          "inliers_min": 48,
+          "matches_min": 0,
+          "coverage_min": 0.5,
+          "margin_min": 0,
+          "union_rank_max": 999
+        },
+        {
+          "accepted": 80,
+          "accepted_rate": 0.3041825095057034,
+          "true_hits": 52,
+          "false_accepts": 28,
+          "absolute_hit_rate_eval_only": 0.1977186311787072,
+          "hit_retention_vs_lg_hits_eval_only": 0.7647058823529411,
+          "dangerous_false_accepts_gt100m_eval_only": 1,
+          "median_error_m_eval_only": 33.77937891638776,
+          "p95_error_m_eval_only": 74.3659858570117,
+          "max_error_m_eval_only": 109.49760986283496,
+          "score_min": 0,
+          "inliers_min": 0,
+          "matches_min": 0,
+          "coverage_min": 0.375,
+          "margin_min": 2,
+          "union_rank_max": 999
+        }
+      ]
+    },
+    "s5c2_query_summary": {
+      "path": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_query_summary_top50_full263.csv",
+      "rows": 789,
+      "columns_count": 23,
+      "columns": [
+        "policy",
+        "token",
+        "processed_candidates",
+        "chosen_tile_id",
+        "chosen_error_m",
+        "hit_le_threshold",
+        "chosen_union_rank",
+        "chosen_lightglue_rank",
+        "chosen_hybrid_rank",
+        "chosen_lg_score",
+        "chosen_hybrid_score",
+        "chosen_inliers",
+        "chosen_matches",
+        "chosen_min_coverage",
+        "union_top1_error_m",
+        "union_top1_hit_le_threshold",
+        "oracle_processed_error_m",
+        "oracle_processed_hit_le_threshold",
+        "oracle_lightglue_rank",
+        "oracle_hybrid_rank",
+        "oracle_union_rank",
+        "oracle_tile_id",
+        "s5c2_chunk"
+      ],
+      "interesting_columns": [
+        "token",
+        "chosen_tile_id",
+        "chosen_error_m",
+        "hit_le_threshold",
+        "chosen_union_rank",
+        "chosen_lightglue_rank",
+        "chosen_hybrid_rank",
+        "chosen_lg_score",
+        "chosen_hybrid_score",
+        "chosen_inliers",
+        "chosen_matches",
+        "chosen_min_coverage",
+        "union_top1_error_m",
+        "union_top1_hit_le_threshold",
+        "oracle_processed_error_m",
+        "oracle_processed_hit_le_threshold",
+        "oracle_lightglue_rank",
+        "oracle_hybrid_rank",
+        "oracle_union_rank",
+        "oracle_tile_id"
+      ],
+      "column_stats": {
+        "token": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 263,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            1,
+            100,
+            101,
+            106,
+            107
+          ]
+        },
+        "chosen_tile_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 348,
+          "duplicate_non_null_count": 645,
+          "sample_values": [
+            3545,
+            541,
+            116,
+            5195,
+            5195
+          ]
+        },
+        "chosen_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 527,
+          "duplicate_non_null_count": 509,
+          "sample_values": [
+            15.072437260721763,
+            45.58389044898862,
+            2674.082255606318,
+            1727.8515078805622,
+            1735.5748080846208
+          ]
+        },
+        "hit_le_threshold": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 2,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            true,
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        "chosen_union_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 50,
+          "duplicate_non_null_count": 787,
+          "sample_values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "chosen_lightglue_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 49,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            2.0,
+            1.0,
+            13.0,
+            25.0,
+            46.0
+          ]
+        },
+        "chosen_hybrid_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 26,
+          "duplicate_non_null_count": 783,
+          "sample_values": [
+            2.0,
+            1.0,
+            3.0,
+            1.0,
+            1.0
+          ]
+        },
+        "chosen_lg_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 427,
+          "duplicate_non_null_count": 616,
+          "sample_values": [
+            84.89274826789838,
+            113.76735294117648,
+            11.514117647058823,
+            10.334285714285716,
+            9.991666666666667
+          ]
+        },
+        "chosen_hybrid_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 473,
+          "duplicate_non_null_count": 555,
+          "sample_values": [
+            96.89274826789838,
+            125.76735294117648,
+            23.514117647058825,
+            22.33428571428572,
+            21.991666666666667
+          ]
+        },
+        "chosen_inliers": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 87,
+          "duplicate_non_null_count": 783,
+          "sample_values": [
+            62.0,
+            86.0,
+            5.0,
+            5.0,
+            5.0
+          ]
+        },
+        "chosen_matches": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 204,
+          "duplicate_non_null_count": 759,
+          "sample_values": [
+            433.0,
+            544.0,
+            68.0,
+            28.0,
+            30.0
+          ]
+        },
+        "chosen_min_coverage": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 12,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            0.5,
+            0.5625,
+            0.25,
+            0.25,
+            0.1875
+          ]
+        },
+        "union_top1_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 263,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            15.072437260721763,
+            45.58389044898862,
+            2674.082255606318,
+            1727.8515078805622,
+            1735.5748080846208
+          ]
+        },
+        "union_top1_hit_le_threshold": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 2,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            true,
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        "oracle_processed_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 263,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            15.072437260721763,
+            45.58389044898862,
+            26.85274048842789,
+            555.4781891432476,
+            566.9059263060645
+          ]
+        },
+        "oracle_processed_hit_le_threshold": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 2,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            true,
+            false,
+            true,
+            false,
+            false
+          ]
+        },
+        "oracle_lightglue_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 45,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            2.0,
+            1.0,
+            1.0,
+            3.0,
+            18.0
+          ]
+        },
+        "oracle_hybrid_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 49,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            2.0,
+            1.0,
+            1.0,
+            25.0,
+            25.0
+          ]
+        },
+        "oracle_union_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 50,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            1.0,
+            1.0,
+            42.0,
+            36.0,
+            26.0
+          ]
+        },
+        "oracle_tile_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 789,
+          "unique_count": 202,
+          "duplicate_non_null_count": 789,
+          "sample_values": [
+            3545,
+            541,
+            540,
+            1053,
+            1053
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "token": 1,
+          "chosen_tile_id": 3545,
+          "chosen_error_m": 15.072437260721763,
+          "hit_le_threshold": true,
+          "chosen_union_rank": 1.0,
+          "chosen_lightglue_rank": 2.0,
+          "chosen_hybrid_rank": 2.0,
+          "chosen_lg_score": 84.89274826789838,
+          "chosen_hybrid_score": 96.89274826789838,
+          "chosen_inliers": 62.0,
+          "chosen_matches": 433.0,
+          "chosen_min_coverage": 0.5,
+          "union_top1_error_m": 15.072437260721763,
+          "union_top1_hit_le_threshold": true,
+          "oracle_processed_error_m": 15.072437260721763,
+          "oracle_processed_hit_le_threshold": true,
+          "oracle_lightglue_rank": 2.0,
+          "oracle_hybrid_rank": 2.0,
+          "oracle_union_rank": 1.0,
+          "oracle_tile_id": 3545
+        },
+        {
+          "token": 100,
+          "chosen_tile_id": 541,
+          "chosen_error_m": 45.58389044898862,
+          "hit_le_threshold": false,
+          "chosen_union_rank": 1.0,
+          "chosen_lightglue_rank": 1.0,
+          "chosen_hybrid_rank": 1.0,
+          "chosen_lg_score": 113.76735294117648,
+          "chosen_hybrid_score": 125.76735294117648,
+          "chosen_inliers": 86.0,
+          "chosen_matches": 544.0,
+          "chosen_min_coverage": 0.5625,
+          "union_top1_error_m": 45.58389044898862,
+          "union_top1_hit_le_threshold": false,
+          "oracle_processed_error_m": 45.58389044898862,
+          "oracle_processed_hit_le_threshold": false,
+          "oracle_lightglue_rank": 1.0,
+          "oracle_hybrid_rank": 1.0,
+          "oracle_union_rank": 1.0,
+          "oracle_tile_id": 541
+        }
+      ]
+    },
+    "s5c2_candidate_scores": {
+      "path": "outputs/satloc/metadata/s5c_temporal/s5c2_lightglue_union_candidate_scores_top50_full263.csv",
+      "rows": 13150,
+      "columns_count": 30,
+      "columns": [
+        "token",
+        "tile_id",
+        "uav_image_path",
+        "sat_image_path",
+        "eval_error_m",
+        "union_rank",
+        "union_support_count",
+        "union_variants",
+        "union_best_source_rank",
+        "union_best_distance",
+        "lightglue_status",
+        "lightglue_error",
+        "lightglue_matches",
+        "lightglue_ransac_inliers",
+        "lightglue_inlier_ratio",
+        "lightglue_homography_success",
+        "lightglue_uav_coverage",
+        "lightglue_sat_coverage",
+        "lightglue_score",
+        "hybrid_union_score",
+        "runtime_s",
+        "lg_score_num",
+        "hybrid_score_num",
+        "lg_inliers_num",
+        "lg_matches_num",
+        "min_cov_num",
+        "union_rank_num",
+        "lightglue_rank",
+        "hybrid_union_rank",
+        "s5c2_chunk"
+      ],
+      "interesting_columns": [
+        "token",
+        "tile_id",
+        "uav_image_path",
+        "sat_image_path",
+        "eval_error_m",
+        "union_rank",
+        "union_best_source_rank",
+        "union_best_distance",
+        "lightglue_error",
+        "lightglue_matches",
+        "lightglue_ransac_inliers",
+        "lightglue_inlier_ratio",
+        "lightglue_uav_coverage",
+        "lightglue_sat_coverage",
+        "lightglue_score",
+        "hybrid_union_score",
+        "lg_score_num",
+        "hybrid_score_num",
+        "lg_inliers_num",
+        "lg_matches_num",
+        "union_rank_num",
+        "lightglue_rank",
+        "hybrid_union_rank"
+      ],
+      "column_stats": {
+        "token": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 263,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "tile_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 2599,
+          "duplicate_non_null_count": 12123,
+          "sample_values": [
+            3545,
+            5962,
+            5187,
+            3669,
+            5835
+          ]
+        },
+        "uav_image_path": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 263,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png"
+          ]
+        },
+        "sat_image_path": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 2599,
+          "duplicate_non_null_count": 12123,
+          "sample_values": [
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/03545.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/05962.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/05187.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/03669.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/05835.jpg"
+          ]
+        },
+        "eval_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 13150,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            15.072437260721763,
+            1608.6772276754775,
+            749.9465078234252,
+            63.91210667476391,
+            1530.6416781796263
+          ]
+        },
+        "union_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 50,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0
+          ]
+        },
+        "union_best_source_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 50,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            1.0,
+            2.0,
+            3.0,
+            2.0,
+            4.0
+          ]
+        },
+        "union_best_distance": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 13047,
+          "duplicate_non_null_count": 206,
+          "sample_values": [
+            0.019477903842926,
+            0.021144688129425,
+            0.0204316973686218,
+            0.0217840671539306,
+            0.0246669650077819
+          ]
+        },
+        "lightglue_error": {
+          "dtype": "float64",
+          "null_count": 13150,
+          "non_null_count": 0,
+          "unique_count": 0,
+          "duplicate_non_null_count": 0,
+          "sample_values": []
+        },
+        "lightglue_matches": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 322,
+          "duplicate_non_null_count": 13006,
+          "sample_values": [
+            433,
+            48,
+            46,
+            172,
+            39
+          ]
+        },
+        "lightglue_ransac_inliers": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 104,
+          "duplicate_non_null_count": 13128,
+          "sample_values": [
+            62,
+            5,
+            5,
+            30,
+            5
+          ]
+        },
+        "lightglue_inlier_ratio": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 595,
+          "duplicate_non_null_count": 12810,
+          "sample_values": [
+            0.1431870669745958,
+            0.1041666666666666,
+            0.108695652173913,
+            0.1744186046511628,
+            0.1282051282051282
+          ]
+        },
+        "lightglue_uav_coverage": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 13,
+          "duplicate_non_null_count": 13149,
+          "sample_values": [
+            0.5,
+            0.1875,
+            0.3125,
+            0.375,
+            0.25
+          ]
+        },
+        "lightglue_sat_coverage": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 17,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            0.6875,
+            0.25,
+            0.3125,
+            0.4375,
+            0.1875
+          ]
+        },
+        "lightglue_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 1434,
+          "duplicate_non_null_count": 12465,
+          "sample_values": [
+            84.89274826789838,
+            10.461666666666666,
+            11.149782608695652,
+            41.82767441860465,
+            10.197820512820511
+          ]
+        },
+        "hybrid_union_score": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 10324,
+          "duplicate_non_null_count": 4857,
+          "sample_values": [
+            96.89274826789838,
+            20.70430735378595,
+            20.61388422383341,
+            49.32767441860465,
+            17.38110208582026
+          ]
+        },
+        "lg_score_num": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 1434,
+          "duplicate_non_null_count": 12465,
+          "sample_values": [
+            84.89274826789838,
+            10.461666666666666,
+            11.149782608695652,
+            41.82767441860465,
+            10.197820512820511
+          ]
+        },
+        "hybrid_score_num": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 10324,
+          "duplicate_non_null_count": 4857,
+          "sample_values": [
+            96.89274826789838,
+            20.70430735378595,
+            20.61388422383341,
+            49.32767441860465,
+            17.38110208582026
+          ]
+        },
+        "lg_inliers_num": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 104,
+          "duplicate_non_null_count": 13128,
+          "sample_values": [
+            62,
+            5,
+            5,
+            30,
+            5
+          ]
+        },
+        "lg_matches_num": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 322,
+          "duplicate_non_null_count": 13006,
+          "sample_values": [
+            433,
+            48,
+            46,
+            172,
+            39
+          ]
+        },
+        "union_rank_num": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 50,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0
+          ]
+        },
+        "lightglue_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 50,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            2.0,
+            37.0,
+            19.0,
+            6.0,
+            42.0
+          ]
+        },
+        "hybrid_union_rank": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 13150,
+          "unique_count": 50,
+          "duplicate_non_null_count": 13150,
+          "sample_values": [
+            2.0,
+            8.0,
+            9.0,
+            6.0,
+            13.0
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "token": 1,
+          "tile_id": 3545,
+          "uav_image_path": "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+          "sat_image_path": "data/raw/satloc/part_1/Satellite Data/sat_image_ref/03545.jpg",
+          "eval_error_m": 15.072437260721763,
+          "union_rank": 1.0,
+          "union_best_source_rank": 1.0,
+          "union_best_distance": 0.019477903842926,
+          "lightglue_error": null,
+          "lightglue_matches": 433,
+          "lightglue_ransac_inliers": 62,
+          "lightglue_inlier_ratio": 0.1431870669745958,
+          "lightglue_uav_coverage": 0.5,
+          "lightglue_sat_coverage": 0.6875,
+          "lightglue_score": 84.89274826789838,
+          "hybrid_union_score": 96.89274826789838,
+          "lg_score_num": 84.89274826789838,
+          "hybrid_score_num": 96.89274826789838,
+          "lg_inliers_num": 62,
+          "lg_matches_num": 433,
+          "union_rank_num": 1.0,
+          "lightglue_rank": 2.0,
+          "hybrid_union_rank": 2.0
+        },
+        {
+          "token": 1,
+          "tile_id": 5962,
+          "uav_image_path": "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+          "sat_image_path": "data/raw/satloc/part_1/Satellite Data/sat_image_ref/05962.jpg",
+          "eval_error_m": 1608.6772276754775,
+          "union_rank": 2.0,
+          "union_best_source_rank": 2.0,
+          "union_best_distance": 0.021144688129425,
+          "lightglue_error": null,
+          "lightglue_matches": 48,
+          "lightglue_ransac_inliers": 5,
+          "lightglue_inlier_ratio": 0.1041666666666666,
+          "lightglue_uav_coverage": 0.1875,
+          "lightglue_sat_coverage": 0.25,
+          "lightglue_score": 10.461666666666666,
+          "hybrid_union_score": 20.70430735378595,
+          "lg_score_num": 10.461666666666666,
+          "hybrid_score_num": 20.70430735378595,
+          "lg_inliers_num": 5,
+          "lg_matches_num": 48,
+          "union_rank_num": 2.0,
+          "lightglue_rank": 37.0,
+          "hybrid_union_rank": 8.0
+        }
+      ]
+    },
+    "s6a_sequence_manifest": {
+      "path": "outputs/satloc/metadata/s6a_relative_motion/s6a_sequence_manifest.csv",
+      "rows": 1034,
+      "columns_count": 19,
+      "columns": [
+        "sequence_frame_id",
+        "sequence",
+        "image_path",
+        "image_path_relative",
+        "filename",
+        "token0_id",
+        "token1_order",
+        "lon",
+        "lat",
+        "parse_status",
+        "frame_index_in_sequence",
+        "global_frame_index",
+        "utm_x_m",
+        "utm_y_m",
+        "x_enu_global_m",
+        "y_enu_global_m",
+        "x_enu_m",
+        "y_enu_m",
+        "image_path_resolved"
+      ],
+      "interesting_columns": [
+        "sequence_frame_id",
+        "sequence",
+        "image_path",
+        "image_path_relative",
+        "token0_id",
+        "token1_order",
+        "lon",
+        "lat",
+        "frame_index_in_sequence",
+        "global_frame_index",
+        "utm_x_m",
+        "utm_y_m",
+        "x_enu_global_m",
+        "y_enu_global_m",
+        "x_enu_m",
+        "y_enu_m",
+        "image_path_resolved"
+      ],
+      "column_stats": {
+        "sequence_frame_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "sequence": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1,
+          "duplicate_non_null_count": 1034,
+          "sample_values": [
+            "traj01",
+            "traj01",
+            "traj01",
+            "traj01",
+            "traj01"
+          ]
+        },
+        "image_path": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/2@1000@112.816127@28.297315.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/3@2001@112.816125@28.297314.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/4@3002@112.816125@28.297330.png",
+            "data/raw/satloc/part_1/UAV Data/traj01/5@4003@112.816123@28.297365.png"
+          ]
+        },
+        "image_path_relative": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            "UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "UAV Data/traj01/2@1000@112.816127@28.297315.png",
+            "UAV Data/traj01/3@2001@112.816125@28.297314.png",
+            "UAV Data/traj01/4@3002@112.816125@28.297330.png",
+            "UAV Data/traj01/5@4003@112.816123@28.297365.png"
+          ]
+        },
+        "token0_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "token1_order": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 307,
+          "duplicate_non_null_count": 1018,
+          "sample_values": [
+            0,
+            1000,
+            2001,
+            3002,
+            4003
+          ]
+        },
+        "lon": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 811,
+          "duplicate_non_null_count": 323,
+          "sample_values": [
+            112.81613,
+            112.816127,
+            112.816125,
+            112.816125,
+            112.816123
+          ]
+        },
+        "lat": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 901,
+          "duplicate_non_null_count": 199,
+          "sample_values": [
+            28.297316,
+            28.297315,
+            28.297314,
+            28.29733,
+            28.297365
+          ]
+        },
+        "frame_index_in_sequence": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "global_frame_index": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "utm_x_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 26,
+          "sample_values": [
+            678090.5113665415,
+            678090.2187961903,
+            678090.0243044917,
+            678089.9976546967,
+            678089.7432010031
+          ]
+        },
+        "utm_y_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 26,
+          "sample_values": [
+            3131476.591275567,
+            3131476.476042062,
+            3131476.3622827968,
+            3131478.135255545,
+            3131482.010684976
+          ]
+        },
+        "x_enu_global_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 26,
+          "sample_values": [
+            0.0,
+            -0.2925703511573374,
+            -0.4870620497968048,
+            -0.5137118448037654,
+            -0.7681655384367332
+          ]
+        },
+        "y_enu_global_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 26,
+          "sample_values": [
+            0.0,
+            -0.1152335051447153,
+            -0.2289927704259753,
+            1.543979977723211,
+            5.419409408699721
+          ]
+        },
+        "x_enu_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 26,
+          "sample_values": [
+            0.0,
+            -0.2925703511573374,
+            -0.4870620497968048,
+            -0.5137118448037654,
+            -0.7681655384367332
+          ]
+        },
+        "y_enu_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 26,
+          "sample_values": [
+            0.0,
+            -0.1152335051447153,
+            -0.2289927704259753,
+            1.543979977723211,
+            5.419409408699721
+          ]
+        },
+        "image_path_resolved": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 1034,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+            "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/2@1000@112.816127@28.297315.png",
+            "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/3@2001@112.816125@28.297314.png",
+            "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/4@3002@112.816125@28.297330.png",
+            "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/5@4003@112.816123@28.297365.png"
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "sequence_frame_id": 0,
+          "sequence": "traj01",
+          "image_path": "data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png",
+          "image_path_relative": "UAV Data/traj01/1@0@112.816130@28.297316.png",
+          "token0_id": 1,
+          "token1_order": 0,
+          "lon": 112.81613,
+          "lat": 28.297316,
+          "frame_index_in_sequence": 0,
+          "global_frame_index": 0,
+          "utm_x_m": 678090.5113665415,
+          "utm_y_m": 3131476.591275567,
+          "x_enu_global_m": 0.0,
+          "y_enu_global_m": 0.0,
+          "x_enu_m": 0.0,
+          "y_enu_m": 0.0,
+          "image_path_resolved": "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/1@0@112.816130@28.297316.png"
+        },
+        {
+          "sequence_frame_id": 1,
+          "sequence": "traj01",
+          "image_path": "data/raw/satloc/part_1/UAV Data/traj01/2@1000@112.816127@28.297315.png",
+          "image_path_relative": "UAV Data/traj01/2@1000@112.816127@28.297315.png",
+          "token0_id": 2,
+          "token1_order": 1000,
+          "lon": 112.816127,
+          "lat": 28.297315,
+          "frame_index_in_sequence": 1,
+          "global_frame_index": 1,
+          "utm_x_m": 678090.2187961903,
+          "utm_y_m": 3131476.476042062,
+          "x_enu_global_m": -0.2925703511573374,
+          "y_enu_global_m": -0.1152335051447153,
+          "x_enu_m": -0.2925703511573374,
+          "y_enu_m": -0.1152335051447153,
+          "image_path_resolved": "/Users/harishprabhu/Documents/drone-localisation/data/raw/satloc/part_1/UAV Data/traj01/2@1000@112.816127@28.297315.png"
+        }
+      ]
+    },
+    "s6a_relative_trajectory": {
+      "path": "outputs/satloc/metadata/s6a_relative_motion/s6a2_orb_relative_trajectory_aligned_eval_only.csv",
+      "rows": 2068,
+      "columns_count": 26,
+      "columns": [
+        "sequence_frame_id",
+        "token0_id",
+        "x_enu_m",
+        "y_enu_m",
+        "visual_x_px",
+        "visual_y_px",
+        "visual_yaw_rad",
+        "visual_yaw_deg_unwrapped",
+        "step_x_local_px",
+        "step_y_local_px",
+        "step_x_global_px",
+        "step_y_global_px",
+        "step_motion_px",
+        "pair_safe_image_only",
+        "variant",
+        "reference_x_m",
+        "reference_y_m",
+        "reference_cumulative_distance_m",
+        "global_aligned_x_m",
+        "global_aligned_y_m",
+        "global_alignment_error_m",
+        "prefix_aligned_x_m",
+        "prefix_aligned_y_m",
+        "prefix_locked_error_m",
+        "distance_after_alignment_prefix_m",
+        "prefix_locked_drift_per_100m"
+      ],
+      "interesting_columns": [
+        "sequence_frame_id",
+        "token0_id",
+        "x_enu_m",
+        "y_enu_m",
+        "pair_safe_image_only",
+        "reference_x_m",
+        "reference_y_m",
+        "reference_cumulative_distance_m",
+        "global_alignment_error_m",
+        "prefix_locked_error_m",
+        "distance_after_alignment_prefix_m"
+      ],
+      "column_stats": {
+        "sequence_frame_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "token0_id": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1034,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "x_enu_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            0.0,
+            -0.2925703511573374,
+            -0.4870620497968048,
+            -0.5137118448037654,
+            -0.7681655384367332
+          ]
+        },
+        "y_enu_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            0.0,
+            -0.1152335051447153,
+            -0.2289927704259753,
+            1.543979977723211,
+            5.419409408699721
+          ]
+        },
+        "pair_safe_image_only": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 2,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        },
+        "reference_x_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            0.0,
+            -0.2925703511573374,
+            -0.4870620497968048,
+            -0.5137118448037654,
+            -0.7681655384367332
+          ]
+        },
+        "reference_y_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            0.0,
+            -0.1152335051447153,
+            -0.2289927704259753,
+            1.543979977723211,
+            5.419409408699721
+          ]
+        },
+        "reference_cumulative_distance_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            0.0,
+            0.3144458158161193,
+            0.5397637939647737,
+            2.312936819152556,
+            6.196710751384242
+          ]
+        },
+        "global_alignment_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 2068,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            168.196675363782,
+            168.24018081450757,
+            168.23595468472325,
+            168.25450030918913,
+            168.55656593432417
+          ]
+        },
+        "prefix_locked_error_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 2068,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            1.4374807511930157,
+            1.39123675859695,
+            1.4028746512977843,
+            1.480738389055848,
+            1.3855814484811102
+          ]
+        },
+        "distance_after_alignment_prefix_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 2068,
+          "unique_count": 1017,
+          "duplicate_non_null_count": 2068,
+          "sample_values": [
+            -508.7616222039138,
+            -508.4471763880977,
+            -508.22185840994905,
+            -506.4486853847612,
+            -502.5649114525296
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "sequence_frame_id": 0,
+          "token0_id": 1,
+          "x_enu_m": 0.0,
+          "y_enu_m": 0.0,
+          "pair_safe_image_only": true,
+          "reference_x_m": 0.0,
+          "reference_y_m": 0.0,
+          "reference_cumulative_distance_m": 0.0,
+          "global_alignment_error_m": 168.196675363782,
+          "prefix_locked_error_m": 1.4374807511930157,
+          "distance_after_alignment_prefix_m": -508.7616222039138
+        },
+        {
+          "sequence_frame_id": 1,
+          "token0_id": 2,
+          "x_enu_m": -0.2925703511573374,
+          "y_enu_m": -0.1152335051447153,
+          "pair_safe_image_only": true,
+          "reference_x_m": -0.2925703511573374,
+          "reference_y_m": -0.1152335051447153,
+          "reference_cumulative_distance_m": 0.3144458158161193,
+          "global_alignment_error_m": 168.24018081450757,
+          "prefix_locked_error_m": 1.39123675859695,
+          "distance_after_alignment_prefix_m": -508.4471763880977
+        }
+      ]
+    },
+    "satellite_index": {
+      "path": "outputs/satloc/metadata/satellite_tiles_index_enriched.csv",
+      "rows": 8625,
+      "columns_count": 22,
+      "columns": [
+        "tile_index",
+        "filename",
+        "tile_path",
+        "tile_path_relative",
+        "ref_rel_path",
+        "tile_exists",
+        "tile_x1_px",
+        "tile_y1_px",
+        "tile_x2_px",
+        "tile_y2_px",
+        "lon_tl",
+        "lat_tl",
+        "lon_br",
+        "lat_br",
+        "lon_center",
+        "lat_center",
+        "utm_x_m",
+        "utm_y_m",
+        "x_enu_global_m",
+        "y_enu_global_m",
+        "x_enu_m",
+        "y_enu_m"
+      ],
+      "interesting_columns": [
+        "tile_index",
+        "tile_path",
+        "tile_path_relative",
+        "ref_rel_path",
+        "tile_exists",
+        "tile_x1_px",
+        "tile_y1_px",
+        "tile_x2_px",
+        "tile_y2_px",
+        "lon_tl",
+        "lat_tl",
+        "lon_br",
+        "lat_br",
+        "lon_center",
+        "lat_center",
+        "utm_x_m",
+        "utm_y_m",
+        "x_enu_global_m",
+        "y_enu_global_m",
+        "x_enu_m",
+        "y_enu_m"
+      ],
+      "column_stats": {
+        "tile_index": {
+          "dtype": "int64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "tile_path": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00000.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00001.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00002.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00003.jpg",
+            "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00004.jpg"
+          ]
+        },
+        "tile_path_relative": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            "Satellite Data/sat_image_ref/00000.jpg",
+            "Satellite Data/sat_image_ref/00001.jpg",
+            "Satellite Data/sat_image_ref/00002.jpg",
+            "Satellite Data/sat_image_ref/00003.jpg",
+            "Satellite Data/sat_image_ref/00004.jpg"
+          ]
+        },
+        "ref_rel_path": {
+          "dtype": "object",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            "./sat_image_ref/00000.jpg",
+            "./sat_image_ref/00001.jpg",
+            "./sat_image_ref/00002.jpg",
+            "./sat_image_ref/00003.jpg",
+            "./sat_image_ref/00004.jpg"
+          ]
+        },
+        "tile_exists": {
+          "dtype": "bool",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 1,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        },
+        "tile_x1_px": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 125,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            0.0,
+            64.0,
+            128.0,
+            192.0,
+            256.0
+          ]
+        },
+        "tile_y1_px": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 69,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "tile_x2_px": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 125,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            256.0,
+            320.0,
+            384.0,
+            448.0,
+            512.0
+          ]
+        },
+        "tile_y2_px": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 69,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            256.0,
+            256.0,
+            256.0,
+            256.0,
+            256.0
+          ]
+        },
+        "lon_tl": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 125,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            112.7992997857666,
+            112.7996563638916,
+            112.8000129420166,
+            112.8003695201416,
+            112.8007260982666
+          ]
+        },
+        "lat_tl": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 69,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            28.306616546666667,
+            28.306616546666667,
+            28.306616546666667,
+            28.306616546666667,
+            28.306616546666667
+          ]
+        },
+        "lon_br": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 125,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            112.8007260982666,
+            112.8010826763916,
+            112.8014392545166,
+            112.8017958326416,
+            112.8021524107666
+          ]
+        },
+        "lat_br": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 69,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            28.30536044,
+            28.30536044,
+            28.30536044,
+            28.30536044,
+            28.30536044
+          ]
+        },
+        "lon_center": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 125,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            112.8000129420166,
+            112.8003695201416,
+            112.8007260982666,
+            112.8010826763916,
+            112.8014392545166
+          ]
+        },
+        "lat_center": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 69,
+          "duplicate_non_null_count": 8625,
+          "sample_values": [
+            28.30598849333333,
+            28.30598849333333,
+            28.30598849333333,
+            28.30598849333333,
+            28.30598849333333
+          ]
+        },
+        "utm_x_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            676495.4571779182,
+            676530.4268705095,
+            676565.3965668895,
+            676600.3662670613,
+            676635.3359710231
+          ]
+        },
+        "utm_y_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            3132413.938181762,
+            3132414.459347616,
+            3132414.980616826,
+            3132415.501989393,
+            3132416.0234653167
+          ]
+        },
+        "x_enu_global_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.0,
+            34.96969259134494,
+            69.93938897131011,
+            104.90908914315514,
+            139.87879310490098
+          ]
+        },
+        "y_enu_global_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.0,
+            0.521165853831917,
+            1.0424350639805198,
+            1.5638076304458082,
+            2.085283554624766
+          ]
+        },
+        "x_enu_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.0,
+            34.96969259134494,
+            69.93938897131011,
+            104.90908914315514,
+            139.87879310490098
+          ]
+        },
+        "y_enu_m": {
+          "dtype": "float64",
+          "null_count": 0,
+          "non_null_count": 8625,
+          "unique_count": 8625,
+          "duplicate_non_null_count": 0,
+          "sample_values": [
+            0.0,
+            0.521165853831917,
+            1.0424350639805198,
+            1.5638076304458082,
+            2.085283554624766
+          ]
+        }
+      },
+      "sample_rows": [
+        {
+          "tile_index": 0,
+          "tile_path": "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00000.jpg",
+          "tile_path_relative": "Satellite Data/sat_image_ref/00000.jpg",
+          "ref_rel_path": "./sat_image_ref/00000.jpg",
+          "tile_exists": true,
+          "tile_x1_px": 0.0,
+          "tile_y1_px": 0.0,
+          "tile_x2_px": 256.0,
+          "tile_y2_px": 256.0,
+          "lon_tl": 112.7992997857666,
+          "lat_tl": 28.306616546666667,
+          "lon_br": 112.8007260982666,
+          "lat_br": 28.30536044,
+          "lon_center": 112.8000129420166,
+          "lat_center": 28.30598849333333,
+          "utm_x_m": 676495.4571779182,
+          "utm_y_m": 3132413.938181762,
+          "x_enu_global_m": 0.0,
+          "y_enu_global_m": 0.0,
+          "x_enu_m": 0.0,
+          "y_enu_m": 0.0
+        },
+        {
+          "tile_index": 1,
+          "tile_path": "data/raw/satloc/part_1/Satellite Data/sat_image_ref/00001.jpg",
+          "tile_path_relative": "Satellite Data/sat_image_ref/00001.jpg",
+          "ref_rel_path": "./sat_image_ref/00001.jpg",
+          "tile_exists": true,
+          "tile_x1_px": 64.0,
+          "tile_y1_px": 0.0,
+          "tile_x2_px": 320.0,
+          "tile_y2_px": 256.0,
+          "lon_tl": 112.7996563638916,
+          "lat_tl": 28.306616546666667,
+          "lon_br": 112.8010826763916,
+          "lat_br": 28.30536044,
+          "lon_center": 112.8003695201416,
+          "lat_center": 28.30598849333333,
+          "utm_x_m": 676530.4268705095,
+          "utm_y_m": 3132414.459347616,
+          "x_enu_global_m": 34.96969259134494,
+          "y_enu_global_m": 0.521165853831917,
+          "x_enu_m": 34.96969259134494,
+          "y_enu_m": 0.521165853831917
+        }
+      ]
+    }
+  },
+  "shared_columns": {
+    "s5c3_features__s5c2_query_summary": [
+      "chosen_error_m",
+      "chosen_hybrid_rank",
+      "chosen_hybrid_score",
+      "chosen_inliers",
+      "chosen_lg_score",
+      "chosen_lightglue_rank",
+      "chosen_matches",
+      "chosen_min_coverage",
+      "chosen_tile_id",
+      "chosen_union_rank",
+      "hit_le_threshold",
+      "oracle_hybrid_rank",
+      "oracle_lightglue_rank",
+      "oracle_processed_error_m",
+      "oracle_processed_hit_le_threshold",
+      "oracle_tile_id",
+      "oracle_union_rank",
+      "policy",
+      "processed_candidates",
+      "s5c2_chunk",
+      "token",
+      "union_top1_error_m",
+      "union_top1_hit_le_threshold"
+    ],
+    "s5c3_features__s6a_sequence_manifest": [],
+    "s5c2_query_summary__s6a_sequence_manifest": [],
+    "s6a_sequence_manifest__s6a_relative_trajectory": [
+      "sequence_frame_id",
+      "token0_id",
+      "x_enu_m",
+      "y_enu_m"
+    ],
+    "s5c2_query_summary__satellite_index": [],
+    "s5c2_candidate_scores__satellite_index": []
+  }
+}

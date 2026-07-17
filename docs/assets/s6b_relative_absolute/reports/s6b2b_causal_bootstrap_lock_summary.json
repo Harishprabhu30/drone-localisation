@@ -1,0 +1,56 @@
+{
+  "stage": "S6B.2B",
+  "title": "Causal raw bootstrap lock selection",
+  "selection_inputs_online_only": [
+    "accepted balanced absolute coordinates",
+    "raw visual coordinates",
+    "r60 consensus inliers",
+    "consensus residuals",
+    "scale stability",
+    "rotation stability",
+    "sequence order"
+  ],
+  "evaluation_only_annotations": [
+    "reference distance at lock",
+    "true/false accepted-event counts"
+  ],
+  "conditions": {
+    "stability_window": 3,
+    "minimum_available_events": 6,
+    "minimum_r60_inliers": 6,
+    "minimum_r60_inlier_rate": 0.7,
+    "maximum_median_residual_m": 20.0,
+    "maximum_p95_residual_m": 110.0,
+    "minimum_anchor_map_separation_m": 300.0,
+    "maximum_scale_relative_span": 0.15,
+    "maximum_rotation_spread_deg": 5.0
+  },
+  "selected_transform": {
+    "available_event_count": 10,
+    "lock_sequence_frame_id": 200,
+    "lock_token": 201,
+    "lock_reference_distance_m_eval_only": 1971.588930915444,
+    "scale_m_per_px": 0.2706906425192868,
+    "rotation_deg": 1.6706133353444272,
+    "rotation_rad": 0.02915770322948441,
+    "translation_x_m": -44.08613051508925,
+    "translation_y_m": 51.22248744629201,
+    "anchor_start_frame": 78,
+    "anchor_end_frame": 200,
+    "anchor_start_token": 79,
+    "anchor_end_token": 201,
+    "anchor_map_separation_m": 844.4859524962752,
+    "prefix_inliers_r60": 8,
+    "prefix_inlier_rate_r60": 0.8,
+    "median_prefix_residual_m": 7.095705645499002,
+    "p95_prefix_residual_m": 88.72652312555563,
+    "scale_relative_span_over_lock_window": 0.10259060283361955,
+    "rotation_spread_deg_over_lock_window": 0.19363192199983814,
+    "prefix_true_events_eval_only": 8,
+    "prefix_false_events_eval_only": 2
+  },
+  "outputs": {
+    "stability_diagnostics": "outputs/satloc/metadata/s6b_relative_absolute/s6b2b_bootstrap_lock_stability.csv",
+    "selected_transform": "outputs/satloc/metadata/s6b_relative_absolute/s6b2b_selected_bootstrap_transform.json"
+  }
+}

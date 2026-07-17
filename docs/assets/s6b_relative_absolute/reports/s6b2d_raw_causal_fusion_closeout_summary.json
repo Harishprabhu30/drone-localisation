@@ -1,0 +1,25 @@
+{
+  "stage": "S6B.2D",
+  "title": "Raw causal-fusion closeout and controlled-vs-causal comparison",
+  "window_size_m": 500.0,
+  "performance_policy_by_post_lock_rmse_eval_only": "raw_bootstrap_hybrid_r60_hard_online",
+  "robust_policy_by_exploratory_rank_sum_eval_only": "raw_bootstrap_hybrid_r60_hard_online",
+  "conclusions": {
+    "fusion_survives_causal_bootstrap": true,
+    "adaptive_t050_improves_over_raw_relative": true,
+    "adaptive_t075_improves_over_raw_relative": true,
+    "adaptive_t050_beats_raw_hard": false,
+    "adaptive_t075_beats_raw_hard": false,
+    "scientific_interpretation": "Absolute-temporal fusion remains highly beneficial after causal raw bootstrap, but fixed source-based soft alpha does not beat full hybrid-r60 reset on post-lock RMSE. The raw mapped relative trajectory carries larger residual map-frame drift, so partial corrections can leave too much error unremoved."
+  },
+  "important_scope": "All raw metrics cover only frames at or after the causal bootstrap lock. Before lock, only local relative localization is available.",
+  "selection_warning": "Policy ranking uses traj01 evaluation metrics and is exploratory, not independent validation.",
+  "outputs": {
+    "window_metrics": "outputs/satloc/metadata/s6b_relative_absolute/s6b2d_raw_policy_window_metrics.csv",
+    "window_summary": "outputs/satloc/metadata/s6b_relative_absolute/s6b2d_raw_policy_window_summary.csv",
+    "event_source_summary": "outputs/satloc/metadata/s6b_relative_absolute/s6b2d_raw_event_source_summary.csv",
+    "controlled_vs_raw_comparison": "outputs/satloc/metadata/s6b_relative_absolute/s6b2d_controlled_vs_raw_comparison.csv",
+    "policy_selection": "outputs/satloc/metadata/s6b_relative_absolute/s6b2d_raw_policy_selection.csv",
+    "figure": "outputs/satloc/figures/s6b_relative_absolute/s6b2d_raw_policy_window_rmse.png"
+  }
+}
