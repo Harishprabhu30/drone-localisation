@@ -1,0 +1,147 @@
+{
+  "stage": "S6A.4A",
+  "sequence": "traj01",
+  "purpose": "Compare KLT optical-flow relative motion with the locked ORB partial-affine baseline before freezing the relative estimator for S6B.",
+  "reference_rule": "Reference ENU is used only after image-only KLT estimation for alignment, error metrics, and method comparison.",
+  "important_rotation_rule": "Large rotations are not rejected by magnitude alone. KLT acceptance depends on forward/backward point consistency and affine RANSAC support.",
+  "configuration": {
+    "manifest": "outputs/satloc/metadata/s6a_relative_motion/s6a_sequence_manifest.csv",
+    "orb_pairs": "outputs/satloc/metadata/s6a_relative_motion/s6a1_orb_affine_pair_diagnostics.csv",
+    "orb_aligned": "outputs/satloc/metadata/s6a_relative_motion/s6a2_orb_relative_trajectory_aligned_eval_only.csv",
+    "output_root": "outputs/satloc",
+    "sequence": "traj01",
+    "resize_long": 960,
+    "max_corners": 1200,
+    "quality_level": 0.01,
+    "min_distance": 7.0,
+    "block_size": 7,
+    "win_size": 31,
+    "max_level": 4,
+    "fb_threshold_px": 1.5,
+    "ransac_threshold_px": 3.0,
+    "min_fb_tracks": 40,
+    "min_inliers": 30,
+    "min_inlier_ratio": 0.5,
+    "alignment_prefix_frames": 50,
+    "thresholds_m": [
+      10.0,
+      20.0,
+      40.0,
+      80.0
+    ],
+    "sustain_frames": 5,
+    "max_frames": null
+  },
+  "klt_pair_summary": {
+    "method": "klt_orb_fallback",
+    "frames": 1034,
+    "pairs": 1033,
+    "orb_fallback_pairs": 1,
+    "orb_fallback_rate": 0.000968054211035818,
+    "affine_success_rate": 1.0,
+    "image_only_good_rate": 0.9941916747337851,
+    "detected_corners_median": 1200.0,
+    "fb_consistent_tracks_median": 1136.0,
+    "inliers_median": 1089.0,
+    "inlier_ratio_median": 0.9731182795698925,
+    "inlier_ratio_p05": 0.7366169178230889,
+    "fb_error_median_px": 0.005468524061143398,
+    "abs_rotation_p95_deg": 0.2641801557957879,
+    "abs_scale_error_p95": 0.004273452088262308,
+    "pair_runtime_mean_ms": 135.2611377008139,
+    "full_pair_processing_s": 259.5580805849895
+  },
+  "klt_trajectory_summary": {
+    "global_alignment": {
+      "scale_m_per_px": 0.2669017566766115,
+      "rotation_deg": 6.88478393534367,
+      "rmse_m": 263.7588493298397,
+      "mean_error_m": 254.830095696342,
+      "median_error_m": 253.43887761902886,
+      "p95_error_m": 381.508014331641,
+      "max_error_m": 423.1270293434337,
+      "final_error_m": 265.74641217453916,
+      "evaluation_distance_m": 10768.615718302131,
+      "final_drift_per_100m": 2.467786195795637
+    },
+    "prefix_locked_alignment": {
+      "prefix_frames": 50,
+      "prefix_reference_distance_m": 508.7616222039138,
+      "scale_m_per_px": 0.29421457004491214,
+      "rotation_deg": 2.483132470926025,
+      "rmse_m": 386.9026224450606,
+      "mean_error_m": 350.60339606383104,
+      "median_error_m": 401.9980864404733,
+      "p95_error_m": 546.4316846425146,
+      "max_error_m": 561.5229002792397,
+      "final_error_m": 470.3764892845818,
+      "evaluation_distance_m": 10259.854096098217,
+      "final_drift_per_100m": 4.584631368817068
+    },
+    "threshold_crossings": [
+      {
+        "threshold_m": 10.0,
+        "crossed": true,
+        "frame_index": 72,
+        "frames_after_prefix": 23,
+        "distance_after_prefix_m": 278.2873553940277,
+        "error_at_crossing_m": 10.034884989807551
+      },
+      {
+        "threshold_m": 20.0,
+        "crossed": true,
+        "frame_index": 111,
+        "frames_after_prefix": 62,
+        "distance_after_prefix_m": 689.429559500753,
+        "error_at_crossing_m": 21.22386995647217
+      },
+      {
+        "threshold_m": 40.0,
+        "crossed": true,
+        "frame_index": 119,
+        "frames_after_prefix": 70,
+        "distance_after_prefix_m": 784.871199019518,
+        "error_at_crossing_m": 41.357182280428475
+      },
+      {
+        "threshold_m": 80.0,
+        "crossed": true,
+        "frame_index": 172,
+        "frames_after_prefix": 123,
+        "distance_after_prefix_m": 1346.8190343924898,
+        "error_at_crossing_m": 80.03993767179222
+      }
+    ]
+  },
+  "method_comparison": [
+    {
+      "method": "klt_orb_fallback",
+      "affine_success_rate": 1.0,
+      "good_rate": 0.9941916747337851,
+      "inlier_ratio_median": 0.9731182795698925,
+      "inlier_ratio_p05": 0.7366169178230889,
+      "inliers_median": 1089.0,
+      "pair_runtime_mean_ms": 135.2611377008139,
+      "prefix_rmse_m": 386.9026224450606,
+      "prefix_p95_m": 546.4316846425146,
+      "prefix_max_m": 561.5229002792397,
+      "final_error_m": 470.3764892845818,
+      "final_drift_per_100m": 4.584631368817068
+    },
+    {
+      "method": "orb",
+      "affine_success_rate": 1.0,
+      "good_rate": 1.0,
+      "inlier_ratio_median": 0.9113233287858116,
+      "inlier_ratio_p05": 0.7425171620270126,
+      "inliers_median": 653.0,
+      "pair_runtime_mean_ms": NaN,
+      "prefix_rmse_m": 230.18799656303705,
+      "prefix_p95_m": 412.65842231732523,
+      "prefix_max_m": 450.8926344464306,
+      "final_error_m": 252.51959034580145,
+      "final_drift_per_100m": 2.461239584701635
+    }
+  ],
+  "decision_rule": "If KLT is clearly worse in weak-tail pair quality or prefix-locked drift, freeze ORB for S6B. If KLT is competitive or complementary, run KLT rolling-anchor horizons and test an ORB/KLT confidence-gated hybrid before freezing."
+}

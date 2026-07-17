@@ -1,0 +1,22 @@
+{
+  "stage": "S6B.1C.3",
+  "title": "Adaptive policy robustness and segment closeout",
+  "window_size_m": 500.0,
+  "performance_policy_by_global_rmse_eval_only": "hybrid_r60_adaptive_b100_t075_online",
+  "robust_policy_by_exploratory_rank_sum_eval_only": "hybrid_r60_adaptive_b100_t050_online",
+  "selection_warning": "Both selections use traj01 evaluation metrics. They are experimental policy choices and are not independent validation results.",
+  "robust_ranking_metrics": [
+    "global RMSE",
+    "global p95",
+    "global maximum error",
+    "failure rate above 40 m",
+    "worst 500 m window RMSE"
+  ],
+  "outputs": {
+    "window_metrics": "outputs/satloc/metadata/s6b_relative_absolute/s6b1c3_policy_window_metrics.csv",
+    "window_summary": "outputs/satloc/metadata/s6b_relative_absolute/s6b1c3_policy_window_summary.csv",
+    "policy_selection": "outputs/satloc/metadata/s6b_relative_absolute/s6b1c3_policy_selection_summary.csv",
+    "event_source_summary": "outputs/satloc/metadata/s6b_relative_absolute/s6b1c3_event_source_summary.csv",
+    "figure": "outputs/satloc/figures/s6b_relative_absolute/s6b1c3_policy_window_rmse.png"
+  }
+}

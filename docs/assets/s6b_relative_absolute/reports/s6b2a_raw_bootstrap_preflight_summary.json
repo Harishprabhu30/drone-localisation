@@ -1,0 +1,15 @@
+{
+  "stage": "S6B.2A",
+  "relative_variant": "se2_scale_normalized",
+  "raw_frames": 1034,
+  "balanced_absolute_observations": 33,
+  "maximum_raw_vs_aligned_visual_copy_delta": 0.0,
+  "hypotheses": 519,
+  "causal_winners": 32,
+  "locked_rule": "Hypotheses and rankings use only raw visual coordinates and confidence-gated absolute coordinates. Ground-truth labels are attached only after ranking for evaluation.",
+  "outputs": {
+    "events": "outputs/satloc/metadata/s6b_relative_absolute/s6b2a_balanced_bootstrap_events.csv",
+    "hypotheses": "outputs/satloc/metadata/s6b_relative_absolute/s6b2a_raw_bootstrap_hypotheses.csv",
+    "causal_winners": "outputs/satloc/metadata/s6b_relative_absolute/s6b2a_raw_bootstrap_causal_winners.csv"
+  }
+}

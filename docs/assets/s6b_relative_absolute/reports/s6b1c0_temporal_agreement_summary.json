@@ -1,0 +1,73 @@
+{
+  "stage": "S6B.1C.0",
+  "relative_variant": "se2_scale_normalized",
+  "definition": "Temporal residual is the Euclidean difference between absolute displacement and relative displacement across correction opportunities.",
+  "online_only_policy_inputs": [
+    "chosen_abs_x_traj01_m",
+    "chosen_abs_y_traj01_m",
+    "relative_x_m",
+    "relative_y_m",
+    "balanced_accept_online",
+    "permissive_accept_online",
+    "sequence ordering"
+  ],
+  "evaluation_only_outputs": [
+    "hit_eval_only",
+    "chosen_error_m_eval_only",
+    "dangerous_false_eval_only",
+    "precision statistics"
+  ],
+  "lag1_residual_summary": {
+    "balanced": {
+      "all": {
+        "rows": 32,
+        "median_m": 39.78144555430893,
+        "p75_m": 105.02693431704093,
+        "p95_m": 1678.0356350558422,
+        "max_m": 2061.1018897674844
+      },
+      "true_eval_only": {
+        "rows": 24,
+        "median_m": 36.7106150307808,
+        "p75_m": 87.44207106779027,
+        "p95_m": 1324.0066027885432,
+        "max_m": 2059.8646905930095
+      },
+      "false_eval_only": {
+        "rows": 8,
+        "median_m": 86.18724746020607,
+        "p75_m": 222.72251927796756,
+        "p95_m": 1510.0852576219936,
+        "max_m": 2061.1018897674844
+      }
+    },
+    "permissive": {
+      "all": {
+        "rows": 79,
+        "median_m": 37.7651627893844,
+        "p75_m": 115.13650494288595,
+        "p95_m": 1835.08036613762,
+        "max_m": 2867.667754517941
+      },
+      "true_eval_only": {
+        "rows": 51,
+        "median_m": 30.153780743692213,
+        "p75_m": 68.43113712178581,
+        "p95_m": 1712.7473673774034,
+        "max_m": 2867.667754517941
+      },
+      "false_eval_only": {
+        "rows": 28,
+        "median_m": 54.17340565063279,
+        "p75_m": 135.58169224799192,
+        "p95_m": 1796.0989747884162,
+        "max_m": 2061.1018897674844
+      }
+    }
+  },
+  "outputs": {
+    "diagnostics": "outputs/satloc/metadata/s6b_relative_absolute/s6b1c0_temporal_agreement_diagnostics.csv",
+    "policy_sweep": "outputs/satloc/metadata/s6b_relative_absolute/s6b1c0_temporal_confirmation_policy_sweep.csv",
+    "summary": "outputs/satloc/reports/s6b_relative_absolute/s6b1c0_temporal_agreement_summary.json"
+  }
+}

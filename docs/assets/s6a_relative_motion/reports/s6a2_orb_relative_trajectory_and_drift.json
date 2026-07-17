@@ -1,0 +1,176 @@
+{
+  "stage": "S6A.2",
+  "sequence": "traj01",
+  "estimator_rule": "Only image-derived ORB partial-affine transforms are used to build the relative trajectory.",
+  "evaluation_rule": "Reference ENU positions are used only after trajectory construction for similarity alignment and error metrics.",
+  "important_timing_note": "SatLoc traj01 has no trusted timestamps in the current index. Safe horizons are therefore reported in frames and travelled metres, not seconds.",
+  "configuration": {
+    "alignment_prefix_frames": 50,
+    "error_thresholds_m": [
+      10.0,
+      20.0,
+      40.0,
+      80.0
+    ],
+    "sustain_frames": 5,
+    "image_width": 960,
+    "image_height": 540
+  },
+  "stride": 1,
+  "pairs": 1033,
+  "image_only_unsafe_pairs_flagged": 2,
+  "variants": [
+    {
+      "variant": "se2_scale_normalized",
+      "frames": 1034,
+      "reference_path_m": 10768.615718302126,
+      "visual_path_px": 36691.38325325987,
+      "global_alignment": {
+        "scale_m_per_px": 0.2974894702837229,
+        "rotation_deg": -0.9228210536809126,
+        "evaluation_points": 1034,
+        "rmse_m": 145.90684301168181,
+        "mean_error_m": 131.37197727635564,
+        "median_error_m": 135.00294241305383,
+        "p95_error_m": 224.61888616978652,
+        "max_error_m": 254.0520973984591,
+        "final_error_m": 104.56714690192315,
+        "evaluation_distance_m": 10768.615718302131,
+        "final_drift_per_100m": 0.9710361074933972
+      },
+      "prefix_locked_alignment": {
+        "prefix_frames": 50,
+        "prefix_last_frame_index": 49,
+        "prefix_reference_distance_m": 508.7616222039138,
+        "scale_m_per_px": 0.2964725562002981,
+        "rotation_deg": 2.1038472039901217,
+        "evaluation_points": 985,
+        "rmse_m": 230.18799656303705,
+        "mean_error_m": 196.69932283008794,
+        "median_error_m": 184.4382171226868,
+        "p95_error_m": 412.65842231732523,
+        "max_error_m": 450.89263444643063,
+        "final_error_m": 252.51959034580142,
+        "evaluation_distance_m": 10259.854096098217,
+        "final_drift_per_100m": 2.4612395847016346
+      }
+    },
+    {
+      "variant": "sim2_local_step",
+      "frames": 1034,
+      "reference_path_m": 10768.615718302126,
+      "visual_path_px": 36672.006028919204,
+      "global_alignment": {
+        "scale_m_per_px": 0.2979181396347083,
+        "rotation_deg": -0.9266498798747577,
+        "evaluation_points": 1034,
+        "rmse_m": 145.9526810433843,
+        "mean_error_m": 131.1365476255608,
+        "median_error_m": 134.4034513993211,
+        "p95_error_m": 226.14759483670633,
+        "max_error_m": 254.0519358185224,
+        "final_error_m": 102.81083870959475,
+        "evaluation_distance_m": 10768.615718302131,
+        "final_drift_per_100m": 0.9547265999552703
+      },
+      "prefix_locked_alignment": {
+        "prefix_frames": 50,
+        "prefix_last_frame_index": 49,
+        "prefix_reference_distance_m": 508.7616222039138,
+        "scale_m_per_px": 0.29615083200497433,
+        "rotation_deg": 2.1024789587616017,
+        "evaluation_points": 985,
+        "rmse_m": 230.40872743028757,
+        "mean_error_m": 196.73066694910838,
+        "median_error_m": 185.331574460831,
+        "p95_error_m": 412.6042838852641,
+        "max_error_m": 450.1288903647626,
+        "final_error_m": 251.78266273471948,
+        "evaluation_distance_m": 10259.854096098217,
+        "final_drift_per_100m": 2.4540569522374733
+      }
+    }
+  ],
+  "threshold_crossings": [
+    {
+      "variant": "se2_scale_normalized",
+      "threshold_m": 10.0,
+      "crossed": true,
+      "frame_index": 74,
+      "frames_after_alignment_prefix": 25,
+      "distance_after_alignment_prefix_m": 299.4550835941535,
+      "error_at_crossing_m": 10.094878493407867,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "se2_scale_normalized",
+      "threshold_m": 20.0,
+      "crossed": true,
+      "frame_index": 116,
+      "frames_after_alignment_prefix": 67,
+      "distance_after_alignment_prefix_m": 748.8743718227112,
+      "error_at_crossing_m": 22.53036829160545,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "se2_scale_normalized",
+      "threshold_m": 40.0,
+      "crossed": true,
+      "frame_index": 131,
+      "frames_after_alignment_prefix": 82,
+      "distance_after_alignment_prefix_m": 926.3108951915921,
+      "error_at_crossing_m": 40.1554605007937,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "se2_scale_normalized",
+      "threshold_m": 80.0,
+      "crossed": true,
+      "frame_index": 227,
+      "frames_after_alignment_prefix": 178,
+      "distance_after_alignment_prefix_m": 1652.411822113353,
+      "error_at_crossing_m": 80.38376304683489,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "sim2_local_step",
+      "threshold_m": 10.0,
+      "crossed": true,
+      "frame_index": 74,
+      "frames_after_alignment_prefix": 25,
+      "distance_after_alignment_prefix_m": 299.4550835941535,
+      "error_at_crossing_m": 10.105644925414358,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "sim2_local_step",
+      "threshold_m": 20.0,
+      "crossed": true,
+      "frame_index": 115,
+      "frames_after_alignment_prefix": 66,
+      "distance_after_alignment_prefix_m": 736.9077790055075,
+      "error_at_crossing_m": 20.382282774184343,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "sim2_local_step",
+      "threshold_m": 40.0,
+      "crossed": true,
+      "frame_index": 133,
+      "frames_after_alignment_prefix": 84,
+      "distance_after_alignment_prefix_m": 947.301162228004,
+      "error_at_crossing_m": 40.18433796338853,
+      "sustain_frames": 5
+    },
+    {
+      "variant": "sim2_local_step",
+      "threshold_m": 80.0,
+      "crossed": true,
+      "frame_index": 228,
+      "frames_after_alignment_prefix": 179,
+      "distance_after_alignment_prefix_m": 1664.38432177107,
+      "error_at_crossing_m": 80.06635721345567,
+      "sustain_frames": 5
+    }
+  ]
+}
