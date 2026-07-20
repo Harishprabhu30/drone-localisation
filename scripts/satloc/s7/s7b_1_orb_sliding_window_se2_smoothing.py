@@ -24,6 +24,18 @@ Variants:
     allowed because it uses future increments.
 
 Reference ENU is used only after each complete image-only trajectory is built.
+
+Command USed:
+
+export PYTHONPATH=$PWD/src
+
+mkdir -p outputs/satloc/reports/s7_relative_frontend
+set -o pipefail
+
+python scripts/satloc/s7/s7b_1_orb_sliding_window_se2_smoothing.py \
+  2>&1 | tee \
+  outputs/satloc/reports/s7_relative_frontend/s7b_1_orb_sliding_window_se2_smoothing.log
+
 """
 
 from __future__ import annotations
