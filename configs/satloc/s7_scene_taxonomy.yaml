@@ -1,0 +1,61 @@
+# S7 scene taxonomy — frozen before retrieval method results
+version: s7.0-v1
+sequence: traj01
+ordering_key: token0_id
+
+annotation_purpose: >-
+  Stratified evaluation and failure interpretation only. These labels must not be
+  used to select candidates, tune scores per query, accept corrections, or access
+  reference/GNSS coordinates during realistic localization.
+
+primary_scene_classes:
+  urban: Buildings, dense roads, paved blocks, roofs, or constructed layout dominate.
+  mixed_urban_natural: Neither built structure nor natural terrain clearly dominates.
+  forest_canopy: Dense trees or canopy mass dominates most of the visible area.
+  agricultural_open_field: Fields, crop parcels, open agricultural land, or field boundaries dominate.
+  water_wetland: Pond, river, water body, marsh, or shoreline is a dominant stable element.
+  low_structure: Large weakly textured or weakly bounded area with few stable anchors.
+  other: Visually meaningful scene not covered by the frozen classes.
+
+secondary_scene_classes:
+  - none
+  - urban
+  - vegetation
+  - forest_canopy
+  - agricultural_open_field
+  - water_wetland
+  - road_corridor
+  - construction_bare_ground
+  - other
+
+confidence_values:
+  - high
+  - medium
+  - low
+
+manual_range_columns:
+  - segment_id
+  - start_token0_id
+  - end_token0_id
+  - primary_scene
+  - secondary_scene
+  - confidence
+  - boundary_uncertainty_frames
+  - notes
+
+reserved_challenge_flags_for_later_paired_or_numeric_diagnostics:
+  - rotation_challenge
+  - fov_scale_challenge
+  - shadow_heavy
+  - repetitive_structure
+  - seasonal_or_map_age_mismatch
+  - transition_zone
+
+manual_annotation_rules:
+  - Use continuous inclusive token0_id ranges.
+  - Cover token0_id 1 through 1034 without overlap in the final frozen file.
+  - Use primary_scene for the dominant visual domain.
+  - Use secondary_scene only when it adds useful context; otherwise use none.
+  - Put uncertain boundary width in boundary_uncertainty_frames, typically 5 or 10.
+  - Do not inspect retrieval scores, errors, oracle ranks, or method outputs while labeling.
+  - Do not infer coordinates from image filenames.
