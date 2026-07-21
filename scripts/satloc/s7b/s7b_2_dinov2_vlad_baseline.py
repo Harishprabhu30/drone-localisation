@@ -6,6 +6,27 @@ Self-contained local-token aggregation baseline:
   image -> DINOv2 patch tokens -> MiniBatchKMeans codebook -> VLAD -> cosine retrieval
 
 GT/reference rule: lon/lat are used only after ranking for offline Recall@K/error metrics.
+
+Command USed:
+
+1. 
+
+2. changed method of croppping to resize_square, default : centre_square:
+
+PYTHONUNBUFFERED=1 python -u scripts/satloc/s7b/s7b_2_dinov2_vlad_baseline.py \
+  --repo-root "$PWD" \
+  --codebook-sat-tiles 500 \
+  --image-size 224 \
+  --crop-mode resize_square \
+  --vlad-clusters 32 \
+  --patches-per-image 32 \
+  --max-codebook-patches 60000 \
+  --top-k 100 \
+  --device cpu \
+  --batch-size 1 \
+  --cache-tag full263_k32_cb500_img224_resize_square \
+  2>&1 | tee outputs/satloc/reports/s7b_dinov2_vlad/s7b2_vlad_full263_k32_cb500_img224_resize_square.log
+
 """
 from __future__ import annotations
 
@@ -63,7 +84,7 @@ def ap() -> argparse.Namespace:
     p.add_argument("--scene-token-col", default="token")
     p.add_argument("--scene-col", default="primary_scene")
 
-    p.add_argument("--model-name", default="dinov2_vits14")
+    p.add_argument("--model-name", default="dinov2_vits14") # model with registers: dinov2_vits14_reg 
     p.add_argument("--image-size", type=int, default=224)
     p.add_argument("--crop-mode", choices=["center_square", "resize_square"], default="center_square")
     p.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto")

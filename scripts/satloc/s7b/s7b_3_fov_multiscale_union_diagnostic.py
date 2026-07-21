@@ -7,6 +7,18 @@ Combines multiple learned-retrieval candidate CSVs, usually:
 
 Ranking uses Reciprocal Rank Fusion (RRF) from retrieval ranks only.
 eval_error_m is used only after ranking for offline Recall@K evaluation.
+
+Command Used:
+
+python scripts/satloc/s7b/s7b_3_fov_multiscale_union_diagnostic.py \
+  --repo-root "$PWD" \
+  --stream center=outputs/satloc/metadata/s7b_dinov2_vlad/s7b2_dinov2_vlad_candidate_scores_torch_hub_dinov2_vits14_vlad_k32_img224_top100_q263_sat8625_cb500_full263_k32_cb500_img224.csv \
+  --stream resize=outputs/satloc/metadata/s7b_dinov2_vlad/s7b2_dinov2_vlad_candidate_scores_torch_hub_dinov2_vits14_vlad_k32_img224_top100_q263_sat8625_cb500_full263_k32_cb500_img224_resize_square.csv \
+  --top-k 100 \
+  --threshold-m 40 \
+  --tag center_resize_k32_img224 \
+  2>&1 | tee outputs/satloc/reports/s7b_multiscale_fov/s7b3_union_center_resize_k32_img224.log
+
 """
 
 from __future__ import annotations
