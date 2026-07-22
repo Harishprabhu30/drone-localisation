@@ -21,6 +21,9 @@ logs/
 # Outputs
 outputs/
 
+# Cloned Git Repos
+third_party/
+
 # Data
 data/raw/
 data/processed/
