@@ -1,3 +1,11 @@
+''''
+Command executed:
+
+export PYTHONPATH=$PWD/src
+python scripts/villoc/s8_1_parse_villoc_srt.py --config configs/dataset_villoc_90deg.yaml
+
+'''
+
 from __future__ import annotations
 
 import argparse
