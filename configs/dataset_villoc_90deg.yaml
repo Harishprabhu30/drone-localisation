@@ -1,0 +1,51 @@
+dataset:
+  name: villoc_90deg_20260413
+  type: villoc_video_srt
+  raw_root: data/raw/villoc/90_deg
+  processed_root: data/processed/villoc/90_deg
+  output_root: outputs/villoc/90_deg
+
+streams:
+  V:
+    modality: rgb
+    role: primary_visual
+    video: CAM_20260413115710_0001_V.MP4
+    srt: CAM_20260413115710_0001_V.SRT
+    fps_expected: 29.97
+    resolution_expected: [3840, 2160]
+
+  S:
+    modality: rgb
+    role: secondary_visual
+    video: CAM_20260413115710_0001_S.MP4
+    srt: CAM_20260413115710_0001_S.SRT
+    fps_expected: 29.97
+    resolution_expected: [1920, 1080]
+
+  T:
+    modality: thermal
+    role: thermal
+    video: CAM_20260413115710_0001_T.MP4
+    srt: CAM_20260413115710_0001_T.SRT
+    fps_expected: 9.0
+    resolution_expected: [640, 512]
+
+reference:
+  source: srt_gps
+  gps_usage: evaluation_only
+  local_frame: ENU
+  origin_policy: first_valid_primary_visual_srt_row
+
+rules:
+  use_srt_for:
+    - frame_alignment
+    - reference_trajectory
+    - map_bbox
+    - tile_generation
+    - evaluation
+    - sanity_checks
+  never_use_srt_for:
+    - retrieval_ranking
+    - verifier_ranking
+    - correction_acceptance
+    - threshold_tuning_from_error
