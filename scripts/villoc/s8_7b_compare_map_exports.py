@@ -2,6 +2,7 @@
 Command Executed:
 
 export PYTHONPATH=$PWD/src
+
 python scripts/villoc/s8_7b_compare_map_exports.py \
   --config configs/dataset_villoc_90deg.yaml \
   --map-root data/raw/villoc/90_deg/maps/ort10lt_2024_2026
@@ -51,7 +52,11 @@ def main() -> None:
     rows = []
     map_root = Path(args.map_root)
 
-    for tif_path in sorted(map_root.glob("export_*/output.tif")):
+    tif_paths = list(map_root.glob("export_*/output.tif"))
+    tif_paths.extend(map_root.glob("master/*.tif"))
+    tif_paths = sorted(set(tif_paths))
+
+    for tif_path in tif_paths:
         with rasterio.open(tif_path) as src:
             b = src.bounds
             bounds = {
@@ -79,7 +84,11 @@ def main() -> None:
 
             rows.append(
                 {
-                    "export_name": tif_path.parent.name,
+                    "export_name": (
+                        tif_path.stem
+                        if tif_path.parent.name == "master"
+                        else tif_path.parent.name
+                    ),
                     "tif_path": str(tif_path),
                     "width_px": int(src.width),
                     "height_px": int(src.height),

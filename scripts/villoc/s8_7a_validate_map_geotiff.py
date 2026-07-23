@@ -1,11 +1,14 @@
 '''
-Command Executed:
+Commad Executed:
 
 export PYTHONPATH=$PWD/src
+
 python scripts/villoc/s8_7a_validate_map_geotiff.py \
   --config configs/dataset_villoc_90deg.yaml \
-  --tif data/raw/villoc/90_deg/maps/ort10lt_2024_2026/export_001/output.tif \
-  --name ort10lt_2024_2026_export_001
+  --tif data/raw/villoc/90_deg/maps/ort10lt_2024_2026/master/ort10lt_2024_2026_master.tif \
+  --name ort10lt_2024_2026_master \
+  --tile-size-px 512 \
+  --stride-px 256
 
 '''
 
@@ -13,139 +16,400 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
+from typing import Any
 
+import rasterio
 import yaml
+from rasterio.crs import CRS
+from rasterio.warp import transform_bounds
 
 
-def read_with_rasterio(tif_path: Path) -> dict:
-    import rasterio
+def load_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return json.loads(path.read_text())
 
-    with rasterio.open(tif_path) as src:
-        bounds = src.bounds
-        transform = src.transform
 
+def normalized_crs_name(crs: CRS | None) -> str | None:
+    if crs is None:
+        return None
+
+    epsg = crs.to_epsg()
+    if epsg is not None:
+        return f"EPSG:{epsg}"
+
+    return crs.to_string()
+
+
+def estimate_grid_count(
+    width_px: int,
+    height_px: int,
+    tile_size_px: int,
+    stride_px: int,
+) -> dict[str, int]:
+    def count_axis(length_px: int) -> int:
+        if length_px <= tile_size_px:
+            return 1
+
+        return int(math.ceil((length_px - tile_size_px) / stride_px)) + 1
+
+    cols = count_axis(width_px)
+    rows = count_axis(height_px)
+
+    return {
+        "tile_columns": cols,
+        "tile_rows": rows,
+        "tile_count": cols * rows,
+    }
+
+
+def intersect_bounds(
+    raster_bounds: dict[str, float],
+    target_bounds: dict[str, float],
+) -> dict[str, float | bool]:
+    left = max(raster_bounds["left"], target_bounds["xmin"])
+    right = min(raster_bounds["right"], target_bounds["xmax"])
+    bottom = max(raster_bounds["bottom"], target_bounds["ymin"])
+    top = min(raster_bounds["top"], target_bounds["ymax"])
+
+    has_overlap = right > left and top > bottom
+
+    if not has_overlap:
         return {
-            "read_method": "rasterio",
-            "path": str(tif_path),
-            "width_px": int(src.width),
-            "height_px": int(src.height),
-            "count_bands": int(src.count),
-            "dtype": str(src.dtypes[0]) if src.dtypes else None,
-            "crs": str(src.crs),
-            "bounds": {
-                "left": float(bounds.left),
-                "bottom": float(bounds.bottom),
-                "right": float(bounds.right),
-                "top": float(bounds.top),
-            },
-            "transform": list(transform)[:6],
-            "pixel_size_x_m": abs(float(transform.a)),
-            "pixel_size_y_m": abs(float(transform.e)),
-            "width_m": float(bounds.right - bounds.left),
-            "height_m": float(bounds.top - bounds.bottom),
+            "has_overlap": False,
+            "left": left,
+            "right": right,
+            "bottom": bottom,
+            "top": top,
+            "width_m": 0.0,
+            "height_m": 0.0,
+            "area_m2": 0.0,
         }
 
+    return {
+        "has_overlap": True,
+        "left": left,
+        "right": right,
+        "bottom": bottom,
+        "top": top,
+        "width_m": right - left,
+        "height_m": top - bottom,
+        "area_m2": (right - left) * (top - bottom),
+    }
 
-def load_s8_6_plan(output_root: Path) -> dict:
-    plan_path = output_root / "reports" / "s8_6_map_bbox_plan.json"
-    if not plan_path.exists():
-        raise FileNotFoundError(plan_path)
-    return json.loads(plan_path.read_text())
 
+def transform_target_bbox(
+    target_bbox_3346: dict[str, float],
+    raster_crs: CRS,
+) -> dict[str, float]:
+    target_crs = CRS.from_epsg(3346)
 
-def bbox_contains(container: dict, inner: dict) -> bool:
-    return (
-        container["left"] <= inner["xmin"]
-        and container["right"] >= inner["xmax"]
-        and container["bottom"] <= inner["ymin"]
-        and container["top"] >= inner["ymax"]
+    if raster_crs == target_crs:
+        return {
+            "xmin": float(target_bbox_3346["xmin"]),
+            "ymin": float(target_bbox_3346["ymin"]),
+            "xmax": float(target_bbox_3346["xmax"]),
+            "ymax": float(target_bbox_3346["ymax"]),
+        }
+
+    left, bottom, right, top = transform_bounds(
+        target_crs,
+        raster_crs,
+        target_bbox_3346["xmin"],
+        target_bbox_3346["ymin"],
+        target_bbox_3346["xmax"],
+        target_bbox_3346["ymax"],
+        densify_pts=21,
     )
+
+    return {
+        "xmin": float(left),
+        "ymin": float(bottom),
+        "xmax": float(right),
+        "ymax": float(top),
+    }
+
+
+def suitability_from_resolution(max_pixel_size_m: float) -> str:
+    if max_pixel_size_m <= 0.35:
+        return "EXCELLENT_NATIVE_ORTHOPHOTO"
+    if max_pixel_size_m <= 0.60:
+        return "GOOD_FOR_TILE_MATCHING"
+    if max_pixel_size_m <= 1.00:
+        return "USABLE_FOR_FIRST_BASELINE"
+    if max_pixel_size_m <= 2.00:
+        return "WEAK_LOW_DETAIL"
+    return "TOO_COARSE_REEXPORT_NEEDED"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     parser.add_argument("--tif", required=True)
-    parser.add_argument("--name", default="ort10lt_2024_2026_export_001")
+    parser.add_argument("--name", required=True)
+    parser.add_argument("--tile-size-px", type=int, default=512)
+    parser.add_argument("--stride-px", type=int, default=256)
     args = parser.parse_args()
 
-    cfg = yaml.safe_load(Path(args.config).read_text())
-    output_root = Path(cfg["dataset"]["output_root"])
-    reports_dir = output_root / "reports"
-    reports_dir.mkdir(parents=True, exist_ok=True)
-
+    config_path = Path(args.config)
     tif_path = Path(args.tif)
+
     if not tif_path.exists():
         raise FileNotFoundError(tif_path)
 
-    plan = load_s8_6_plan(output_root)
-    target_bbox_3346 = plan["padded_bboxes_3346"]["300m"]
+    cfg = yaml.safe_load(config_path.read_text())
+    output_root = Path(cfg["dataset"]["output_root"])
 
-    info = read_with_rasterio(tif_path)
+    reports_dir = output_root / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
-    exported_bounds = info["bounds"]
-    covers_target = bbox_contains(exported_bounds, target_bbox_3346)
+    s8_6_plan_path = reports_dir / "s8_6_map_bbox_plan.json"
+    s8_6_plan = load_json(s8_6_plan_path)
+    target_bbox_3346 = s8_6_plan["padded_bboxes_3346"]["300m"]
 
-    target_width_m = target_bbox_3346["xmax"] - target_bbox_3346["xmin"]
-    target_height_m = target_bbox_3346["ymax"] - target_bbox_3346["ymin"]
+    tfw_candidates = [
+        tif_path.with_suffix(".tfw"),
+        tif_path.with_suffix(".TFW"),
+        Path(str(tif_path) + "w"),
+    ]
+    detected_world_file = next((p for p in tfw_candidates if p.exists()), None)
 
-    # Suitability based on approximate map pixel size.
-    px = max(info["pixel_size_x_m"], info["pixel_size_y_m"])
-    if px <= 0.5:
-        suitability = "GOOD_FOR_FIRST_TILE_MATCHING"
-    elif px <= 1.0:
-        suitability = "USABLE_BUT_NOT_IDEAL"
-    elif px <= 2.0:
-        suitability = "WEAK_LOW_DETAIL"
-    else:
-        suitability = "TOO_COARSE_REEXPORT_NEEDED"
+    file_size_bytes = tif_path.stat().st_size
 
-    validation = {
-        "stage": "S8.7A",
-        "map_name": args.name,
-        "status": "VALIDATED_REEXPORT_RECOMMENDED" if px > 1.0 else "VALIDATED_USABLE_CANDIDATE",
-        "geotiff_info": info,
-        "target_s8_6_300m_bbox_3346": target_bbox_3346,
-        "target_width_m": target_width_m,
-        "target_height_m": target_height_m,
-        "export_covers_target_bbox": covers_target,
-        "max_pixel_size_m": px,
-        "suitability": suitability,
-        "interpretation": {
-            "main": (
-                "The GeoTIFF is georeferenced and covers the requested area, "
-                "but pixel size controls whether it is useful for image matching."
+    with rasterio.open(tif_path) as src:
+        if src.crs is None:
+            raise RuntimeError(
+                "Rasterio could not determine the raster CRS. "
+                "A .tfw supplies transform coordinates but usually not the CRS. "
+                "Confirm that the TIFF embeds EPSG:3346 or add the CRS using GDAL/QGIS."
+            )
+
+        bounds = src.bounds
+        transform = src.transform
+        raster_crs = src.crs
+
+        raster_bounds = {
+            "left": float(bounds.left),
+            "bottom": float(bounds.bottom),
+            "right": float(bounds.right),
+            "top": float(bounds.top),
+        }
+
+        pixel_size_x = abs(float(transform.a))
+        pixel_size_y = abs(float(transform.e))
+        max_pixel_size = max(pixel_size_x, pixel_size_y)
+
+        raster_width_units = float(bounds.right - bounds.left)
+        raster_height_units = float(bounds.top - bounds.bottom)
+
+        target_in_raster_crs = transform_target_bbox(
+            target_bbox_3346,
+            raster_crs,
+        )
+
+        intersection = intersect_bounds(
+            raster_bounds,
+            target_in_raster_crs,
+        )
+
+        target_area = (
+            (target_in_raster_crs["xmax"] - target_in_raster_crs["xmin"])
+            * (target_in_raster_crs["ymax"] - target_in_raster_crs["ymin"])
+        )
+
+        target_coverage_pct = (
+            100.0 * float(intersection["area_m2"]) / target_area
+            if target_area > 0
+            else 0.0
+        )
+
+        covers_target = target_coverage_pct >= 99.999
+
+        # Convert target AOI dimensions to approximate source pixels.
+        target_width_px = max(
+            1,
+            int(
+                math.ceil(
+                    (target_in_raster_crs["xmax"] - target_in_raster_crs["xmin"])
+                    / pixel_size_x
+                )
             ),
-            "current_warning": (
-                "If pixel size is several metres per pixel, the export is too coarse "
-                "for ORB/LightGlue/DINO tile matching even if it is georeferenced."
+        )
+        target_height_px = max(
+            1,
+            int(
+                math.ceil(
+                    (target_in_raster_crs["ymax"] - target_in_raster_crs["ymin"])
+                    / pixel_size_y
+                )
             ),
-        },
-        "recommended_reexport": {
-            "bbox_epsg3346": target_bbox_3346,
-            "preferred_output_size_px": [4096, 4096],
-            "acceptable_output_size_px": [2048, 2048],
-            "target_pixel_size_m_per_px": "0.25-0.6 m/px preferred for first tests",
-            "source": "ORT10LT 2024-2026",
-            "crs": "EPSG:3346 / LKS-94",
-        },
-    }
+        )
 
-    out_report = reports_dir / f"s8_7a_map_geotiff_validation_{args.name}.json"
-    out_report.write_text(json.dumps(validation, indent=2))
+        full_grid = estimate_grid_count(
+            src.width,
+            src.height,
+            args.tile_size_px,
+            args.stride_px,
+        )
 
-    print("S8.7A map GeoTIFF validation complete")
-    print("------------------------------------")
-    print(f"GeoTIFF:              {tif_path}")
-    print(f"CRS:                  {info['crs']}")
-    print(f"Size px:              {info['width_px']} x {info['height_px']}")
-    print(f"Bounds:               {info['bounds']}")
-    print(f"Width/height m:        {info['width_m']:.2f} x {info['height_m']:.2f}")
-    print(f"Pixel size m/px:       {info['pixel_size_x_m']:.3f} x {info['pixel_size_y_m']:.3f}")
-    print(f"Covers S8.6 300m AOI:  {covers_target}")
-    print(f"Suitability:           {suitability}")
-    print(f"Saved report:          {out_report}")
+        target_grid = estimate_grid_count(
+            target_width_px,
+            target_height_px,
+            args.tile_size_px,
+            args.stride_px,
+        )
+
+        uncompressed_bytes = (
+            int(src.width)
+            * int(src.height)
+            * int(src.count)
+            * (int(src.dtypes[0].replace("uint", "").replace("int", "")) // 8)
+            if src.dtypes and (
+                src.dtypes[0].startswith("uint")
+                or src.dtypes[0].startswith("int")
+            )
+            else None
+        )
+
+        suitability = suitability_from_resolution(max_pixel_size)
+
+        validation_pass = (
+            covers_target
+            and max_pixel_size <= 1.0
+            and src.count >= 3
+            and src.width > 0
+            and src.height > 0
+        )
+
+        status = (
+            "PASS_MASTER_ORTHOPHOTO_ACCEPTED"
+            if validation_pass
+            else "REVIEW_REQUIRED"
+        )
+
+        report = {
+            "stage": "S8.7A",
+            "map_name": args.name,
+            "status": status,
+            "source_files": {
+                "tif": str(tif_path),
+                "world_file": (
+                    str(detected_world_file)
+                    if detected_world_file is not None
+                    else None
+                ),
+                "file_size_bytes": file_size_bytes,
+                "file_size_mb": file_size_bytes / (1024 ** 2),
+            },
+            "geotiff_info": {
+                "driver": src.driver,
+                "width_px": int(src.width),
+                "height_px": int(src.height),
+                "count_bands": int(src.count),
+                "dtypes": list(src.dtypes),
+                "crs": raster_crs.to_wkt(),
+                "crs_normalized": normalized_crs_name(raster_crs),
+                "bounds": raster_bounds,
+                "transform": [
+                    float(transform.a),
+                    float(transform.b),
+                    float(transform.c),
+                    float(transform.d),
+                    float(transform.e),
+                    float(transform.f),
+                ],
+                "pixel_size_x": pixel_size_x,
+                "pixel_size_y": pixel_size_y,
+                "max_pixel_size": max_pixel_size,
+                "raster_width_units": raster_width_units,
+                "raster_height_units": raster_height_units,
+                "compression": src.compression.value if src.compression else None,
+                "color_interpretation": [
+                    item.name for item in src.colorinterp
+                ],
+                "nodata": src.nodata,
+                "estimated_uncompressed_bytes": uncompressed_bytes,
+            },
+            "target_aoi": {
+                "source_bbox_epsg3346": target_bbox_3346,
+                "bbox_in_raster_crs": target_in_raster_crs,
+                "intersection": intersection,
+                "coverage_percent": target_coverage_pct,
+                "fully_covers_target": covers_target,
+                "estimated_crop_width_px": target_width_px,
+                "estimated_crop_height_px": target_height_px,
+            },
+            "tiling_preflight": {
+                "tile_size_px": args.tile_size_px,
+                "stride_px": args.stride_px,
+                "overlap_px": args.tile_size_px - args.stride_px,
+                "overlap_percent": (
+                    100.0
+                    * (args.tile_size_px - args.stride_px)
+                    / args.tile_size_px
+                ),
+                "full_raster_grid": full_grid,
+                "target_aoi_grid": target_grid,
+                "recommended_action": (
+                    "Crop the master raster to the S8.6 300 m AOI first, "
+                    "then generate tiles from that crop. Do not tile the entire "
+                    "500 MB master unless a full-area retrieval experiment is required."
+                ),
+            },
+            "assessment": {
+                "resolution_suitability": suitability,
+                "validation_pass": validation_pass,
+                "pass_requirements": {
+                    "fully_covers_target": covers_target,
+                    "maximum_pixel_size_le_1m": max_pixel_size <= 1.0,
+                    "minimum_three_bands": src.count >= 3,
+                },
+            },
+            "reference_rule": (
+                "The SRT-derived AOI is allowed for map acquisition, cropping, "
+                "tile indexing, visualization, and evaluation. It must not be used "
+                "inside retrieval or verifier ranking."
+            ),
+        }
+
+    report_path = (
+        reports_dir
+        / f"s8_7a_map_geotiff_validation_{args.name}.json"
+    )
+    report_path.write_text(json.dumps(report, indent=2))
+
+    print("S8.7A master map validation and tiling preflight complete")
+    print("-------------------------------------------------------")
+    print(f"Map:                    {tif_path}")
+    print(f"World file:             {detected_world_file}")
+    print(f"File size:              {file_size_bytes / (1024 ** 2):.2f} MB")
+    print(f"CRS:                    {report['geotiff_info']['crs_normalized']}")
+    print(
+        f"Raster size:            "
+        f"{report['geotiff_info']['width_px']} x "
+        f"{report['geotiff_info']['height_px']} px"
+    )
+    print(
+        f"Pixel size:             "
+        f"{pixel_size_x:.4f} x {pixel_size_y:.4f}"
+    )
+    print(f"Target AOI coverage:    {target_coverage_pct:.4f}%")
+    print(f"Fully covers target:    {covers_target}")
+    print(
+        f"Target crop estimate:   "
+        f"{target_width_px} x {target_height_px} px"
+    )
+    print(
+        f"Estimated AOI tiles:    "
+        f"{target_grid['tile_count']} "
+        f"({target_grid['tile_columns']} cols x "
+        f"{target_grid['tile_rows']} rows)"
+    )
+    print(f"Suitability:            {suitability}")
+    print(f"Status:                 {status}")
+    print(f"Saved report:           {report_path}")
 
 
 if __name__ == "__main__":
