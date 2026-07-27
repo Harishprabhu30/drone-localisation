@@ -84,6 +84,28 @@ python scripts/satloc/s7d/s7d_1_lightglue_merged_candidate_verifier.py \
   --resume \
   2>&1 | tee outputs/satloc/reports/s7d_lightglue/logs/s7d1_rrf_top150.log
 
+3. Running this code on Villoc dataset using this command:
+
+python scripts/satloc/s7d/s7d_1_lightglue_merged_candidate_verifier.py \
+  --candidate-pool \
+    outputs/villoc/90_deg/reports/s8_12a/s8_12a_primary_pairs_1024_s512_top20.csv \
+  --out-base outputs/villoc/90_deg \
+  --run-name s8_12b0_villoc_1024_s512_top20_smoke3 \
+  --query-ids "$SMOKE_QUERY_IDS" \
+  --max-candidates 20 \
+  --device cpu \
+  --resize-long 512 \
+  --max-keypoints 1024 \
+  --ransac-thresh 5.0 \
+  --threshold-m 40.0 \
+  --checkpoint-every-candidates 10 \
+  --status-every-candidates 5 \
+  --status-every-seconds 20 \
+  --save-panels \
+  --panel-query-ids "$SMOKE_QUERY_IDS" \
+  2>&1 | tee \
+    outputs/villoc/90_deg/logs/s8_12b0_lightglue_smoke3.log
+
 """
 
 from __future__ import annotations

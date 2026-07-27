@@ -121,7 +121,7 @@ COLUMN_ALIASES: dict[str, list[str]] = {
     "pitch_deg": [
         "pitch_deg",
         "pitch",
-        "gimbal_pitch_deg",
+        "gimbal_pitch_deg", 
     ],
     "relative_altitude_m": [
         "relative_altitude_m",
