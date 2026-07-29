@@ -1,0 +1,125 @@
+# VPR software-showcase presentation configuration
+# Token choices remain intentionally unfrozen until the local source audit passes.
+
+presentation:
+  working_title: "When Similar Places Fool AI"
+  format: "software_department_showcase"
+  maximum_duration_minutes: 10
+  aspect_ratio: "16:9"
+  success_threshold_m: 40
+
+frozen_claims:
+  - id: visual_ambiguity
+    text: >-
+      Aerial visual place recognition is not simple image matching.
+      Orientation, scale, shadows, season and vegetation changes, nadir-versus-oblique
+      perspective, tile boundaries, and repeated structures such as railways,
+      riverbanks, roads, forests, ponds and agricultural fields can create
+      convincing false matches.
+  - id: local_features_confidently_wrong
+    text: >-
+      Local features can produce geometrically plausible matches to a completely
+      wrong map region.
+  - id: structure_helps_but_aliases
+    text: >-
+      Structural descriptors improve global layout reasoning but still confuse
+      structures that share similar edge and line patterns.
+  - id: candidate_pool_bottleneck
+    text: >-
+      Failure analysis showed that many failures occurred before verification:
+      the correct region was absent or too weak in the candidate pool.
+  - id: dinovlad_candidate_rescue
+    text: >-
+      DINOv2 patch tokens aggregated with VLAD substantially increased candidate
+      coverage and became the strongest candidate generator tested so far.
+  - id: deployable_architecture
+    text: >-
+      Practical operation requires offline map tiling and descriptor caching,
+      followed by indexed online query retrieval and selective verification.
+
+sources:
+  uav_index:
+    path: "outputs/satloc/metadata/uav_frames_index_enriched.csv"
+    required_columns: ["token0_id", "image_path"]
+  satellite_index:
+    path: "outputs/satloc/metadata/satellite_tiles_index_enriched.csv"
+    required_columns: ["tile_index", "tile_path", "lon_center", "lat_center"]
+  query_manifest:
+    path: "outputs/satloc/metadata/s7_retrieval_upgrade/s7_0_query_manifest.csv"
+    required_columns: ["token0_id", "image_path"]
+  scene_labels:
+    path: "outputs/satloc/metadata/s7_retrieval_upgrade/s7_scene_labels_canonical_traj01.csv"
+    required_columns: ["token", "primary_scene"]
+  classical_failure_by_token:
+    path: "outputs/satloc/metadata/s4c_macrocontour_phog_chamfer/s4c6_failure_analysis/s4c6c_failure_groups_by_token.csv"
+    required_columns: ["token", "failure_group"]
+  classical_failure_summary:
+    path: "outputs/satloc/metadata/s4c_macrocontour_phog_chamfer/s4c6_failure_analysis/s4c6c_failure_group_summary.csv"
+    required_columns: ["failure_group", "count", "rate"]
+  dinovlad_center_candidates:
+    path: "outputs/satloc/metadata/s7b_dinov2_vlad/s7b2_dinov2_vlad_candidate_scores_torch_hub_dinov2_vits14_vlad_k32_img224_top100_q263_sat8625_cb500_full263_k32_cb500_img224.csv"
+    required_columns: ["token", "rank", "tile_id", "eval_error_m", "query_image_path", "sat_image_path"]
+  dinovlad_resize_candidates:
+    path: "outputs/satloc/metadata/s7b_dinov2_vlad/s7b2_dinov2_vlad_candidate_scores_torch_hub_dinov2_vits14_vlad_k32_img224_top100_q263_sat8625_cb500_full263_k32_cb500_img224_resize_square.csv"
+    required_columns: ["token", "rank", "tile_id", "eval_error_m", "query_image_path", "sat_image_path"]
+  dinovlad_failure_diagnostics:
+    path: "outputs/satloc/metadata/s7b_failure_rescue/s7b4_failure_token_diagnostics_center_resize_k32_img224_top100.csv"
+  dinovlad_anchor_misses:
+    path: "outputs/satloc/metadata/s7b_failure_rescue/s7b4_anchor_miss_shortlist_center_resize_k32_img224_top100.csv"
+  dinovlad_budget_recall:
+    path: "outputs/satloc/metadata/s7b_failure_rescue/s7b4_budget_recall_curves_center_resize_k32_img224_top100.csv"
+  dinovlad_scene_recall:
+    path: "outputs/satloc/metadata/s7b_failure_rescue/s7b4_scene_budget_recall_center_resize_k32_img224_top100.csv"
+  source_audit:
+    path: "outputs/presentation/source_audit/vpr_showcase_source_audit.json"
+  hardest_frame_shortlist:
+    path: "outputs/presentation/source_audit/vpr_hardest_frame_shortlist.csv"
+
+token_selection:
+  hero_token: null
+  secondary_failure_tokens: []
+  agricultural_hard_tokens: []
+  orientation_tokens: []
+  vegetation_shadow_tokens: []
+  repeated_structure_tokens: []
+  dinovlad_unrecovered_tokens: []
+  dinovlad_resize_rescue_tokens: []
+
+selection_rules:
+  hero_token:
+    - "Visually understandable to the audience."
+    - "Classical retrieval clearly fails."
+    - "The correct tile or region is not visually trivial."
+    - "DINOv2-VLAD gives a meaningful improvement or rescue."
+    - "All source images exist at readable resolution."
+  hardest_failure:
+    - "Prefer agricultural_open_field and pool_failure_or_far_ambiguity."
+    - "Include cases missed by both center-square and resize-square streams."
+    - "Keep at least one repeated-structure/perceptual-aliasing case."
+  evaluation_rule:
+    - "Never use evaluation coordinates to rank candidates."
+    - "Use eval_error_m only after retrieval for labels and explanation."
+
+visual_outputs:
+  root: "outputs/presentation/figures"
+  guessing_game_question: "vpr_guessing_game_question.png"
+  guessing_game_reveal: "vpr_guessing_game_reveal.png"
+  failure_taxonomy: "vpr_failure_taxonomy.png"
+  confidently_wrong_orb: "orb_confidently_wrong.png"
+  feature_representation_comparison: "feature_representation_comparison.png"
+  failure_group_chart_svg: "failure_group_counts_showcase.svg"
+  candidate_recall_svg: "candidate_recall_progression.svg"
+  scene_recall_svg: "dinovlad_scene_recall.svg"
+  caching_architecture_svg: "tiling_caching_architecture.svg"
+  future_search_architecture_svg: "future_spatial_search.svg"
+
+diagram_policy:
+  preferred_format: "SVG"
+  recommended_tools:
+    reproducible_data_diagrams: ["Python + Matplotlib patches", "Graphviz"]
+    hand_tuned_showcase_diagrams: ["Figma", "diagrams.net"]
+    avoid_as_primary: ["LaTeX/Overleaf TikZ unless the diagram is mathematical"]
+  rationale: >-
+    SVG integrates cleanly with PowerPoint and is easier to tune visually.
+    TikZ is excellent for papers, but slower for iterative presentation layout,
+    animation and art direction.
