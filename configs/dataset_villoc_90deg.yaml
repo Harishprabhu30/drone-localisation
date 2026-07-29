@@ -1,7 +1,7 @@
 dataset:
   name: villoc_90deg_20260413
   type: villoc_video_srt
-  view_angle_group: 90deg
+  view_angle_group: 90°
   description: "Villoc Vilnius 90-degree nadir RGB dataset"
   raw_root: data/raw/villoc/90_deg
   processed_root: data/processed/villoc/90_deg

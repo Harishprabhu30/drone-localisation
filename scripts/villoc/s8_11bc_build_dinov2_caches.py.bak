@@ -1,27 +1,18 @@
 '''
 Command Executed:
 
-source .drone_venv/bin/activate
-export PYTHONPATH=$PWD/src
-CFG=configs/dataset_villoc_45deg.yaml
-LOGDIR=outputs/villoc/45_deg/logs/s8_12d_45deg_dino
-mkdir -p "$LOGDIR"
-
 python scripts/villoc/s8_11bc_build_dinov2_caches.py \
-  --config "$CFG" \
-  --reuse-map-caches \
-  --map-cache-root outputs/villoc/90_deg/descriptors \
+  --batch-size 1 \
   --image-size 224 \
   --crop-mode center_square \
   --pooling avgpatch \
-  2>&1 | tee "$LOGDIR/s8_12d8_build_dinov2_query_cache_45deg_reuse_map.log"
+  2>&1 | tee outputs/villoc/90_deg/logs/s8_11bc_build_dinov2_caches.log
 
 '''
 
 from __future__ import annotations
 
 import argparse
-import yaml
 import hashlib
 import json
 import os
@@ -35,65 +26,6 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageOps
-
-def load_yaml(path: Path) -> dict:
-    with path.open("r") as f:
-        return yaml.safe_load(f)
-
-
-def root_join(root: Path, value: str | Path) -> Path:
-    p = Path(value)
-    return p if p.is_absolute() else root / p
-
-
-def infer_query_manifest(root: Path, cfg: dict) -> Path:
-    dataset = cfg["dataset"]
-    output_root = root_join(root, dataset["output_root"])
-
-    candidates = [
-        output_root / "metadata/s8_10b_canonical_uav_query_manifest.csv",
-        output_root / "metadata/s8_5_uav_frames_index_v_1fps.csv",
-    ]
-
-    for p in candidates:
-        if p.exists():
-            return p
-
-    raise FileNotFoundError(
-        "Could not find query manifest. Tried:\n" +
-        "\n".join(str(p) for p in candidates)
-    )
-
-
-def infer_tile_indexes(root: Path, cfg: dict) -> dict[str, Path]:
-    map_cfg = cfg.get("map", {})
-    variants = map_cfg.get("tile_variants", {})
-
-    if not variants:
-        raise KeyError("Missing map.tile_variants in dataset config")
-
-    out = {}
-
-    if isinstance(variants, dict):
-        for name, v in variants.items():
-            out[name] = root_join(root, v["index_csv"])
-        return out
-
-    if isinstance(variants, list):
-        for v in variants:
-            out[v["name"]] = root_join(root, v["index_csv"])
-        return out
-
-    raise TypeError("map.tile_variants must be dict or list")
-
-
-def descriptor_dirs(root: Path, cfg: dict) -> tuple[Path, Path]:
-    dataset = cfg["dataset"]
-    output_root = root_join(root, dataset["output_root"])
-    return (
-        output_root / "descriptors",
-        output_root / "reports/s8_11bc",
-    )
 
 
 ROOT = Path.cwd().resolve()
@@ -467,27 +399,7 @@ def main() -> None:
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--crop-mode", choices=["center_square", "resize_square"], default="center_square")
     parser.add_argument("--pooling", choices=["avgpatch", "cls"], default="avgpatch")
-    parser.add_argument("--config", required=True)
-    parser.add_argument("--reuse-map-caches", action="store_true", help="Build query cache for this dataset but skip rebuilding map caches if they already exist.",)
-    parser.add_argument("--map-cache-root", default=None, help="Optional descriptor directory for reused map caches, e.g. outputs/villoc/90_deg/descriptors",)
-
     args = parser.parse_args()
-
-    cfg = load_yaml(root_join(ROOT, args.config))
-
-    QUERY_CSV = infer_query_manifest(ROOT, cfg)
-    TILE_INDEXES = infer_tile_indexes(ROOT, cfg)
-
-    OUT_DESC_DIR, OUT_REPORT_DIR = descriptor_dirs(ROOT, cfg)
-
-    if args.map_cache_root:
-        MAP_DESC_DIR = root_join(ROOT, args.map_cache_root)
-    else:
-        MAP_DESC_DIR = OUT_DESC_DIR
-
-    OUT_DESC_DIR.mkdir(parents=True, exist_ok=True)
-    OUT_REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    MAP_DESC_DIR.mkdir(parents=True, exist_ok=True)
 
     random.seed(7)
     np.random.seed(7)
@@ -574,19 +486,8 @@ def main() -> None:
     summary["outputs"]["map_caches"] = {}
 
     for variant, df in tile_dfs.items():
-        # cache = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}.npz"
-        cache = MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}.npz"
-        # index = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}_index.csv"
-        index = MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}_index.csv"
-
-        if args.reuse_map_caches and cache.exists() and index.exists() and not args.force:
-            print(f"[SKIP MAP CACHE - REUSE] {variant}: {cache}")
-            summary["outputs"]["map_caches"][variant] = {
-                "cache_npz": str(cache),
-                "index_csv": str(index),
-                "status": "resused_existing_map_cache",
-            }
-            continue
+        cache = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}.npz"
+        index = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}_index.csv"
 
         meta = build_or_skip_cache(
             df=df,

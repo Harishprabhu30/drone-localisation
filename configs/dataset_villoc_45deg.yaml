@@ -1,7 +1,7 @@
 dataset:
   name: villoc_45deg_20260413
   type: villoc_video_srt
-  view_angle_group: 45deg
+  view_angle_group: 45°
   description: "Villoc Vilnius 45-degree oblique RGB dataset"
   raw_root: data/raw/villoc/45_deg
   processed_root: data/processed/villoc/45_deg
