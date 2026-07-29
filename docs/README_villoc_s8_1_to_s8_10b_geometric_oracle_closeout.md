@@ -963,13 +963,7 @@ s8_10b_trajectory_vs_tiles_1024_s256.png
 
 Recommended documentation references:
 
-```markdown
 ![Villoc trajectory over 512 px tiles](assets/villoc_90deg/s8_10b_trajectory_vs_tiles_512_s256.png)
-
-![Villoc trajectory over 1024 px, stride 512 tiles](assets/villoc_90deg/s8_10b_trajectory_vs_tiles_1024_s512.png)
-
-![Villoc trajectory over 1024 px, stride 256 tiles](assets/villoc_90deg/s8_10b_trajectory_vs_tiles_1024_s256.png)
-```
 
 ---
 
