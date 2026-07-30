@@ -234,11 +234,9 @@ Some apparent errors may be because the retrieved tile corresponds to the forwar
 
 README image references:
 
-```markdown
 ![45° vs 90° bucket counts](assets/villoc_s8_12d_retrieval_diagnostics/comparison/figures/bucket_counts.png)
 
 ![Top-1 vs Recall@20](assets/villoc_s8_12d_retrieval_diagnostics/comparison/figures/top1_vs_recall_at_20.png)
-```
 
 Interpretation for `bucket_counts.png`:
 
