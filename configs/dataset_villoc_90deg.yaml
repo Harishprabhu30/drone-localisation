@@ -38,6 +38,24 @@ reference:
   local_frame: ENU
   origin_policy: first_valid_primary_visual_srt_row
 
+map:
+  reuse_existing_map: false
+  map_source: ort10lt_2024_2026
+  canonical_aoi_tif: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+
+  tile_variants:
+    512_s256:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_512_s256
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+
+    1024_s512:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_1024_s512
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv
+
+    1024_s256:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_1024_s256
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv
+
 rules:
   use_srt_for:
     - frame_alignment
