@@ -27,9 +27,6 @@ python scripts/villoc/s8_12e1b_lightglue_top20_verifier_reranker.py \
   --resize-long 768 \
   2>&1 | tee outputs/villoc/45_deg/logs/s8_12e1_top20_verifier/s8_12e1b_45deg_lightglue_smoke5.log
 
-
-
-
 2. Full 45° run
 
 cd /Users/harishprabhu/Documents/drone-localisation
