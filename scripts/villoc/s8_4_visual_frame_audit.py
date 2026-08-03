@@ -10,6 +10,21 @@ python scripts/villoc/s8_4_visual_frame_audit.py \
   --thumb-width 360 \
   --batch-size 30
 
+  
+2. Running traj01 of villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_4_visual_audit
+
+python scripts/villoc/s8_4_visual_frame_audit.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --stream V \
+  --sample-rate-fps 1 \
+  --cols 6 \
+  --thumb-width 360 \
+  --batch-size 30 \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_4_visual_audit/s8_4_visual_audit_V_1fps_with_combined_plot.log
+
 '''
 
 from __future__ import annotations
@@ -155,6 +170,75 @@ def save_metric_plot(df: pd.DataFrame, y_col: str, out_path: Path, title: str, y
     plt.close()
 
 
+def robust_minmax(series: pd.Series, q_low: float = 0.02, q_high: float = 0.98) -> pd.Series:
+    """Normalize to 0..1 using robust quantiles so spikes do not dominate the plot."""
+    s = pd.to_numeric(series, errors="coerce").astype(float)
+    lo = float(s.quantile(q_low))
+    hi = float(s.quantile(q_high))
+
+    if not np.isfinite(lo) or not np.isfinite(hi) or abs(hi - lo) < 1e-12:
+        return pd.Series(np.zeros(len(s)), index=s.index)
+
+    return ((s.clip(lo, hi) - lo) / (hi - lo)).clip(0.0, 1.0)
+
+
+def add_yaw_rate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Add yaw-rate diagnostics for turn-intensity interpretation."""
+    out = df.copy()
+
+    yaw_rad = np.deg2rad(pd.to_numeric(out["gb_yaw_deg"], errors="coerce").astype(float).to_numpy())
+    yaw_unwrapped_deg = np.rad2deg(np.unwrap(yaw_rad))
+
+    t = pd.to_numeric(out["target_time_s"], errors="coerce").astype(float).to_numpy()
+    dt = np.gradient(t)
+    dyaw = np.gradient(yaw_unwrapped_deg)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        yaw_rate = np.where(np.abs(dt) > 1e-9, dyaw / dt, 0.0)
+
+    out["gb_yaw_unwrapped_deg"] = yaw_unwrapped_deg
+    out["yaw_rate_deg_s"] = yaw_rate
+    out["abs_yaw_rate_deg_s"] = np.abs(yaw_rate)
+    return out
+
+
+def save_combined_quality_yaw_plot(df: pd.DataFrame, out_path: Path, *, stream: str, sample_rate_fps: float) -> None:
+    """Report-oriented plot combining visual quality metrics with yaw/turn behavior.
+
+    All plotted quality signals are normalized to 0..1 so that variables with different
+    physical units can be compared visually without pretending they share units.
+    """
+
+    plot_df = add_yaw_rate_columns(df)
+
+    t = plot_df["target_time_s"]
+
+    sharpness_n = robust_minmax(plot_df["laplacian_var"]).rolling(5, center=True, min_periods=1).median()
+    contrast_n = robust_minmax(plot_df["gray_std"]).rolling(5, center=True, min_periods=1).median()
+    edge_n = robust_minmax(plot_df["edge_density"]).rolling(5, center=True, min_periods=1).median()
+    yaw_n = robust_minmax(plot_df["gb_yaw_unwrapped_deg"]).rolling(5, center=True, min_periods=1).median()
+    turn_n = robust_minmax(plot_df["abs_yaw_rate_deg_s"]).rolling(5, center=True, min_periods=1).median()
+
+    plt.figure(figsize=(13, 5.5))
+
+    # Different colors are intentional here because this is a report figure with many signals.
+    plt.plot(t, sharpness_n, label="Sharpness / high-frequency texture (Laplacian, norm.)", linewidth=1.8, alpha=0.88, color="#1f77b4")
+    plt.plot(t, contrast_n, label="Contrast (gray std, norm.)", linewidth=1.6, alpha=0.78, color="#2ca02c")
+    plt.plot(t, edge_n, label="Edge density / texture clutter (norm.)", linewidth=1.6, alpha=0.78, color="#d62728")
+    plt.plot(t, yaw_n, label="Yaw profile (normalized)", linewidth=1.5, alpha=0.58, color="#9467bd")
+    plt.fill_between(t, 0, turn_n, label="Turn intensity |yaw rate| (norm.)", alpha=0.18, color="#ff7f0e")
+
+    plt.ylim(-0.05, 1.08)
+    plt.grid(True, alpha=0.28)
+    plt.xlabel("Video time [s]")
+    plt.ylabel("Robust normalized value [0..1]")
+    plt.title(f"S8.4 Villoc {stream} {sample_rate_fps:g}FPS Visual Quality vs Yaw / Turns")
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.18), ncol=2, fontsize=8)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=220, bbox_inches="tight")
+    plt.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -252,11 +336,18 @@ def main() -> None:
     contrast_fig = figures_dir / f"s8_4_contrast_{args.stream}_{args.sample_rate_fps:g}fps.png"
     edge_fig = figures_dir / f"s8_4_edge_density_{args.stream}_{args.sample_rate_fps:g}fps.png"
     altitude_fig = figures_dir / f"s8_4_rel_alt_with_samples_{args.stream}_{args.sample_rate_fps:g}fps.png"
+    combined_quality_yaw_fig = figures_dir / f"s8_4_combined_quality_yaw_{args.stream}_{args.sample_rate_fps:g}fps.png"
 
     save_metric_plot(audit_df, "laplacian_var", blur_fig, "S8.4 Blur/Sharpness Audit", "Laplacian variance")
     save_metric_plot(audit_df, "gray_mean", brightness_fig, "S8.4 Brightness Audit", "Gray mean")
     save_metric_plot(audit_df, "gray_std", contrast_fig, "S8.4 Contrast Audit", "Gray std")
     save_metric_plot(audit_df, "edge_density", edge_fig, "S8.4 Edge Density Audit", "Edge density")
+    save_combined_quality_yaw_plot(
+        audit_df,
+        combined_quality_yaw_fig,
+        stream=args.stream,
+        sample_rate_fps=args.sample_rate_fps,
+    )
 
     plt.figure(figsize=(10, 4))
     plt.plot(audit_df["target_time_s"], audit_df["rel_alt_m"], marker="o", markersize=2, linewidth=1)
@@ -303,6 +394,7 @@ def main() -> None:
             "contrast": str(contrast_fig),
             "edge_density": str(edge_fig),
             "altitude": str(altitude_fig),
+            "combined_quality_yaw": str(combined_quality_yaw_fig),
         },
     }
 
@@ -322,6 +414,7 @@ def main() -> None:
     print(f"Brightness median:  {summary['gray_mean_median']:.2f}")
     print(f"Contrast median:    {summary['gray_std_median']:.2f}")
     print(f"Edge density med:   {summary['edge_density_median']:.4f}")
+    print(f"Combined quality/yaw figure: {combined_quality_yaw_fig}")
     print(f"Rel alt range:      {summary['rel_alt_min_m']:.2f} .. {summary['rel_alt_max_m']:.2f} m")
     print(f"Yaw range:          {summary['yaw_min_deg']:.2f} .. {summary['yaw_max_deg']:.2f} deg")
     print(f"Pitch median:       {summary['pitch_median_deg']:.2f} deg")

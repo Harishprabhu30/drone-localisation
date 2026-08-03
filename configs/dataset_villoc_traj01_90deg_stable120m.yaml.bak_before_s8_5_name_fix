@@ -1,14 +1,14 @@
 dataset:
-  folder_name: traj01_90deg_stable120m
+  folder_name: villoc_traj01_90deg_stable120m
   name: villoc_traj01_90deg_stable120m_20260729
   sequence_name: traj01_90deg_stable120m
   type: villoc_video_srt
   view_angle_group: 90deg
-  description: Villoc Vilnius 90-degree nadir RGB trajectory, stable 70-80 m relative
-    altitude, possible loop-closure route
+  description: "Villoc Vilnius 90-degree nadir RGB trajectory, stable 70-80 m relative altitude, possible loop-closure route"
   raw_root: data/raw/villoc/traj01_90deg_stable120m
   processed_root: data/processed/villoc/traj01_90deg_stable120m
   output_root: outputs/villoc/traj01_90deg_stable120m
+
 streams:
   V:
     modality: rgb
@@ -16,40 +16,45 @@ streams:
     video: villoc_traj01_90deg_stable120m_V_merged.MP4
     srt: villoc_traj01_90deg_stable120m_V_merged.SRT
     fps_expected: 29.97
-    resolution_expected:
-    - 3840
-    - 2160
+    resolution_expected: [3840, 2160]
     duration_s: 403.425
     frame_count: 12090
+
 reference:
   source: srt_gps
   gps_usage: evaluation_only
   local_frame: ENU
   origin_policy: first_valid_primary_visual_srt_row
+
 map:
   reuse_existing_map: true
   map_reference_dataset: villoc_90deg_aoi300m
   map_source: ort10lt_2024_2026
   canonical_aoi_tif: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+
   tile_variants:
     512_s256:
       tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_512_s256
       index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+
     1024_s512:
       tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_1024_s512
       index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv
+
     1024_s256:
       tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_1024_s256
       index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv
+
 rules:
   use_srt_for:
-  - frame_alignment
-  - reference_trajectory
-  - map_bbox_sanity_check
-  - evaluation
-  - sanity_checks
+    - frame_alignment
+    - reference_trajectory
+    - map_bbox_sanity_check
+    - evaluation
+    - sanity_checks
+
   never_use_srt_for:
-  - retrieval_ranking
-  - verifier_ranking
-  - correction_acceptance
-  - threshold_tuning_from_error
+    - retrieval_ranking
+    - verifier_ranking
+    - correction_acceptance
+    - threshold_tuning_from_error

@@ -7,6 +7,17 @@ python scripts/villoc/s8_6_build_map_bbox_plan.py \
   --stream V \
   --sample-rate-fps 1
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_6_map_bbox
+
+python scripts/villoc/s8_6_build_map_bbox_plan.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --stream V \
+  --sample-rate-fps 1 \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_6_map_bbox/s8_6_map_bbox_plan_V_1fps.log
+
 '''
 
 from __future__ import annotations
@@ -86,7 +97,11 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text())
-    output_root = Path(cfg["dataset"]["output_root"])
+    dataset_cfg = cfg["dataset"]
+    output_root = Path(dataset_cfg["output_root"])
+
+    dataset_name = dataset_cfg.get("name") or output_root.name
+    sequence_name = dataset_cfg.get("sequence_name") or dataset_cfg.get("folder_name") or output_root.name
 
     index_csv = (
         output_root
@@ -122,8 +137,8 @@ def main() -> None:
     plan = {
         "stage": "S8.6",
         "status": "MAP_SOURCE_PLAN_DRAFT",
-        "dataset_name": "villoc_90deg_20260413",
-        "sequence_name": "villoc_90deg_v_1fps",
+        "dataset_name": dataset_name,
+        "sequence_name": sequence_name,
         "uav_index_csv": str(index_csv),
         "uav_rows": int(len(df)),
         "flight_bbox_4326": raw_bbox_4326,
@@ -157,8 +172,8 @@ def main() -> None:
             "tile_size_px": 512,
             "stride_px": 256,
             "overlap_percent": 50,
-            "first_uav_test_manifest": "outputs/villoc/90_deg/metadata/s8_5_golden20_manifest_v_1fps.csv",
-            "final_uav_index": "outputs/villoc/90_deg/metadata/s8_5_uav_frames_index_v_1fps.csv",
+            "first_uav_test_manifest": str(output_root / "metadata" / f"s8_5_golden20_manifest_{args.stream.lower()}_{args.sample_rate_fps:g}fps.csv"),
+            "final_uav_index": str(index_csv),
         },
         "gt_leakage_rule": "Use SRT lat/lon/ENU only for AOI definition, tile metadata, visualization, and evaluation. Never use it for retrieval ranking, verifier ranking, correction acceptance, or threshold tuning.",
         "open_questions": [
