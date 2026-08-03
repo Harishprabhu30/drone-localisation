@@ -83,7 +83,7 @@ def path_length_m(df: pd.DataFrame) -> float:
     return float((dx.pow(2) + dy.pow(2)).pow(0.5).sum())
 
 
-def save_xy_plot(df: pd.DataFrame, out_path: Path) -> None:
+def save_xy_plot(df: pd.DataFrame, out_path: Path, stream: str, sample_rate_fps: float, view_angle_group: str) -> None:
     plt.figure(figsize=(8, 8))
     plt.plot(df["x_enu_m"], df["y_enu_m"], marker="o", markersize=2, linewidth=1)
     plt.scatter(df["x_enu_m"].iloc[0], df["y_enu_m"].iloc[0], marker="o", s=80, label="start")
@@ -92,34 +92,37 @@ def save_xy_plot(df: pd.DataFrame, out_path: Path) -> None:
     plt.grid(True, alpha=0.3)
     plt.xlabel("East X [m]")
     plt.ylabel("North Y [m]")
-    plt.title("Villoc 90° V 1FPS Reference Trajectory [ENU]")
+    # plt.title("Villoc 90° V 1FPS Reference Trajectory [ENU]")
+    plt.title(f"Villoc {view_angle_group} {stream} {sample_rate_fps:g}FPS Reference Trajectory [ENU]")
     plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=180)
     plt.close()
 
 
-def save_altitude_plot(df: pd.DataFrame, out_path: Path) -> None:
+def save_altitude_plot(df: pd.DataFrame, out_path: Path, stream: str, sample_rate_fps: float, view_angle_group: str) -> None:
     plt.figure(figsize=(10, 4))
     plt.plot(df["target_time_s"], df["rel_alt_m"], label="relative altitude [m]")
     plt.plot(df["target_time_s"], df["abs_alt_m"], label="absolute altitude [m]")
     plt.grid(True, alpha=0.3)
     plt.xlabel("Video time [s]")
     plt.ylabel("Altitude [m]")
-    plt.title("Villoc 90° V 1FPS Altitude Profile")
+    # plt.title("Villoc 90° V 1FPS Altitude Profile")
+    plt.title(f"Villoc {view_angle_group} {stream} {sample_rate_fps:g}FPS Altitude Profile")
     plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=180)
     plt.close()
 
 
-def save_yaw_plot(df: pd.DataFrame, out_path: Path) -> None:
+def save_yaw_plot(df: pd.DataFrame, out_path: Path, stream: str, sample_rate_fps: float, view_angle_group: str) -> None:
     plt.figure(figsize=(10, 4))
     plt.plot(df["target_time_s"], df["gb_yaw_deg"])
     plt.grid(True, alpha=0.3)
     plt.xlabel("Video time [s]")
     plt.ylabel("Gimbal/body yaw [deg]")
-    plt.title("Villoc 90° V 1FPS Yaw Profile")
+    # plt.title("Villoc 90° V 1FPS Yaw Profile")
+    plt.title("Villoc {view_angle_group} {stream} {sample_rate_fps:g}FPS Yaw Profile")
     plt.tight_layout()
     plt.savefig(out_path, dpi=180)
     plt.close()
@@ -133,6 +136,7 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text())
+    view_angle_group = cfg["dataset"].get("view_angle_group", "unknown")
 
     output_root = Path(cfg["dataset"]["output_root"])
     metadata_dir = output_root / "metadata"
@@ -188,9 +192,9 @@ def main() -> None:
     alt_fig = figures_dir / f"s8_3_altitude_profile_{args.stream}_{args.sample_rate_fps:g}fps.png"
     yaw_fig = figures_dir / f"s8_3_yaw_profile_{args.stream}_{args.sample_rate_fps:g}fps.png"
 
-    save_xy_plot(traj_df, xy_fig)
-    save_altitude_plot(traj_df, alt_fig)
-    save_yaw_plot(traj_df, yaw_fig)
+    save_xy_plot(traj_df, xy_fig, args.stream, args.sample_rate_fps, view_angle_group,)
+    save_altitude_plot(traj_df, alt_fig, args.stream, args.sample_rate_fps, view_angle_group,)
+    save_yaw_plot(traj_df, yaw_fig, args.stream, args.sample_rate_fps, view_angle_group,)
 
     total_path_m = path_length_m(traj_df)
     displacement_m = math.hypot(

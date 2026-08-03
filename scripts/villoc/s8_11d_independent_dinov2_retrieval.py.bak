@@ -1,25 +1,13 @@
 '''
 Command Executed:
 
-source .drone_venv/bin/activate
-export PYTHONPATH=$PWD/src
-CFG=configs/dataset_villoc_45deg.yaml
-
 python scripts/villoc/s8_11d_independent_dinov2_retrieval.py \
-  --config "$CFG" \
-  --map-cache-root outputs/villoc/90_deg/descriptors \
-  --image-size 224 \
-  --crop-mode center_square \
-  --pooling avgpatch \
-  --device-tag cpu \
-  2>&1 | tee "$LOGDIR/s8_12d9_independent_dinov2_retrieval_45deg_reuse_map.log"
+  2>&1 | tee outputs/villoc/90_deg/logs/s8_11d_independent_dinov2_retrieval.log
 
 '''
 
 from __future__ import annotations
 
-import argparse
-import yaml
 import json
 import math
 import time
@@ -29,95 +17,36 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-def load_yaml(path: Path) -> dict:
-    with path.open("r") as f:
-        return yaml.safe_load(f)
-
-
-def root_join(root: Path, value: str | Path) -> Path:
-    p = Path(value)
-    return p if p.is_absolute() else root / p
-
-
-def infer_query_manifest(root: Path, cfg: dict) -> Path:
-    output_root = root_join(root, cfg["dataset"]["output_root"])
-    candidates = [
-        output_root / "metadata/s8_10b_canonical_uav_query_manifest.csv",
-        output_root / "metadata/s8_5_uav_frames_index_v_1fps.csv",
-    ]
-    for p in candidates:
-        if p.exists():
-            return p
-    raise FileNotFoundError(
-        "Could not find query manifest. Tried:\n" +
-        "\n".join(str(p) for p in candidates)
-    )
-
-
-def infer_output_dirs(root: Path, cfg: dict) -> tuple[Path, Path, Path]:
-    output_root = root_join(root, cfg["dataset"]["output_root"])
-    return (
-        output_root / "descriptors",
-        output_root / "retrieval/s8_11d",
-        output_root / "reports/s8_11d",
-    )
-
-
-def infer_tile_indexes(root: Path, cfg: dict) -> dict[str, Path]:
-    variants = cfg.get("map", {}).get("tile_variants", {})
-    out = {}
-
-    if isinstance(variants, dict):
-        for name, v in variants.items():
-            out[name] = root_join(root, v["index_csv"])
-        return out
-
-    if isinstance(variants, list):
-        for v in variants:
-            out[v["name"]] = root_join(root, v["index_csv"])
-        return out
-
-    raise TypeError("map.tile_variants must be dict or list")
-
-
-def infer_oracle_csvs(root: Path, cfg: dict, variant_names: list[str]) -> dict[str, Path]:
-    output_root = root_join(root, cfg["dataset"]["output_root"])
-    out = {}
-    for name in variant_names:
-        p = output_root / f"metadata/s8_10b_uav_tile_oracle_{name}.csv"
-        if not p.exists():
-            raise FileNotFoundError(f"Missing oracle CSV for {name}: {p}")
-        out[name] = p
-    return out
-
-
-def build_variant_paths(
-    root: Path,
-    cfg: dict,
-    tag: str,
-    map_cache_root: str | None = None,
-) -> dict[str, dict[str, Path]]:
-    tile_indexes = infer_tile_indexes(root, cfg)
-    oracles = infer_oracle_csvs(root, cfg, list(tile_indexes.keys()))
-
-    if map_cache_root:
-        map_desc_dir = root_join(root, map_cache_root)
-    else:
-        # Default: map cache is in this dataset's descriptor folder.
-        # For 45°, pass --map-cache-root outputs/villoc/90_deg/descriptors
-        map_desc_dir = root_join(root, cfg["dataset"]["output_root"]) / "descriptors"
-
-    variants = {}
-    for name, tile_index in tile_indexes.items():
-        variants[name] = {
-            "tile_index": tile_index,
-            "oracle": oracles[name],
-            "map_cache": map_desc_dir / f"s8_11b_dinov2_map_{name}_{tag}.npz",
-        }
-
-    return variants
 
 ROOT = Path.cwd().resolve()
+
+TAG = "dinov2_vits14_img224_center_square_avgpatch_cpu"
+
+QUERY_CSV = ROOT / "outputs/villoc/90_deg/metadata/s8_10b_canonical_uav_query_manifest.csv"
+
+QUERY_CACHE = ROOT / f"outputs/villoc/90_deg/descriptors/s8_11c_dinov2_queries_v_1fps_{TAG}.npz"
+
+VARIANTS = {
+    "512_s256": {
+        "tile_index": ROOT / "outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv",
+        "oracle": ROOT / "outputs/villoc/90_deg/metadata/s8_10b_uav_tile_oracle_512_s256.csv",
+        "map_cache": ROOT / f"outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_{TAG}.npz",
+    },
+    "1024_s512": {
+        "tile_index": ROOT / "outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv",
+        "oracle": ROOT / "outputs/villoc/90_deg/metadata/s8_10b_uav_tile_oracle_1024_s512.csv",
+        "map_cache": ROOT / f"outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_1024_s512_{TAG}.npz",
+    },
+    "1024_s256": {
+        "tile_index": ROOT / "outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv",
+        "oracle": ROOT / "outputs/villoc/90_deg/metadata/s8_10b_uav_tile_oracle_1024_s256.csv",
+        "map_cache": ROOT / f"outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_1024_s256_{TAG}.npz",
+    },
+}
+
+OUT_DIR = ROOT / "outputs/villoc/90_deg/retrieval/s8_11d"
+REPORT_DIR = ROOT / "outputs/villoc/90_deg/reports/s8_11d"
+
 RECALL_KS = [1, 5, 10, 20, 50, 100]
 
 
@@ -527,39 +456,17 @@ def evaluate_variant(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description= 'S8.11D — Independent DINOv2 retrieval evaluation'
-    )
-    parser.add_argument("--config", required=True)
-    parser.add_argument("--image-size", type=int, default=224)
-    parser.add_argument("--crop-mode", choices=["center_square", "resize_square"], default="center_square")
-    parser.add_argument("--pooling", choices=["avgpatch", 'cls'], default="avgpatch")
-    parser.add_argument("--device-tag", choices=["cpu", "auto", "cuda"], default="auto")
-    parser.add_argument("--map-cache-root", default=None, help="Optional map descriptor directory, e.g. outputs/villoc/90_deg/descriptors",)
-
-    args = parser.parse_args()
-    TAG = f"dinov2_vits14_img{args.image_size}_{args.crop_mode}_{args.pooling}_{args.device_tag}"
-
-    cfg = load_yaml(root_join(ROOT, args.config))
-
-    QUERY_CSV = infer_query_manifest(ROOT, cfg)
-    QUERY_DESC_DIR, OUT_DIR, REPORT_DIR = infer_output_dirs(ROOT, cfg)
-
-    QUERY_CACHE = QUERY_DESC_DIR / f"s8_11c_dinov2_queries_v_1fps_{TAG}.npz"
-
-    VARIANTS = build_variant_paths(
-        root=ROOT,
-        cfg=cfg,
-        tag=TAG,
-        map_cache_root=args.map_cache_root,
-    )
+    print("S8.11D — Independent DINOv2 retrieval evaluation")
+    print("------------------------------------------------")
+    print("ROOT:", ROOT)
+    print("TAG:", TAG)
+    print("QUERY_CACHE:", QUERY_CACHE)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
     if not QUERY_CSV.exists():
         raise FileNotFoundError(QUERY_CSV)
-
     if not QUERY_CACHE.exists():
         raise FileNotFoundError(QUERY_CACHE)
 
