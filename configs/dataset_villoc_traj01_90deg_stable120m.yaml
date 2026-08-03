@@ -1,20 +1,20 @@
 dataset:
-  folder_name: villoc_traj01_90deg_stable70m
-  name: villoc_traj01_90deg_stable70m_20260729
-  sequence_name: traj01_90deg_stable70m
+  folder_name: villoc_traj01_90deg_stable120m
+  name: villoc_traj01_90deg_stable120m_20260729
+  sequence_name: traj01_90deg_stable120m
   type: villoc_video_srt
   view_angle_group: 90deg
   description: "Villoc Vilnius 90-degree nadir RGB trajectory, stable 70-80 m relative altitude, possible loop-closure route"
-  raw_root: data/raw/villoc/traj01_90deg_stable70m
-  processed_root: data/processed/villoc/traj01_90deg_stable70m
-  output_root: outputs/villoc/traj01_90deg_stable70m
+  raw_root: data/raw/villoc/traj01_90deg_stable120m
+  processed_root: data/processed/villoc/traj01_90deg_stable120m
+  output_root: outputs/villoc/traj01_90deg_stable120m
 
 streams:
   V:
     modality: rgb
     role: primary_visual
-    video: villoc_traj01_90deg_stable70m_V_merged.MP4
-    srt: villoc_traj01_90deg_stable70m_V_merged.SRT
+    video: villoc_traj01_90deg_stable120m_V_merged.MP4
+    srt: villoc_traj01_90deg_stable120m_V_merged.SRT
     fps_expected: 29.97
     resolution_expected: [3840, 2160]
     duration_s: 403.425

@@ -7,12 +7,12 @@ import cv2
 import re
 
 # raw_root = Path("data/raw/villoc/45_deg")
-raw_root = Path("data/raw/villoc/traj01_90deg_stable70m")
+raw_root = Path("data/raw/villoc/traj01_90deg_stable120m")
 
 streams = {
     "V": {
-        "video": "villoc_traj01_90deg_stable70m_V_merged.MP4",
-        "srt": "villoc_traj01_90deg_stable70m_V_merged_continuous_framecnt.SRT",
+        "video": "villoc_traj01_90deg_stable120m_V_merged.MP4",
+        "srt": "villoc_traj01_90deg_stable120m_V_merged.SRT",
     },
     # "S": {
     #     "video": "CAM_20260413121601_0001_S.MP4",
@@ -24,7 +24,7 @@ streams = {
     # },
 }
 
-print("\nVilloc 90° traj01_stable70m raw video/SRT preflight")
+print("\nVilloc 90° traj01_stable120m raw video/SRT preflight")
 print("-" * 90)
 print(f"{'Stream':<8} {'Video exists':<13} {'SRT exists':<11} {'FPS':<10} {'Resolution':<16} {'Frames':<10} {'Duration(s)':<12} {'SRT rows':<9}")
 print("-" * 90)
