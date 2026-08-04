@@ -50,6 +50,41 @@ python scripts/villoc/s8_retrieval_diagnostics.py \
   --top-n-tiles 3 \
   2>&1 | tee outputs/villoc/90_deg/logs/s8_retrieval_diagnostics/s8_retrieval_diagnostics_1024_s512.log
 
+3. running traj01 villoc dataset:
+
+export PYTHONPATH=$PWD/src
+
+CFG=configs/dataset_villoc_traj01_90deg_stable120m.yaml
+ROOT=outputs/villoc/traj01_90deg_stable120m
+TAG=dinov2_vits14_img518_center_square_avgpatch_cpu
+
+OUT_ROOT=$ROOT/retrieval/s8_12d_retrieval_diagnostics
+
+mkdir -p "$OUT_ROOT"
+mkdir -p "$ROOT/logs/s8_12d_retrieval_diagnostics"
+
+for VARIANT in 512_s256 1024_s512 1024_s256; do
+  echo
+  echo "============================================================"
+  echo "S8.12D diagnostics: $VARIANT"
+  echo "============================================================"
+
+  python scripts/villoc/s8_retrieval_diagnostics/s8_retrieval_diagnostics.py \
+    --config "$CFG" \
+    --variant "$VARIANT" \
+    --tag "$TAG" \
+    --query-eval-csv "$ROOT/retrieval/s8_11d/s8_11d_query_eval_${VARIANT}_${TAG}.csv" \
+    --topk-csv "$ROOT/retrieval/s8_11d/s8_11d_topk_${VARIANT}_${TAG}.csv" \
+    --query-manifest-csv "$ROOT/metadata/s8_10b_canonical_uav_query_manifest.csv" \
+    --tile-index-csv "outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_${VARIANT}.csv" \
+    --out-root "$OUT_ROOT" \
+    --oracle-k 20 \
+    --max-panels 16 \
+    --top-n-tiles 5 \
+    --high-conf-quantile 0.90 \
+    2>&1 | tee "$ROOT/logs/s8_12d_retrieval_diagnostics/s8_12d_${VARIANT}_${TAG}.log"
+done
+
 """
 
 from __future__ import annotations

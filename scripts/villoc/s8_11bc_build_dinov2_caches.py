@@ -16,6 +16,21 @@ python scripts/villoc/s8_11bc_build_dinov2_caches.py \
   --pooling avgpatch \
   2>&1 | tee "$LOGDIR/s8_12d8_build_dinov2_query_cache_45deg_reuse_map.log"
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_11bc_dinov2_caches
+
+python scripts/villoc/s8_11bc_build_dinov2_caches.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --reuse-map-caches \
+  --map-cache-root outputs/villoc/90_deg/descriptors \
+  --batch-size 1 \
+  --image-size 224 \
+  --crop-mode center_square \
+  --pooling avgpatch \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_11bc_dinov2_caches/s8_11bc_build_query_cache_reuse_map.log
+
 '''
 
 from __future__ import annotations

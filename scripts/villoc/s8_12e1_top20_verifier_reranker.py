@@ -32,6 +32,42 @@ python scripts/villoc/s8_12e1_top20_verifier_reranker.py \
   --policy hybrid \
   2>&1 | tee outputs/villoc/90_deg/logs/s8_12e1_top20_verifier/s8_12e1_90deg_orb_hybrid_1024_s512.log
 
+3. running traj01 villoc dataset:
+
+cd /Users/harishprabhu/Documents/drone-localisation
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+CFG=configs/dataset_villoc_traj01_90deg_stable120m.yaml
+ROOT=outputs/villoc/traj01_90deg_stable120m
+TAG=dinov2_vits14_img518_center_square_avgpatch_cpu
+VARIANT=1024_s512
+
+mkdir -p "$ROOT/logs/s8_12e1_top20_verifier_reranker"
+
+python scripts/villoc/s8_12e1_top20_verifier_reranker.py \
+  --config "$CFG" \
+  --variant "$VARIANT" \
+  --tag "$TAG" \
+  --query-csv "$ROOT/metadata/s8_10b_canonical_uav_query_manifest.csv" \
+  --topk-csv "$ROOT/retrieval/s8_11d/s8_11d_topk_${VARIANT}_${TAG}.csv" \
+  --tile-index-csv "outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_${VARIANT}.csv" \
+  --out-root "$ROOT/reports/s8_12e1_top20_verifier_reranker/${VARIANT}_orb_hybrid_top20_img518" \
+  --top-n 20 \
+  --hit-threshold-m 40 \
+  --verifier orb \
+  --preprocess clahe_luma \
+  --nfeatures 1800 \
+  --resize-long 1024 \
+  --ratio 0.80 \
+  --ransac-thresh 5.0 \
+  --policy hybrid \
+  --rank-prior-weight 2.0 \
+  --progress-every 250 \
+  2>&1 | tee "$ROOT/logs/s8_12e1_top20_verifier_reranker/s8_12e1_${VARIANT}_orb_hybrid_top20_img518.log"
+
+-- Change Variant and run for 512_s256 after the above.
+
 Design rules
 ------------
 - Config-driven path resolution; no hardcoded dataset angle is required.
@@ -147,6 +183,8 @@ def read_yaml(path: Path) -> Dict[str, Any]:
     if not isinstance(data, dict):
         die(f"Config did not parse as a dictionary: {path}")
     return data
+
+# def read_yaml(path:Path) -> Dict[str, Any]:
 
 
 def get_nested(d: Dict[str, Any], keys: Sequence[str]) -> Optional[Any]:
