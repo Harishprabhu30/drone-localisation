@@ -100,7 +100,37 @@ python scripts/villoc/s8_12e1b_lightglue_top20_verifier_reranker.py \
 
   b. full run on traj01:
 
-  
+  cd /Users/harishprabhu/Documents/drone-localisation
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+CFG=configs/dataset_villoc_traj01_90deg_stable120m.yaml
+ROOT=outputs/villoc/traj01_90deg_stable120m
+TAG=dinov2_vits14_img518_center_square_avgpatch_cpu
+VARIANT=512_s256
+
+mkdir -p "$ROOT/logs/s8_12e1b_lightglue_top20"
+
+caffeinate -dimsu python scripts/villoc/s8_12e1b_lightglue_top20_verifier_reranker.py \
+  --config "$CFG" \
+  --variant "$VARIANT" \
+  --tag "$TAG" \
+  --top-n 20 \
+  --policy hybrid \
+  --hit-threshold-m 40 \
+  --query-csv "$ROOT/metadata/s8_10b_canonical_uav_query_manifest.csv" \
+  --topk-csv "$ROOT/retrieval/s8_11d/s8_11d_topk_${VARIANT}_${TAG}.csv" \
+  --tile-index-csv "outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_${VARIANT}.csv" \
+  --out-root "$ROOT/reports/s8_12e1b_lightglue_top20/${VARIANT}_lg_hybrid_top20_img518_full403" \
+  --device cpu \
+  --max-keypoints 780 \
+  --resize-long 1024 \
+  --ransac-thresh 5.0 \
+  --dino-prior-weight 2.0 \
+  --checkpoint-every 200 \
+  --progress-every 40 \
+  --num-threads 1 \
+  2>&1 | tee "$ROOT/logs/s8_12e1b_lightglue_top20/s8_12e1b_${VARIANT}_lg_hybrid_top20_img518_full403.log"
 
 Design rules
 ------------
