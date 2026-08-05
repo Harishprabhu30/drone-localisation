@@ -1,3 +1,12 @@
+'''
+Run Command:
+
+python scripts/villoc/reporting/validate_report_inputs.py \
+  --config configs/reporting/report_villoc_traj01_s8_figures.yaml \
+  2>&1 | tee outputs/villoc/traj01_90deg_stable120m/reporting/logs/validate_report_inputs.log
+
+'''
+
 #!/usr/bin/env python3
 from __future__ import annotations
 
