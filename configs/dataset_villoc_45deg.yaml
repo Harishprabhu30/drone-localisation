@@ -1,0 +1,71 @@
+dataset:
+  name: villoc_45deg_20260413
+  type: villoc_video_srt
+  view_angle_group: 45°
+  description: "Villoc Vilnius 45-degree oblique RGB dataset"
+  raw_root: data/raw/villoc/45_deg
+  processed_root: data/processed/villoc/45_deg
+  output_root: outputs/villoc/45_deg
+
+streams:
+  V:
+    modality: rgb
+    role: primary_visual
+    video: CAM_20260413121601_0001_V.MP4
+    srt: CAM_20260413121601_0001_V.SRT
+    fps_expected: 29.97
+    resolution_expected: [3840, 2160]
+
+  S:
+    modality: rgb
+    role: secondary_visual
+    video: CAM_20260413121601_0001_S.MP4
+    srt: CAM_20260413121601_0001_S.SRT
+    fps_expected: 29.97
+    resolution_expected: [1920, 1080]
+
+  T:
+    modality: thermal
+    role: thermal
+    video: CAM_20260413121601_0001_T.MP4
+    srt: CAM_20260413121601_0001_T.SRT
+    fps_expected: 9.0
+    resolution_expected: [640, 512]
+
+map:
+  resuse_existing_map: true
+  shared_map_source: villoc/90_deg/maps/master/ (villoc_90deg_s8_8_to_s8_10b)
+  canonical_aoi_tif: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+
+  tile_variants:
+    512_s256:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_512_s256
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+
+    1024_s512:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_1024_s512
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv
+
+    1024_s256:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_1024_s256
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv
+
+reference:
+  source: srt_gps
+  gps_usage: evaluation_only
+  local_frame: ENU
+  origin_policy: first_valid_primary_visual_srt_row
+
+rules:
+  use_srt_for:
+    - frame_alignment
+    - reference_trajectory
+    - map_bbox
+    - tile_generation
+    - evaluation
+    - sanity_checks
+  never_use_srt_for:
+    - retrieval_ranking
+    - verifier_ranking
+    - correction_acceptance
+    - threshold_tuning_from_error
