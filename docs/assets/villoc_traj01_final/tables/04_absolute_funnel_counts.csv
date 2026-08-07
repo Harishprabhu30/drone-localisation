@@ -1,0 +1,37 @@
+funnel_type,variant,stage,stage_order,count,total,percent,method
+dino_candidate_recall,512_s256,Oracle candidate in Top-1,1,146,403,36.22828784119107,
+dino_candidate_recall,512_s256,Oracle candidate in Top-5,5,252,403,62.531017369727046,
+dino_candidate_recall,512_s256,Oracle candidate in Top-10,10,296,403,73.44913151364764,
+dino_candidate_recall,512_s256,Oracle candidate in Top-20,20,335,403,83.12655086848635,
+dino_candidate_recall,512_s256,Oracle candidate in Top-50,50,383,403,95.03722084367246,
+dino_candidate_recall,512_s256,Oracle candidate in Top-100,100,403,403,100.0,
+dino_top1_metric,512_s256,DINO Top-1 ≤40m,0,114,403,28.287841191067,
+dino_candidate_recall,1024_s512,Oracle candidate in Top-1,1,101,403,25.062034739454095,
+dino_candidate_recall,1024_s512,Oracle candidate in Top-5,5,233,403,57.81637717121588,
+dino_candidate_recall,1024_s512,Oracle candidate in Top-10,10,325,403,80.64516129032258,
+dino_candidate_recall,1024_s512,Oracle candidate in Top-20,20,379,403,94.04466501240695,
+dino_candidate_recall,1024_s512,Oracle candidate in Top-50,50,403,403,100.0,
+dino_candidate_recall,1024_s512,Oracle candidate in Top-100,100,403,403,100.0,
+dino_top1_metric,1024_s512,DINO Top-1 ≤40m,0,13,403,3.225806451612903,
+dino_candidate_recall,1024_s256,Oracle candidate in Top-1,1,109,403,27.047146401985113,
+dino_candidate_recall,1024_s256,Oracle candidate in Top-5,5,185,403,45.90570719602977,
+dino_candidate_recall,1024_s256,Oracle candidate in Top-10,10,246,403,61.04218362282879,
+dino_candidate_recall,1024_s256,Oracle candidate in Top-20,20,331,403,82.13399503722084,
+dino_candidate_recall,1024_s256,Oracle candidate in Top-50,50,399,403,99.0074441687345,
+dino_candidate_recall,1024_s256,Oracle candidate in Top-100,100,403,403,100.0,
+dino_top1_metric,1024_s256,DINO Top-1 ≤40m,0,33,403,8.188585607940446,
+orb_verifier_funnel,512_s256,Total UAV queries,0,403,403,100.0,ORB Top-20 rerank
+orb_verifier_funnel,512_s256,DINO Top-20 contains body,1,335,403,83.12655086848635,ORB Top-20 rerank
+orb_verifier_funnel,512_s256,DINO Top-20 has ≤40m candidate,2,328,403,81.38957816377172,ORB Top-20 rerank
+orb_verifier_funnel,512_s256,ORB selected ≤80m,3,267,403,66.25310173697271,ORB Top-20 rerank
+orb_verifier_funnel,512_s256,ORB selected ≤40m,4,173,403,42.92803970223325,ORB Top-20 rerank
+orb_vs_lightglue_512_s256,512_s256,Total UAV queries,0,403,403,100.0,ORB Top-20 rerank
+orb_vs_lightglue_512_s256,512_s256,Total UAV queries,0,403,403,100.0,LightGlue Top-20 full403
+orb_vs_lightglue_512_s256,512_s256,DINO Top-20 contains body,1,335,403,83.12655086848635,ORB Top-20 rerank
+orb_vs_lightglue_512_s256,512_s256,DINO Top-20 contains body,1,335,403,83.12655086848635,LightGlue Top-20 full403
+orb_vs_lightglue_512_s256,512_s256,DINO Top-20 has ≤40m candidate,2,328,403,81.38957816377172,ORB Top-20 rerank
+orb_vs_lightglue_512_s256,512_s256,DINO Top-20 has ≤40m candidate,2,328,403,81.38957816377172,LightGlue Top-20 full403
+orb_vs_lightglue_512_s256,512_s256,Selected ≤80m,3,267,403,66.25310173697271,ORB Top-20 rerank
+orb_vs_lightglue_512_s256,512_s256,Selected ≤40m,4,173,403,42.92803970223325,ORB Top-20 rerank
+orb_vs_lightglue_512_s256,512_s256,Selected ≤80m,3,171,403,42.4317617866005,LightGlue Top-20 full403
+orb_vs_lightglue_512_s256,512_s256,Selected ≤40m,4,101,403,25.062034739454095,LightGlue Top-20 full403

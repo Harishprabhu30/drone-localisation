@@ -2,7 +2,7 @@
 
 **Project:** GNSS-denied / weak-GNSS UAV visual localization  
 **Dataset family:** Villoc Vilnius UAV video + SRT telemetry  
-**Stages covered:** S8.12E.0 footprint-center-ray diagnostic, S8.12E.1A ORB Top-20 verifier baseline, S8.12E.1B LightGlue Top-20 verifier/reranker, and transition to the new `traj01_90deg_stable70m` dataset  
+**Stages covered:** S8.12E.0 footprint-center-ray diagnostic, S8.12E.1A ORB Top-20 verifier baseline, S8.12E.1B LightGlue Top-20 verifier/reranker, and transition to the new `traj01_90deg_stable120m` dataset  
 **Primary map/tile variant:** `1024_s512`  
 **Primary descriptor tag:** `dinov2_vits14_img224_center_square_avgpatch_cpu`  
 **Map source:** `ort10lt_2024_2026`, existing AOI300m map/tile database from `outputs/villoc/90_deg`  
@@ -433,7 +433,7 @@ confidence gates that keep good corrections and reject bad ones
 
 ---
 
-## 7. New dataset transition: `traj01_90deg_stable70m`
+## 7. New dataset transition: `traj01_90deg_stable120m`
 
 ### 7.1 Why this dataset is important
 
@@ -462,17 +462,17 @@ Folder structure:
 data/raw/villoc/
   90_deg/
   45_deg/
-  traj01_90deg_stable70m/
+  traj01_90deg_stable120m/
 
 data/processed/villoc/
   90_deg/
   45_deg/
-  traj01_90deg_stable70m/
+  traj01_90deg_stable120m/
 
 outputs/villoc/
   90_deg/
   45_deg/
-  traj01_90deg_stable70m/
+  traj01_90deg_stable120m/
 ```
 
 ### 7.3 Merged video/SRT decision
@@ -489,8 +489,8 @@ DJI_20260729105250_0003_V.SRT
 They were merged into:
 
 ```text
-villoc_traj01_90deg_stable70m_V_merged.MP4
-villoc_traj01_90deg_stable70m_V_merged.SRT
+villoc_traj01_90deg_stable120m_V_merged.MP4
+villoc_traj01_90deg_stable120m_V_merged.SRT
 ```
 
 The merged video is continuous. The SRT timestamps are continuous. The frame counter was reset to be continuous from the beginning to the end of the merged video.
@@ -510,29 +510,29 @@ For this dataset, the frame counter has already been normalized.
 The prepared config is:
 
 ```text
-configs/dataset_villoc_traj01_90deg_stable70m.yaml
+configs/dataset_villoc_traj01_90deg_stable120m.yaml
 ```
 
 Expected structure:
 
 ```yaml
 dataset:
-  folder_name: villoc_traj01_90deg_stable70m
-  name: villoc_traj01_90deg_stable70m_20260729
-  sequence_name: traj01_90deg_stable70m
+  folder_name: villoc_traj01_90deg_stable120m
+  name: villoc_traj01_90deg_stable120m_20260729
+  sequence_name: traj01_90deg_stable120m
   type: villoc_video_srt
   view_angle_group: 90deg
-  description: "Villoc Vilnius 90-degree nadir RGB trajectory, stable 70-80 m relative altitude, possible loop-closure route"
-  raw_root: data/raw/villoc/traj01_90deg_stable70m
-  processed_root: data/processed/villoc/traj01_90deg_stable70m
-  output_root: outputs/villoc/traj01_90deg_stable70m
+  description: "Villoc Vilnius 90-degree nadir RGB trajectory, stable 110-120 m relative altitude, possible loop-closure route"
+  raw_root: data/raw/villoc/traj01_90deg_stable120m
+  processed_root: data/processed/villoc/traj01_90deg_stable120m
+  output_root: outputs/villoc/traj01_90deg_stable120m
 
 streams:
   V:
     modality: rgb
     role: primary_visual
-    video: villoc_traj01_90deg_stable70m_V_merged.MP4
-    srt: villoc_traj01_90deg_stable70m_V_merged.SRT
+    video: villoc_traj01_90deg_stable120m_V_merged.MP4
+    srt: villoc_traj01_90deg_stable120m_V_merged.SRT
     fps_expected: 29.97
     resolution_expected: [3840, 2160]
     duration_s: 403.425
@@ -657,7 +657,7 @@ LightGlue improves 45° reranking meaningfully and 90° reranking mildly, but st
 Then a new route dataset also prepared:
 
 ```text
-traj01_90deg_stable70m
+traj01_90deg_stable120m
 ```
 
 This dataset is inside the existing AOI300m and should reuse the existing map/tile/cache side while rebuilding only query-side assets.

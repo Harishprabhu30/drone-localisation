@@ -1,0 +1,10 @@
+factor,spearman_corr_with_error,abs_spearman,relationship_strength,report_verdict
+abs_top1_score,-0.6122005340930692,0.6122005340930692,strong,Useful confidence signal
+yaw_deg,0.0226993201600435,0.0226993201600435,weak,Weak telemetry effect
+relative_altitude_m,-0.0669115225423878,0.0669115225423878,weak,Weak telemetry effect
+quality_sharpness_laplacian,0.4568097272198753,0.4568097272198753,moderate,"Scene complexity / ambiguity, not blur"
+quality_brightness_mean,-0.4170826343498316,0.4170826343498316,moderate,Moderate appearance effect
+quality_contrast_std,0.104478938454729,0.104478938454729,weak,Diagnostic only
+quality_edge_density,0.445023305206269,0.445023305206269,moderate,"Scene complexity / ambiguity, not blur"
+distance_m,0.0629051760571705,0.0629051760571705,weak,Weak route-position trend
+roll_deg,,,not applicable,Weak telemetry effect

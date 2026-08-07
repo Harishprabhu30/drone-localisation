@@ -1,0 +1,179 @@
+report:
+  id: global_development_story_assets
+  title: Development path assets for final internship report
+  purpose: >
+    Validate and organize non-Villoc-traj01 assets used to explain how the final
+    pipeline was developed: Zurich MAV infrastructure, SatLoc absolute localization,
+    SatLoc fusion logic, Villoc pilot diagnostics, and final architecture diagrams.
+
+project:
+  repo_root: .
+  reporting_root: outputs/villoc/traj01_90deg_stable120m/reporting
+  final_asset_dir: docs/assets/final_report_global_story
+
+story_roles:
+  zurich:
+    role: infrastructure_and_geometry_learning
+    main_report_usage: compact
+    include_in_appendix: true
+    message: >
+      Zurich MAV was used to build dataset loading, synchronization, reference trajectory
+      visualization, Folium maps, ORB tracking diagnostics, and geometry/sensor failure analysis.
+      It is not the final accuracy dataset.
+
+  satloc:
+    role: absolute_localization_algorithm_lab
+    main_report_usage: compact
+    include_in_appendix: true
+    message: >
+      SatLoc was used to develop map tile indexing, UAV-to-map retrieval, LightGlue
+      verification, temporal absolute coverage, and relative-absolute fusion logic.
+
+  villoc_pilot:
+    role: real_vilnius_map_localization_pilot
+    main_report_usage: compact
+    include_in_appendix: true
+    message: >
+      Villoc 90°/45° pilot runs validated the real orthophoto AOI, DINO retrieval diagnostics,
+      tile variants, oblique/nadir behavior, and ranking/refinement failure modes.
+
+  villoc_traj01:
+    role: final_company_facing_demonstrator
+    main_report_usage: primary
+    include_in_appendix: true
+    message: >
+      Villoc traj01 stable-120m is the final recorded-data demonstrator and should carry
+      the main result figures.
+
+inputs:
+  zurich_week2_reference_map:
+    path: outputs/zurich_mav_sample/maps/trajectory_map.html
+    kind: file
+    required: false
+    description: Zurich Week 2 Folium reference trajectory map.
+
+  zurich_week2_reference_xy:
+    path: outputs/zurich_mav_sample/figures/trajectory_xy.png
+    kind: file
+    required: false
+    description: Zurich reference XY trajectory plot.
+
+  zurich_week2_altitude_profile:
+    path: outputs/zurich_mav_sample/figures/altitude_profile.png
+    kind: file
+    required: false
+    description: Zurich altitude profile.
+
+  zurich_closeout_accel_axis_mapping:
+    path: docs/assets/week4_zurich_closeout/accel_best_axis_mapping.png
+    kind: file
+    required: false
+    description: Zurich accelerometer axis/sign mapping figure.
+
+  zurich_closeout_gyro_axis_mapping:
+    path: docs/assets/week4_zurich_closeout/gyro_best_axis_mapping.png
+    kind: file
+    required: false
+    description: Zurich gyroscope axis/sign mapping figure.
+
+  zurich_closeout_early_sensor_assisted_traj:
+    path: docs/assets/week4_zurich_closeout/full_00001_01000_stride5_sensor_assisted_trajectory.png
+    kind: file
+    required: false
+    description: Zurich early stride-5 sensor-assisted trajectory diagnostic.
+
+  zurich_closeout_middle_sensor_assisted_traj:
+    path: docs/assets/week4_zurich_closeout/full_40000_41000_stride5_sensor_assisted_trajectory.png
+    kind: file
+    required: false
+    description: Zurich middle stride-5 sensor-assisted trajectory diagnostic.
+
+  satloc_s4a_orb_recall_summary:
+    path: docs/assets/satloc_s4a_orb_fullmap_baseline/s4a4_recall_summary.png
+    kind: file
+    required: false
+    description: SatLoc ORB full-map failure summary.
+
+  satloc_s4a_orb_top1_error:
+    path: docs/assets/satloc_s4a_orb_fullmap_baseline/s4a4_top1_error.png
+    kind: file
+    required: false
+    description: SatLoc ORB full-map top-1 error plot.
+
+  satloc_s5c_query_spacing:
+    path: docs/assets/s5c_temporal/s5c0_query_spacing_histogram.png
+    kind: file
+    required: false
+    description: SatLoc temporal absolute query spacing.
+
+  satloc_s5c_query_sources:
+    path: docs/assets/s5c_temporal/s5c0_query_source_breakdown.png
+    kind: file
+    required: false
+    description: SatLoc S5C query source breakdown.
+
+  satloc_s6b_policy_summary:
+    path: outputs/satloc/metadata/s6b_relative_absolute/s6b2d_raw_policy_selection.csv
+    kind: csv
+    required: false
+    description: SatLoc raw causal fusion selected policy summary.
+
+  satloc_s6b_controlled_vs_raw:
+    path: outputs/satloc/metadata/s6b_relative_absolute/s6b2d_controlled_vs_raw_comparison.csv
+    kind: csv
+    required: false
+    description: SatLoc controlled vs raw causal fusion comparison.
+
+  villoc_45_90_bucket_counts:
+    path: docs/assets/villoc_s8_12d_retrieval_diagnostics/comparison/figures/bucket_counts.png
+    kind: file
+    required: false
+    description: Villoc pilot 45° vs 90° retrieval diagnostic bucket comparison.
+
+  villoc_45_90_top1_vs_recall:
+    path: docs/assets/villoc_s8_12d_retrieval_diagnostics/comparison/figures/top1_vs_recall_at_20.png
+    kind: file
+    required: false
+    description: Villoc pilot Top-1 vs Recall@20 comparison.
+
+planned_new_artifacts:
+  architecture_system_overview:
+    output: outputs/villoc/traj01_90deg_stable120m/reporting/figures/fig_system_architecture.png
+    purpose: >
+      Clean final architecture diagram: input data, preprocessing, relative localization,
+      absolute retrieval/reranking, fusion, evaluation, visualization.
+
+  development_path_diagram:
+    output: outputs/villoc/traj01_90deg_stable120m/reporting/figures/fig_development_path_zurich_satloc_villoc.png
+    purpose: >
+      One figure explaining Zurich -> SatLoc -> Villoc pilot -> Villoc traj01.
+
+  dataset_evolution_table:
+    output: outputs/villoc/traj01_90deg_stable120m/reporting/tables/table_dataset_evolution.csv
+    purpose: >
+      Compact table showing each dataset role, what worked, limitation, and decision.
+
+  method_evolution_table:
+    output: outputs/villoc/traj01_90deg_stable120m/reporting/tables/table_method_evolution.csv
+    purpose: >
+      ORB, HOG/PHOG/LSD, DINO, LightGlue, ORB reranking, XFeat, periodic fusion,
+      temporal fusion.
+
+  internship_requirement_traceability_table:
+    output: outputs/villoc/traj01_90deg_stable120m/reporting/tables/table_requirement_traceability.csv
+    purpose: >
+      Map internship requirements to implemented evidence, outputs, and status.
+
+outputs:
+  resolved_manifest_json: outputs/villoc/traj01_90deg_stable120m/reporting/manifests/global_story_assets_resolved.json
+  resolved_manifest_md: outputs/villoc/traj01_90deg_stable120m/reporting/manifests/global_story_assets_resolved.md
+  validation_log: outputs/villoc/traj01_90deg_stable120m/reporting/logs/validate_global_story_assets.log
+
+validation:
+  fail_on_missing_required: false
+  warn_on_missing_optional: true
+  check_csv_readability: true
+  check_json_readability: true
+  check_min_rows: false
+  check_identity_columns: false
+  create_output_directories: true

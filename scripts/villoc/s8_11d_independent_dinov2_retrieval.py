@@ -14,6 +14,20 @@ python scripts/villoc/s8_11d_independent_dinov2_retrieval.py \
   --device-tag cpu \
   2>&1 | tee "$LOGDIR/s8_12d9_independent_dinov2_retrieval_45deg_reuse_map.log"
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_11d_independent_retrieval
+
+python scripts/villoc/s8_11d_independent_dinov2_retrieval.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --map-cache-root outputs/villoc/90_deg/descriptors \
+  --image-size 518 \
+  --crop-mode center_square \
+  --pooling avgpatch \
+  --device-tag cpu \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_11d_independent_retrieval/s8_11d_independent_dinov2_retrieval_img518.log
+
 '''
 
 from __future__ import annotations

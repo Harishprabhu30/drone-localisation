@@ -7,6 +7,17 @@ python scripts/villoc/s8_3_build_reference_trajectory.py \
   --stream V \
   --sample-rate-fps 1
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_3_reference_trajectory
+
+python scripts/villoc/s8_3_build_reference_trajectory.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --stream V \
+  --sample-rate-fps 1 \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_3_reference_trajectory/s8_3_reference_trajectory_V_1fps.log
+
 '''
 
 from __future__ import annotations
@@ -122,7 +133,7 @@ def save_yaw_plot(df: pd.DataFrame, out_path: Path, stream: str, sample_rate_fps
     plt.xlabel("Video time [s]")
     plt.ylabel("Gimbal/body yaw [deg]")
     # plt.title("Villoc 90° V 1FPS Yaw Profile")
-    plt.title("Villoc {view_angle_group} {stream} {sample_rate_fps:g}FPS Yaw Profile")
+    plt.title(f"Villoc {view_angle_group} {stream} {sample_rate_fps:g}FPS Yaw Profile")
     plt.tight_layout()
     plt.savefig(out_path, dpi=180)
     plt.close()

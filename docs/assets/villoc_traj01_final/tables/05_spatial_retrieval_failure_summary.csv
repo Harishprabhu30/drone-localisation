@@ -1,0 +1,6 @@
+variant,category,label,count,total,percent
+512_s256,good_top1,Good Top-1,146,403,36.22828784119107
+512_s256,oracle_in_top20_but_not_top1,"Correct candidate in Top-20, not Top-1",174,403,43.17617866004963
+512_s256,high_conf_wrong_top1,High-confidence wrong Top-1,15,403,3.7220843672456576
+512_s256,oracle_missing_top20,Correct candidate missing from Top-20,68,403,16.87344913151365
+512_s256,bad_top1_other,Other bad Top-1,0,403,0.0

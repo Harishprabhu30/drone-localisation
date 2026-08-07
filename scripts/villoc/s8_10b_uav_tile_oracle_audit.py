@@ -13,6 +13,22 @@ python scripts/villoc/s8_10b_uav_tile_oracle_audit.py \
   --variant "1024_s512:outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv" \
   --variant "1024_s256:outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv"
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_10b_tile_oracle
+
+python scripts/villoc/s8_10b_uav_tile_oracle_audit.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --src-tif data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif \
+  --uav-index-csv outputs/villoc/traj01_90deg_stable120m/metadata/s8_5_uav_frames_index_v_1fps.csv \
+  --trajectory-csv outputs/villoc/traj01_90deg_stable120m/trajectories/s8_3_reference_trajectory_V_1fps.csv \
+  --trajectory-crs EPSG:3346 \
+  --variant "512_s256:outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv" \
+  --variant "1024_s512:outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv" \
+  --variant "1024_s256:outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv" \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_10b_tile_oracle/s8_10b_tile_oracle_audit.log
+
 '''
 
 from __future__ import annotations

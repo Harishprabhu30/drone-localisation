@@ -1,0 +1,608 @@
+report:
+  id: villoc_traj01_final
+  title: GNSS-Denied UAV Visual Localization
+  subtitle: Relative Trajectory Estimation and Map-Based Absolute Localization
+  dataset_label: Villoc traj01 — 90° nadir, stable 120 m
+  status: draft
+  output_root: outputs/villoc/traj01_90deg_stable120m/reporting
+
+project:
+  repository_root: .
+  dataset_config: configs/dataset_villoc_traj01_90deg_stable120m.yaml
+
+  reference_policy:
+    localization_usage: prohibited
+    evaluation_usage: allowed
+    statement: >
+      Reference latitude, longitude, ENU coordinates, and trajectory data
+      are used only after estimation for evaluation and visualization.
+
+dataset:
+  name: villoc_traj01_90deg_stable120m_20260729
+  sequence_name: traj01_90deg_stable120m
+  view_angle_group: 90deg
+  stream_id: V
+  modality: rgb
+
+  expected:
+    query_count: 403
+    pair_count: 402
+    sampling_rate_hz: 1.0
+    path_length_m: 1962.73
+    start_end_distance_m: 145.66
+    relative_altitude_min_m: 118.78
+    relative_altitude_max_m: 120.12
+    pitch_nominal_deg: -90.0
+
+paths:
+  dataset_root:
+    raw: data/raw/villoc/traj01_90deg_stable120m
+    processed: data/processed/villoc/traj01_90deg_stable120m
+    outputs: outputs/villoc/traj01_90deg_stable120m
+
+  reference:
+    trajectory_csv: null
+    query_manifest_csv: null
+    frame_quality_csv: null
+    map_aoi_report_json: null
+    tile_index_by_variant:
+      512_s256: null
+      1024_s512: null
+      1024_s256: null
+
+  relative:
+    orb:
+      enabled: true
+      label: ORB
+      trajectory_csv: null
+      pair_metrics_csv: null
+      summary_json: null
+
+    xfeat:
+      enabled: true
+      label: XFeat
+      trajectory_csv: null
+      pair_metrics_csv: null
+      summary_json: null
+
+    klt:
+      enabled: true
+      label: KLT optical flow
+      trajectory_csv: null
+      pair_metrics_csv: null
+      summary_json: null
+
+  absolute:
+    retrieval:
+      512_s256:
+        enabled: true
+        ranked_candidates_csv: null
+        query_summary_csv: null
+        summary_json: null
+
+      1024_s512:
+        enabled: true
+        ranked_candidates_csv: null
+        query_summary_csv: null
+        summary_json: null
+
+      1024_s256:
+        enabled: true
+        ranked_candidates_csv: null
+        query_summary_csv: null
+        summary_json: null
+
+    reranking:
+      orb_top20:
+        enabled: true
+        candidate_scores_csv: null
+        query_summary_csv: null
+        summary_json: null
+
+      lightglue_top20:
+        enabled: true
+        status: pending
+        candidate_scores_csv: null
+        query_summary_csv: null
+        summary_json: null
+
+  fusion:
+    enabled: true
+    status: awaiting_traj01_readme_path_resolution
+
+    relative_only_best:
+      method_key: null
+      label: Relative-only trajectory
+      trajectory_csv: null
+      summary_json: null
+
+    periodic_best:
+      method_key: null
+      label: Best periodic fusion
+      trajectory_csv: null
+      correction_events_csv: null
+      candidate_events_csv: null
+      summary_json: null
+
+    temporal_best:
+      method_key: null
+      label: Best temporal fusion
+      trajectory_csv: null
+      correction_events_csv: null
+      candidate_events_csv: null
+      summary_json: null
+
+    correction_context:
+      enabled: true
+      annotation_mode: manual_or_semiautomatic
+      context_annotation_csv: null
+      context_summary_csv: null
+
+      allowed_categories:
+        - urban_buildings
+        - road_parking_hard_surface
+        - vegetation_trees_grass
+        - mixed_edge_zone
+        - open_repetitive_area
+        - uncertain
+
+      annotation_fields:
+        - query_id
+        - frame_id
+        - x_map_m
+        - y_map_m
+        - latitude
+        - longitude
+        - correction_source
+        - accepted
+        - context_category
+        - context_notes
+        - annotation_confidence
+
+reporting_roles:
+  relative_only_best:
+    source_key: paths.fusion.relative_only_best
+    selection_rule: confirmed_best_relative_result_from_traj01_readme
+
+  periodic_fusion_best:
+    source_key: paths.fusion.periodic_best
+    selection_rule: confirmed_best_periodic_fusion_from_traj01_readme
+
+  temporal_fusion_best:
+    source_key: paths.fusion.temporal_best
+    selection_rule: confirmed_best_temporal_fusion_from_traj01_readme
+
+  correction_event_policy:
+    accepted_event_field: accepted
+    accepted_values:
+      - true
+      - 1
+      - accepted
+    rejected_values:
+      - false
+      - 0
+      - rejected
+
+  correction_context_policy:
+    use_reference_for_evaluation_only: true
+    manual_map_interpretation_allowed: true
+    do_not_claim_automatic_land_cover_classification: true
+
+map:
+  crs_projected: EPSG:3346
+  crs_geographic: EPSG:4326
+  folium:
+    enabled: true
+    tiles: OpenStreetMap
+    include_aoi_boundary: true
+    include_reference_trajectory: true
+    include_start_end: true
+    include_direction_markers: true
+    sampled_marker_interval_frames: 25
+  static_map:
+    enabled: true
+    preferred_background: orthophoto
+
+evaluation:
+  distance_thresholds_m:
+    - 10
+    - 20
+    - 40
+    - 80
+
+  absolute_success_threshold_m: 40
+
+  relative_metrics:
+    - rmse_m
+    - mae_m
+    - median_error_m
+    - p95_error_m
+    - max_error_m
+    - final_error_m
+    - drift_m_per_100m
+    - affine_success_rate
+    - good_quality_rate
+    - runtime_ms_per_pair
+
+  absolute_metrics:
+    - recall_at_1
+    - recall_at_5
+    - recall_at_10
+    - recall_at_20
+    - top1_error_median_m
+    - top1_error_p95_m
+    - top1_le_40m_hits
+    - oracle_top20_hits
+    - contains_body_top1_hits
+    - contains_body_top5_hits
+    - contains_body_top10_hits
+    - contains_body_top20_hits
+    - runtime_s_per_pair
+
+figures:
+  map_overview:
+    enabled: true
+    basename: fig_dataset_map_overview
+    outputs:
+      - png
+      - pdf
+      - html
+
+  dataset_contact_sheet:
+    enabled: true
+    basename: fig_dataset_contact_sheet
+    selected_query_ids:
+      - 1
+      - 51
+      - 101
+      - 151
+      - 201
+      - 251
+      - 301
+      - 351
+      - 403
+
+  relative_xy_comparison:
+    enabled: true
+    basename: fig_relative_xy_comparison
+    methods:
+      - orb
+      - xfeat
+      - klt
+
+  relative_error_vs_distance:
+    enabled: true
+    basename: fig_relative_error_vs_distance
+    methods:
+      - orb
+      - xfeat
+      - klt
+
+  relative_safe_horizon:
+    enabled: true
+    basename: fig_relative_safe_horizon
+    thresholds_m:
+      - 10
+      - 20
+      - 40
+      - 80
+
+  relative_quality_summary:
+    enabled: true
+    basename: fig_relative_quality_summary
+
+  absolute_scale_comparison:
+    enabled: true
+    basename: fig_absolute_tile_scale_comparison
+    variants:
+      - 512_s256
+      - 1024_s512
+      - 1024_s256
+
+  absolute_retrieval_funnel:
+    enabled: true
+    basename: fig_absolute_retrieval_funnel
+    methods:
+      - dino_top1
+      - orb_top20
+      - lightglue_top20
+
+  absolute_reranking_comparison:
+    enabled: true
+    basename: fig_absolute_reranking_comparison
+    methods:
+      - dino_top1
+      - orb_top20
+      - lightglue_top20
+
+  absolute_spatial_outcomes:
+    enabled: true
+    basename: fig_absolute_spatial_outcomes
+
+  quality_factor_timeline:
+    enabled: true
+    basename: fig_quality_factor_timeline
+    signals:
+      - yaw_deg
+      - laplacian_variance
+      - edge_density
+      - relative_inlier_ratio
+      - relative_error_m
+      - absolute_error_m
+
+  case_studies:
+    enabled: true
+    basename: fig_absolute_case_studies
+    max_cases: 6
+    categories:
+      - easy_success
+      - dino_wrong_reranker_rescue
+      - high_confidence_wrong
+      - oracle_in_pool_selection_failure
+      - candidate_pool_failure
+      - repetitive_or_vegetation_failure
+  
+  final_trajectory_map:
+    enabled: true
+    priority: primary
+    basename: fig_final_trajectory_map_overlay
+
+    trajectories:
+      - reference
+      - relative_only_best
+      - periodic_fusion_best
+      - temporal_fusion_best
+
+    styling:
+      reference:
+        label: Reference trajectory
+        line_style: solid
+        line_width: 1.5
+        visual_role: thin_black
+
+      relative_only_best:
+        label: Relative-only trajectory
+        line_style: solid
+        line_width: 2.0
+        visual_role: red_orange
+
+      periodic_fusion_best:
+        label: Best periodic fusion
+        line_style: solid
+        line_width: 2.2
+        visual_role: blue
+
+      temporal_fusion_best:
+        label: Best temporal fusion
+        line_style: solid
+        line_width: 2.2
+        visual_role: green
+
+    correction_markers:
+      show_all_candidates: true
+      show_accepted: true
+      show_rejected: true
+
+      accepted:
+        marker: circle
+        visual_role: green_circle
+
+      rejected:
+        marker: x
+        visual_role: red_cross
+
+      all_candidates:
+        marker: dot
+        visual_role: yellow_small_dot
+
+    backgrounds:
+      - orthophoto
+      - folium
+
+    outputs:
+      - png
+      - pdf
+      - html
+
+  correction_context_map:
+    enabled: true
+    priority: primary
+    basename: fig_correction_context_map
+
+    trajectory_source: reference
+    event_source: temporal_fusion_best
+
+    context_categories:
+      - urban_buildings
+      - road_parking_hard_surface
+      - vegetation_trees_grass
+      - mixed_edge_zone
+      - open_repetitive_area
+      - uncertain
+
+    distinguish:
+      - accepted
+      - rejected
+
+    include:
+      - start_end_markers
+      - trajectory_direction
+      - correction_event_id
+      - context_legend
+
+    outputs:
+      - png
+      - pdf
+      - html
+
+  fusion_error_vs_distance:
+    enabled: true
+    priority: primary
+    basename: fig_fusion_error_vs_distance
+
+    x_axis: traveled_distance_m
+    y_axis: position_error_m
+
+    trajectories:
+      - relative_only_best
+      - periodic_fusion_best
+      - temporal_fusion_best
+
+    correction_events:
+      show_periodic_accepted: true
+      show_temporal_accepted: true
+      show_rejected: false
+      marker_mode: vertical_event_markers
+
+    include:
+      - error_threshold_lines
+      - correction_event_legend
+      - final_error_annotations
+
+  temporal_gating_schematic:
+    enabled: true
+    priority: explanatory
+    basename: fig_temporal_gating_concept
+
+    type: conceptual_schematic
+
+    elements:
+      - previous_accepted_anchor
+      - relative_motion_vector
+      - candidate_absolute_displacement_vector
+      - agreement_case_accept
+      - disagreement_case_reject
+
+    include_equation: true
+    equation_name: temporal_residual
+
+    caption_message: >
+      Temporal gating compares the displacement implied by successive
+      absolute candidates with the displacement estimated by the relative
+      visual trajectory. Consistent motion supports acceptance; contradictory
+      motion causes rejection.
+
+tables:
+  dataset_summary:
+    enabled: true
+    basename: table_dataset_summary
+
+  relative_metrics:
+    enabled: true
+    basename: table_relative_metrics
+
+  absolute_metrics:
+    enabled: true
+    basename: table_absolute_metrics
+
+  runtime_summary:
+    enabled: true
+    basename: table_runtime_summary
+
+  requirements_traceability:
+    enabled: true
+    basename: table_internship_requirements_traceability
+
+  fusion_metrics:
+    enabled: true
+    basename: table_fusion_metrics
+
+    methods:
+      - relative_only_best
+      - periodic_fusion_best
+      - temporal_fusion_best
+
+    metrics:
+      - rmse_m
+      - mae_m
+      - median_error_m
+      - p95_error_m
+      - max_error_m
+      - final_error_m
+      - drift_m_per_100m
+      - correction_count
+      - accepted_correction_count
+      - rejected_correction_count
+
+  correction_context_summary:
+    enabled: true
+    basename: table_correction_context_summary
+
+    group_by:
+      - context_category
+
+    metrics:
+      - candidate_count
+      - accepted_count
+      - rejected_count
+      - acceptance_rate
+      - true_correction_count_eval_only
+      - false_correction_count_eval_only
+      - median_error_before_m
+      - median_error_after_m
+      - median_error_reduction_m
+
+style:
+  dpi: 300
+  figure_format_primary: png
+  figure_format_secondary: pdf
+  transparent_background: false
+
+  typography:
+    title_size: 15
+    axis_label_size: 11
+    tick_size: 9
+    legend_size: 9
+
+  line_width: 2.0
+  marker_size: 5
+  grid_alpha: 0.25
+
+validation:
+  fail_on_missing_required: true
+  warn_on_missing_pending: true
+  verify_row_counts: true
+  verify_query_identity: true
+  verify_reference_leakage_labels: true
+  verify_output_parent_directories: true
+
+  required_now:
+    - paths.reference.trajectory_csv
+    - paths.reference.query_manifest_csv
+    - paths.reference.frame_quality_csv
+    - paths.relative.orb.trajectory_csv
+    - paths.relative.xfeat.trajectory_csv
+    - paths.relative.klt.trajectory_csv
+
+  pending_allowed:
+    - paths.absolute.reranking.lightglue_top20.candidate_scores_csv
+    - paths.absolute.reranking.lightglue_top20.query_summary_csv
+    - paths.absolute.reranking.lightglue_top20.summary_json
+    - paths.fusion.trajectory_csv
+    - paths.fusion.correction_events_csv
+    - paths.fusion.summary_json
+    - paths.fusion.relative_only_best.trajectory_csv
+    - paths.fusion.relative_only_best.summary_json
+
+    - paths.fusion.periodic_best.trajectory_csv
+    - paths.fusion.periodic_best.correction_events_csv
+    - paths.fusion.periodic_best.candidate_events_csv
+    - paths.fusion.periodic_best.summary_json
+
+    - paths.fusion.temporal_best.trajectory_csv
+    - paths.fusion.temporal_best.correction_events_csv
+    - paths.fusion.temporal_best.candidate_events_csv
+    - paths.fusion.temporal_best.summary_json
+
+    - paths.fusion.correction_context.context_annotation_csv
+    - paths.fusion.correction_context.context_summary_csv
+
+  fusion_checks:
+    require_common_query_identity: true
+    require_common_coordinate_frame: true
+    require_common_reference_origin: true
+    require_monotonic_sequence_order: true
+    verify_error_is_recomputed_consistently: true
+    verify_accepted_rejected_event_counts: true
+    verify_best_variant_against_summary_metrics: true
+    prohibit_eval_fields_in_acceptance_logic: true

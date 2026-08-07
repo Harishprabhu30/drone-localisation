@@ -1,0 +1,347 @@
+report:
+  id: villoc_traj01_s8_final_report_figures
+  title: GNSS-Denied UAV Visual Localization
+  dataset_label: Villoc traj01 — 90° nadir, stable 120 m
+  final_report_label: Temporal-consistency fusion
+  purpose: >
+    Generate report-ready figures, tables, maps, and validation manifests for the
+    final internship report. The report should show both the final recommended method
+    and the comparison path that led to it.
+
+project:
+  repo_root: .
+  dataset_config: configs/dataset_villoc_traj01_90deg_stable120m.yaml
+  dataset_name: villoc_traj01_90deg_stable120m
+  root: outputs/villoc/traj01_90deg_stable120m
+  raw_root: data/raw/villoc/traj01_90deg_stable120m
+  processed_root: data/processed/villoc/traj01_90deg_stable120m
+  reused_map_root: outputs/villoc/90_deg
+  asset_dir: docs/assets/villoc_traj01_s8_fusion_closeout
+  reporting_root: outputs/villoc/traj01_90deg_stable120m/reporting
+
+reference_rule:
+  online_usage: prohibited
+  evaluation_usage: allowed_after_estimation
+  report_statement: >
+    Reference latitude, longitude, ENU coordinates, and ground-truth errors are used
+    only after estimation for evaluation, oracle construction, tables, and plots.
+    They are not used for retrieval ranking, verifier ranking, correction acceptance,
+    or online fusion decisions.
+
+story_policy:
+  primary_result:
+    key: temporal_consistency_fusion
+    label: Recommended realistic online fusion
+    method_name: f3_temporal_a_bootb_res50_r030_gap30_accept_online
+    alpha: 0.25
+    reason: >
+      Selected as the recommended final system because it adds temporal agreement
+      checking before accepting absolute corrections and achieves the lowest final
+      drift among realistic online policies.
+
+  best_metric_result:
+    key: periodic_50m_strict_a
+    label: Best RMSE fusion
+    method_name: interval_50m_strict_a_accept_online
+    alpha: 0.25
+    reason: >
+      Kept as the best RMSE comparison, not hidden, because it demonstrates how
+      periodic confidence-gated corrections improve the relative-only trajectory.
+
+  comparison_policy:
+    show_development_comparisons: true
+    do_not_hide_failed_or_weaker_methods: true
+    compare_relative_frontends:
+      - ORB
+      - KLT optical flow
+      - XFeat
+    compare_absolute_methods:
+      - DINO Top-1
+      - ORB Top-20 reranking
+      - LightGlue Top-20 diagnostic
+    compare_fusion_methods:
+      - XFeat relative-only
+      - Periodic 50 m strict fusion
+      - Temporal-consistency fusion
+      - Oracle upper bound
+
+dataset_summary:
+  expected_queries: 403
+  expected_pairs: 402
+  sampling_hz: 1.0
+  path_length_m: 1962.73
+  start_end_displacement_m: 145.66
+  relative_altitude_range_m: [118.78, 120.12]
+  pitch_nominal_deg: -90.0
+  tag: dinov2_vits14_img518_center_square_avgpatch_cpu
+  primary_tile_variant: 512_s256
+
+inputs:
+  query_manifest:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_10b_canonical_uav_query_manifest.csv
+    kind: csv
+    required: true
+    min_rows: 403
+    identity_columns_any: [token0_id, query_id, sample_id, frame_id]
+    description: Canonical query manifest for all 403 traj01 frames.
+
+  reference_trajectory:
+    path: outputs/villoc/traj01_90deg_stable120m/trajectories/s8_3_reference_trajectory_V_1fps.csv
+    kind: csv
+    required: false
+    min_rows: 403
+    identity_columns_any: [token0_id, sample_id, frame_cnt, frame_id]
+    description: Reference trajectory used only for evaluation and plotting. If path differs, validator will flag it.
+
+  visual_audit_figure:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_4_visual_audit/s8_4_combined_quality_yaw_V_1fps.png
+    kind: file
+    required: false
+    description: Existing visual quality/yaw profile figure.
+
+  tile_index_512_s256:
+    path: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+    kind: csv
+    required: true
+    description: Reused old 90° AOI tile index for 512_s256.
+
+  tile_index_1024_s512:
+    path: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s512.csv
+    kind: csv
+    required: true
+    description: Reused old 90° AOI tile index for 1024_s512.
+
+  tile_index_1024_s256:
+    path: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv
+    kind: csv
+    required: true
+    description: Reused old 90° AOI tile index for 1024_s256.
+
+  dino_query_cache:
+    path: outputs/villoc/traj01_90deg_stable120m/descriptors/s8_11c_dinov2_queries_v_1fps_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+    kind: file
+    required: true
+    description: DINOv2 query descriptor cache for traj01.
+
+  xfeat_relative_trajectory:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_xfeat_relative_frontend/s8r4_xfeat_relative_trajectory_aligned_eval_only.csv
+    kind: csv
+    required: true
+    min_rows: 403
+    identity_columns_any: [token0_id, query_id, sample_id, frame_id]
+    description: XFeat relative trajectory, evaluation-aligned for reporting.
+
+  xfeat_pair_diagnostics:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_xfeat_relative_frontend/s8r4_xfeat_pair_diagnostics.csv
+    kind: csv
+    required: false
+    min_rows: 402
+    description: XFeat pair-level diagnostics.
+
+  xfeat_report:
+    path: outputs/villoc/traj01_90deg_stable120m/reports/s8_xfeat_relative_frontend/s8r4_xfeat_relative_frontend_report.json
+    kind: json
+    required: true
+    description: XFeat relative frontend report.
+
+  orb_relative_trajectory:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s6a_relative_motion/s6a2_orb_relative_trajectory_aligned_eval_only.csv
+    kind: csv
+    required: false
+    min_rows: 403
+    description: ORB relative trajectory used as comparison/fallback.
+
+  orb_absolute_query_summary:
+    path: outputs/villoc/traj01_90deg_stable120m/reports/s8_12e1_top20_verifier_reranker/512_s256_orb_hybrid_top20_img518/s8_12e1_query_summary.csv
+    kind: csv
+    required: true
+    min_rows: 403
+    identity_columns_any: [token0_id, query_id, sample_id, frame_id]
+    description: ORB Top-20 absolute reranker query summary.
+
+  orb_absolute_candidate_scores:
+    path: outputs/villoc/traj01_90deg_stable120m/reports/s8_12e1_top20_verifier_reranker/512_s256_orb_hybrid_top20_img518/s8_12e1_all_candidate_verifier_scores.csv
+    kind: csv
+    required: true
+    min_rows: 8060
+    identity_columns_any: [token0_id, query_id, sample_id, frame_id]
+    description: ORB Top-20 absolute reranker candidate scores.
+
+  lightglue_query_summary:
+    path: outputs/villoc/traj01_90deg_stable120m/reports/s8_12e1b_lightglue_top20_512_s256/s8_12e1b_query_summary.csv
+    kind: csv
+    required: false
+    description: LightGlue Top-20 diagnostic summary if available. Diagnostic only, not promoted.
+
+  fusion_policy_summary:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_relative_absolute_fusion/s8_f1_policy_summary.csv
+    kind: csv
+    required: true
+    description: Absolute correction policy summary.
+
+  fusion_f2_trajectory:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_relative_absolute_fusion/s8_f2_fusion_replay_trajectory.csv
+    kind: csv
+    required: true
+    min_rows: 403
+    identity_columns_any: [token0_id, query_id, sample_id, frame_id]
+    description: Controlled periodic fusion trajectory table.
+
+  fusion_f2_summary:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_relative_absolute_fusion/s8_f2_fusion_replay_summary.csv
+    kind: csv
+    required: true
+    description: Controlled fusion summary table.
+
+  temporal_policy_summary:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_relative_absolute_fusion/s8_f3_temporal_policy_summary.csv
+    kind: csv
+    required: true
+    description: Temporal policy summary.
+
+  temporal_fusion_trajectory:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_relative_absolute_fusion/s8_f3b_temporal_fusion_replay_trajectory.csv
+    kind: csv
+    required: true
+    min_rows: 403
+    identity_columns_any: [token0_id, query_id, sample_id, frame_id]
+    description: Temporal-consistency fusion trajectory table.
+
+  temporal_fusion_summary:
+    path: outputs/villoc/traj01_90deg_stable120m/metadata/s8_relative_absolute_fusion/s8_f3b_temporal_fusion_replay_summary.csv
+    kind: csv
+    required: true
+    description: Temporal-consistency fusion summary table.
+
+existing_figures:
+  xfeat_vs_orb_error:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_xfeat_relative_frontend/s8r4_orb_xfeat_error_vs_distance.png
+    required: false
+
+  xfeat_vs_orb_xy:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_xfeat_relative_frontend/s8r4_orb_xfeat_xy.png
+    required: false
+
+  f2_error_vs_distance:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_relative_absolute_fusion/s8_f2_fusion_error_vs_distance.png
+    required: false
+
+  f2_xy:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_relative_absolute_fusion/s8_f2_fusion_xy.png
+    required: false
+
+  f3_temporal_residuals:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_relative_absolute_fusion/s8_f3_temporal_residuals.png
+    required: false
+
+  f3b_temporal_error_vs_distance:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_relative_absolute_fusion/s8_f3b_temporal_fusion_error_vs_distance.png
+    required: false
+
+  f3b_temporal_xy:
+    path: outputs/villoc/traj01_90deg_stable120m/figures/s8_relative_absolute_fusion/s8_f3b_temporal_fusion_xy.png
+    required: false
+
+outputs:
+  resolved_manifest_json: outputs/villoc/traj01_90deg_stable120m/reporting/manifests/report_inputs_resolved.json
+  resolved_manifest_md: outputs/villoc/traj01_90deg_stable120m/reporting/manifests/report_inputs_resolved.md
+  validation_log: outputs/villoc/traj01_90deg_stable120m/reporting/logs/validate_report_inputs.log
+
+  figures_dir: outputs/villoc/traj01_90deg_stable120m/reporting/figures
+  maps_dir: outputs/villoc/traj01_90deg_stable120m/reporting/maps
+  tables_dir: outputs/villoc/traj01_90deg_stable120m/reporting/tables
+
+figures:
+  main_hero:
+    final_trajectory_map_overlay:
+      enabled: true
+      priority: 1
+      output_png: outputs/villoc/traj01_90deg_stable120m/reporting/figures/fig_final_trajectory_map_overlay.png
+      output_html: outputs/villoc/traj01_90deg_stable120m/reporting/maps/fig_final_trajectory_map_overlay.html
+      layers:
+        reference: true
+        relative_only_xfeat: true
+        periodic_50m_strict_a: true
+        temporal_consistency_fusion: true
+        accepted_corrections: true
+        rejected_candidates: true
+        all_candidate_corrections: true
+
+    fusion_error_vs_distance:
+      enabled: true
+      priority: 2
+      output_png: outputs/villoc/traj01_90deg_stable120m/reporting/figures/fig_fusion_error_vs_distance_with_events.png
+      curves:
+        - XFeat relative-only
+        - Periodic 50 m strict A alpha 0.25
+        - Temporal-consistency fusion alpha 0.25
+      event_markers:
+        - accepted periodic corrections
+        - accepted temporal corrections
+
+    correction_context_map:
+      enabled: true
+      priority: 3
+      output_html: outputs/villoc/traj01_90deg_stable120m/reporting/maps/fig_correction_context_map.html
+      output_png: outputs/villoc/traj01_90deg_stable120m/reporting/figures/fig_correction_context_map.png
+      annotation_mode: manual_or_semiautomatic
+      categories:
+        - urban_buildings
+        - road_parking_hard_surface
+        - vegetation_trees_grass
+        - mixed_edge_zone
+        - open_repetitive_area
+        - uncertain
+
+    temporal_gating_schematic:
+      enabled: true
+      priority: 4
+      output_png: outputs/villoc/traj01_90deg_stable120m/reporting/figures/fig_temporal_gating_schematic.png
+      type: conceptual
+
+  comparison_figures:
+    dataset_overview:
+      enabled: true
+
+    relative_frontend_comparison:
+      enabled: true
+      methods: [ORB, KLT, XFeat]
+
+    absolute_retrieval_reranking_comparison:
+      enabled: true
+      methods: [DINO, ORB_rerank, LightGlue_diagnostic]
+
+    fusion_policy_comparison:
+      enabled: true
+      methods:
+        - XFeat relative-only
+        - all_reranked_accept_ablation
+        - strict_a_accept_online
+        - interval_50m_strict_a_accept_online
+        - temporal_consistency_fusion
+        - oracle_hit40_accept_eval_only
+
+tables:
+  final_system_summary:
+    output_csv: outputs/villoc/traj01_90deg_stable120m/reporting/tables/table_final_system_summary.csv
+    include:
+      - XFeat relative-only
+      - Periodic 50 m strict A alpha 0.25
+      - Temporal-consistency fusion alpha 0.25
+      - Oracle upper bound alpha 0.25
+
+  comparison_trace:
+    output_csv: outputs/villoc/traj01_90deg_stable120m/reporting/tables/table_development_comparison_trace.csv
+    include_dataset_evolution: true
+    include_relative_methods: true
+    include_absolute_methods: true
+    include_fusion_policies: true
+
+validation:
+  fail_on_missing_required: true
+  warn_on_missing_optional: true
+  check_csv_readability: true
+  check_json_readability: true
+  check_min_rows: true
+  check_identity_columns: true
+  create_output_directories: true

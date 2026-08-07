@@ -8,6 +8,18 @@ python scripts/villoc/s8_2_extract_sampled_frames.py \
   --sample-rate-fps 1 \
   --overwrite
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_2_extract_frames
+
+python scripts/villoc/s8_2_extract_sampled_frames.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --stream V \
+  --sample-rate-fps 1 \
+  --overwrite \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_2_extract_frames/s8_2_extract_frames_V_1fps.log
+
 '''
 
 from __future__ import annotations
@@ -56,6 +68,16 @@ def main() -> None:
 
     srt_df = pd.read_csv(parsed_srt_path)
 
+    frame_cnt_min = int(srt_df["frame_cnt"].min())
+    if frame_cnt_min == 0:
+        frame_index_offset = 0
+    elif frame_cnt_min == 1:
+        frame_index_offset = 1
+    else:
+        raise ValueError(
+            f"Unexpected frame_cnt minimum {frame_cnt_min}; expected 0-based or 1-based SRT counters."
+        )
+
     frame_dir = processed_root / f"frames_{stream_id.lower()}_{args.sample_rate_fps:g}fps"
     metadata_dir = output_root / "metadata"
     reports_dir = output_root / "reports"
@@ -79,7 +101,7 @@ def main() -> None:
 
     # Include t=0 and each whole sample step until the SRT ends.
     sample_times = []
-    t = 0.0
+    t = 0.0 
     while t <= max_srt_time + 1e-9:
         sample_times.append(round(t, 6))
         t += step_s
@@ -90,7 +112,7 @@ def main() -> None:
         srt_row = nearest_row(srt_df, target_time_s)
 
         frame_cnt = int(srt_row["frame_cnt"])
-        zero_based_frame_index = frame_cnt - 1
+        zero_based_frame_index = frame_cnt - frame_index_offset
 
         out_name = f"{stream_id.lower()}_frame_{sample_id:05d}_srcframe_{frame_cnt:06d}.jpg"
         out_path = frame_dir / out_name
@@ -112,7 +134,7 @@ def main() -> None:
                 extraction_status = "ok"
 
         alignment_error_ms = abs(float(srt_row["video_time_s"]) - target_time_s) * 1000.0
-
+        
         row = {
             "sample_id": sample_id,
             "stream_id": stream_id,
@@ -173,6 +195,8 @@ def main() -> None:
         "video_height": video_height,
         "video_duration_s_reported": video_duration_s,
         "srt_time_max_s": max_srt_time,
+        "srt_frame_cnt_min": frame_cnt_min,
+        "frame_index_offset_used": frame_index_offset,
         "alignment_error_ms_max": float(out_df["alignment_error_ms"].max()),
         "alignment_error_ms_median": float(out_df["alignment_error_ms"].median()),
         "lat_min": float(out_df["lat"].min()),

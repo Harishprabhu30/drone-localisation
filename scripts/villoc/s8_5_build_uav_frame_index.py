@@ -8,6 +8,18 @@ python scripts/villoc/s8_5_build_uav_frame_index.py \
   --sample-rate-fps 1 \
   --golden-n 20
 
+2. running traj01 villoc dataset:
+
+mkdir -p outputs/villoc/traj01_90deg_stable120m/logs/s8_5_uav_index
+
+python scripts/villoc/s8_5_build_uav_frame_index.py \
+  --config configs/dataset_villoc_traj01_90deg_stable120m.yaml \
+  --stream V \
+  --sample-rate-fps 1 \
+  --golden-n 20 \
+  2>&1 | tee \
+  outputs/villoc/traj01_90deg_stable120m/logs/s8_5_uav_index/s8_5_uav_index_V_1fps.log
+
 '''
 
 from __future__ import annotations
@@ -29,19 +41,26 @@ def relpath_posix(path_value: str | Path, repo_root: Path) -> str:
         return path.as_posix()
 
 
-def build_uav_index(audit_df: pd.DataFrame, *, repo_root: Path, sequence_name: str) -> pd.DataFrame:
+def build_uav_index(
+    audit_df: pd.DataFrame,
+    *,
+    repo_root: Path,
+    dataset_name: str,
+    sequence_name: str,
+    view_angle_group: str,
+) -> pd.DataFrame:
     df = audit_df.copy()
 
     # token0_id is the canonical sequential identity for this extracted dataset.
     # source_frame_cnt keeps the original video/SRT frame number.
     out = pd.DataFrame()
 
-    out["dataset_name"] = "villoc_90deg_20260413"
-    out["sequence_name"] = sequence_name
+    out["dataset_name"] = [dataset_name] * len(df)
+    out["sequence_name"] = [sequence_name] * len(df)
     out["stream_id"] = df["stream_id"]
     out["modality"] = df["modality"]
     out["role"] = df["role"]
-    out["view_angle_group"] = "nadir_90deg"
+    out["view_angle_group"] = [view_angle_group] * len(df)
 
     out["token0_id"] = df["sample_id"].astype(int) + 1
     out["sample_id"] = df["sample_id"].astype(int)
@@ -136,9 +155,14 @@ def main() -> None:
     repo_root = Path.cwd()
     cfg = yaml.safe_load(Path(args.config).read_text())
 
-    output_root = Path(cfg["dataset"]["output_root"])
+    dataset_cfg = cfg["dataset"]
+    output_root = Path(dataset_cfg["output_root"])
     metadata_dir = output_root / "metadata"
     reports_dir = output_root / "reports"
+
+    dataset_name = dataset_cfg.get("name") or output_root.name
+    sequence_name = dataset_cfg.get("sequence_name") or dataset_cfg.get("folder_name") or output_root.name
+    view_angle_group = dataset_cfg.get("view_angle_group") or dataset_cfg.get("view") or "unknown"
 
     audit_csv = metadata_dir / f"s8_4_visual_frame_audit_{args.stream}_{args.sample_rate_fps:g}fps.csv"
     if not audit_csv.exists():
@@ -146,12 +170,12 @@ def main() -> None:
 
     audit_df = pd.read_csv(audit_csv)
 
-    sequence_name = f"villoc_90deg_{args.stream.lower()}_{args.sample_rate_fps:g}fps"
-
     index_df = build_uav_index(
         audit_df,
         repo_root=repo_root,
+        dataset_name=dataset_name,
         sequence_name=sequence_name,
+        view_angle_group=view_angle_group,
     )
 
     golden_df = build_golden_manifest(index_df, args.golden_n)
@@ -178,8 +202,9 @@ def main() -> None:
     summary = {
         "stage": "S8.5",
         "status": "PASS_CANDIDATE",
-        "dataset_name": "villoc_90deg_20260413",
+        "dataset_name": dataset_name,
         "sequence_name": sequence_name,
+        "view_angle_group": view_angle_group,
         "stream_id": args.stream,
         "sample_rate_fps": args.sample_rate_fps,
         "input_audit_csv": str(audit_csv),
