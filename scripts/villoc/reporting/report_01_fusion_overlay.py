@@ -494,24 +494,180 @@ def plot_error_vs_distance(
             color="gray",
         )
 
-    # Vertical event markers
+    # -----------------------------------------------------------------
+    # Periodic accepted-correction event markers
+    # -----------------------------------------------------------------
     if len(periodic_events) > 0 and "_report_distance_m" in periodic_events.columns:
-        for d in periodic_events["_report_distance_m"].dropna().to_numpy():
-            ax.axvline(d, color="royalblue", linewidth=0.55, alpha=0.18)
+        periodic_dist = (
+            periodic_events["_report_distance_m"]
+            .dropna()
+            .astype(float)
+            .sort_values()
+            .to_numpy()
+        )
 
+        for j, d in enumerate(periodic_dist, start=1):
+            y = float(np.interp(
+                d,
+                periodic["_report_distance_m"].to_numpy(dtype=float),
+                periodic["_report_error_m"].to_numpy(dtype=float),
+            ))
+
+            ax.axvline(
+                d,
+                color="royalblue",
+                linewidth=0.8,
+                linestyle=":",
+                alpha=0.35,
+                zorder=1,
+            )
+
+            ax.scatter(
+                d,
+                y,
+                s=40,
+                marker="o",
+                facecolors="white",
+                edgecolors="royalblue",
+                linewidths=1.2,
+                zorder=6,
+                label="Periodic accepted correction" if j == 1 else None,
+            )
+
+            y_offset = -18 if j % 2 else 11
+
+            ax.annotate(
+                f"P{j:02d}",
+                xy=(d, y),
+                xytext=(0, y_offset),
+                textcoords="offset points",
+                ha="center",
+                va="top" if y_offset < 0 else "bottom",
+                fontsize=6.5,
+                fontweight="normal",
+                color="royalblue",
+                zorder=8,
+                bbox=dict(
+                    boxstyle="round,pad=0.15",
+                    facecolor="white",
+                    edgecolor="none",
+                    alpha=0.75,
+                ),
+            )
+
+    # -----------------------------------------------------------------
+    # Temporal accepted-correction event markers
+    # -----------------------------------------------------------------
     if len(temporal_events) > 0 and "_report_distance_m" in temporal_events.columns:
-        for d in temporal_events["_report_distance_m"].dropna().to_numpy():
-            ax.axvline(d, color="seagreen", linewidth=0.75, alpha=0.25)
+        temporal_dist = (
+            temporal_events["_report_distance_m"]
+            .dropna()
+            .astype(float)
+            .sort_values()
+            .to_numpy()
+        )
 
-    ax.set_title("Error growth and correction events", fontsize=15, fontweight="bold")
+        for i, d in enumerate(temporal_dist, start=1):
+            y = float(np.interp(
+                d,
+                temporal["_report_distance_m"].to_numpy(dtype=float),
+                temporal["_report_error_m"].to_numpy(dtype=float),
+            ))
+
+            ax.axvline(
+                d,
+                color="seagreen",
+                linewidth=1.0,
+                linestyle="--",
+                alpha=0.45,
+                zorder=1,
+            )
+
+            ax.scatter(
+                d,
+                y,
+                s=48,
+                marker="v",
+                color="seagreen",
+                edgecolors="white",
+                linewidths=0.6,
+                zorder=7,
+                label="Temporal accepted correction" if i == 1 else None,
+            )
+
+            # Move temporal labels opposite to periodic labels
+            y_offset = 16 if i % 2 else -28
+
+            ax.annotate(
+                f"T{i:02d}",
+                xy=(d, y),
+                xytext=(0, y_offset),
+                textcoords="offset points",
+                ha="center",
+                va="bottom" if y_offset > 0 else "top",
+                fontsize=6.2,
+                fontweight="bold",
+                color="seagreen",
+                zorder=8,
+                bbox=dict(
+                    boxstyle="round,pad=0.15",
+                    facecolor="white",
+                    edgecolor="none",
+                    alpha=0.8,
+                ),
+            )
+
+    # -----------------------------------------------------------------
+    # Correction label explanations
+    # -----------------------------------------------------------------
+    ax.text(
+        0.01,
+        0.985,
+        "P01–P08 = accepted periodic map corrections",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=8.0,
+        color="royalblue",
+        bbox=dict(
+            boxstyle="round,pad=0.25",
+            facecolor="white",
+            alpha=0.80,
+            edgecolor="0.8",
+        ),
+    )
+
+    ax.text(
+        0.01,
+        0.925,
+        "T01–T11 = accepted temporal map corrections",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=8.0,
+        color="seagreen",
+        bbox=dict(
+            boxstyle="round,pad=0.25",
+            facecolor="white",
+            alpha=0.80,
+            edgecolor="0.8",
+        ),
+    )
+
+    ax.set_title(
+        "Error growth and correction events",
+        fontsize=15,
+        fontweight="bold"
+    )
     ax.set_xlabel("Traveled distance [m]")
     ax.set_ylabel("Position error [m]")
     ax.grid(True, alpha=0.25)
     ax.legend(loc="best")
+
     fig.tight_layout()
     fig.savefig(out_png, dpi=220)
     plt.close(fig)
-
+    
 
 def make_folium_map(
     ref: pd.DataFrame,

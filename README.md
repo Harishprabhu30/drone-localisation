@@ -385,7 +385,7 @@ This README focuses on the final Villoc result.
 
 ## 12. Limitations
 
-This repository demonstrates a successful offline prototype, but several issues remain before production use:
+Several issues remain:
 
 * Absolute retrieval is still scene-dependent and can fail in repetitive or visually ambiguous areas.
 * Correct map candidates may exist below Top-1, so candidate-pool design remains important.
