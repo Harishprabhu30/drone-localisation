@@ -1,578 +1,417 @@
-# drone-localisation
+# GNSS-Denied UAV Visual Localization
 
-Relative and absolute localisation for drones in GNSS-denied environments using onboard camera data, telemetry, and map/reference information for evaluation.
+A project for **UAV localization in GNSS-denied or weak-GNSS outdoor environments** using onboard camera imagery, recorded telemetry, and georeferenced map/orthophoto data.
 
-The current project priority is to build a stable, reproducible localisation pipeline before moving into sensor fusion and map-based correction.
+The repository demonstrates the complete chain from recorded UAV data to a fused map-aligned trajectory. The final Villoc demonstrator combines:
 
-```text
-camera frames
-↓
-feature / motion estimation
-↓
-relative trajectory
-↓
-metric conversion where camera geometry allows
-↓
-reference comparison and drift analysis
-↓
-future: IMU/barometer/optical-flow fusion + map alignment
-```
+* **continuous relative visual odometry** for local motion,
+* **DINOv2 image-to-map retrieval** for global candidate generation,
+* **ORB geometric verification/reranking** for absolute-map evidence,
+* **confidence and temporal-consistency gating** for safe sparse corrections, and
+* **relative–absolute fusion** for drift reduction.
+
+> **Project status:** final recorded-data prototype demonstrated on Villoc `traj01_90deg_stable120m`.
 
 ---
 
-## 1. Project Status
+## 1. System architecture
 
-| Phase | Status | Main Output |
-|---|---|---|
-| Week 1 | Complete | Method review, dataset specification, implementation plan |
-| Week 2 | Complete | Zurich MAV dataset loader, reference trajectory, frame synchronisation |
-| Week 3 | Complete | ORB relative localisation baseline, stride tests, metric scaling, failure analysis |
-| Next | Planned | Sensor-readiness diagnostics, visual-inertial/optical-flow branch, map alignment |
+```mermaid
+flowchart TD
+    A[Recorded UAV video/images<br/>+ telemetry<br/>+ map/orthophoto]
+    B[Frame extraction<br/>+ synchronization]
+    C[Relative visual odometry]
+    D[Relative trajectory]
+    E[Image-to-map retrieval]
+    F[Verifier / gate]
+    G[Accepted sparse map anchors]
+    H[Relative–absolute fusion]
+    I[Fused trajectory<br/>+ error metrics<br/>+ map visualization]
 
-Current implemented baseline:
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    D --> H
+    H --> I
 
-```text
-Zurich MAV camera frames
-↓
-ORB feature matching
-↓
-RANSAC / homography filtering
-↓
-accumulated image-motion trajectory
-↓
-approximate metric scaling using camera intrinsics + height/yaw candidates
-↓
-comparison against GNSS/reference trajectory
+    style A fill:#1565c0,color:white,stroke:#0d47a1
+    style C fill:#2e7d32,color:white,stroke:#1b5e20
+    style E fill:#ef6c00,color:white,stroke:#e65100
+    style F fill:#6a1b9a,color:white,stroke:#4a148c
+    style G fill:#00838f,color:white,stroke:#006064
+    style H fill:#c62828,color:white,stroke:#b71c1c
+    style I fill:#37474f,color:white,stroke:#263238
 ```
 
-GNSS/reference data is used only for evaluation and plotting, not as an input to the visual localisation estimate.
+The design intentionally separates **continuous relative motion** from **intermittent absolute map correction**. Image-to-map localization is not treated as frame-by-frame GPS; a map estimate is used only when the visual evidence is strong enough and is consistent with recent relative motion.
 
 ---
 
-## 2. Repository Setup
+## 2. Final demonstrator: Villoc `traj01`
 
-From the project root:
+The final local recorded-data uses a stable near-nadir DJI RGB sequence and an official orthophoto of the flight area.
+
+| Item                         | Final Villoc setup                                                 |
+| ---------------------------- | ------------------------------------------------------------------ |
+| Dataset                      | `traj01_90deg_stable120m`                                          |
+| Query frames                 | 403 frames extracted at 1 fps                                      |
+| Flight path                  | approximately 1.96 km                                              |
+| Camera view                  | near-nadir, approximately 120 m relative altitude                  |
+| Relative frontend            | XFeat                                                              |
+| Absolute candidate generator | DINOv2 Top-K retrieval                                             |
+| Local verifier               | ORB + RANSAC inside DINO Top-20                                    |
+| Learned verifier             | LightGlue evaluated as a diagnostic, not promoted for final fusion |
+| Final correction policy      | confidence + temporal-consistency-gated sparse soft corrections    |
+| Map visualization            | ORT10LT orthophoto + Folium HTML views                             |
+
+### What the final run showed
+
+* Relative visual odometry provides continuous motion but accumulates drift over distance.
+* DINOv2 is useful as a **candidate generator**, but its Top-1 tile is not reliable enough to use directly as position.
+* On the primary `512_s256` absolute branch, ORB reranking improved the strict `<=40 m` selected result from **114/403 DINO Top-1 cases to 173/403 ORB-reranked cases**.
+* The final temporal policy accepted **11 sparse correction events**; evaluation afterwards classified 10 as `<=40 m`, 1 as false, and none as a dangerous `>100 m` false correction.
+* The selected temporal-consistency fusion ended with a **9.09 m final position error** on this trajectory.
+
+These values are dataset-specific experimental results.
+
+---
+
+## 3. Final result figures
+
+### Mission story on the orthophoto
+
+This is the main project figure: reference path for evaluation, relative-only drift, the temporally fused trajectory, retrieval outcomes, and accepted correction events on the real orthophoto.
+
+![Final Villoc mission story](docs/assets/villoc_traj01_final/figures/01_final_mission_story_orthophoto_map_clean.png)
+
+### Final trajectory comparison
+
+![Final trajectory overlay](docs/assets/villoc_traj01_final/figures/03_final_trajectory_overlay_xy.png)
+
+### Error evolution and correction events
+
+![Fusion error versus distance](docs/assets/villoc_traj01_final/figures/04_fusion_error_vs_distance_with_events.png)
+
+### Absolute retrieval and verification
+
+DINOv2 is used to create a candidate pool; ORB then checks local geometric evidence inside that pool.
+
+![DINO retrieval funnel](docs/assets/villoc_traj01_final/figures/07_absolute_dino_recall_funnel.png)
+
+![ORB verifier funnel](docs/assets/villoc_traj01_final/figures/08_absolute_orb_verifier_funnel.png)
+
+### Confidence diagnostics
+
+![DINO confidence calibration](docs/assets/villoc_traj01_final/figures/12_factor_confidence_calibration.png)
+
+More report-ready figures and CSV tables are indexed in:
+
+* [`docs/assets/villoc_traj01_final/README.md`](docs/assets/villoc_traj01_final/README.md)
+
+---
+
+## 4. Interactive maps
+
+The preview links below:
+
+| Interactive view                  | File path                                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Final mission story on orthophoto | [HTML](docs/assets/villoc_traj01_final/maps/map_final_mission_story_orthophoto_interactive.html) |
+| Final trajectory overlay          | [HTML](docs/assets/villoc_traj01_final/maps/map_final_trajectory_overlay.html)                   |
+| Spatial retrieval failures        | [HTML](docs/assets/villoc_traj01_final/maps/map_spatial_retrieval_failure_512_s256.html)         |
+| Accepted correction evidence      | [HTML](docs/assets/villoc_traj01_final/maps/map_correction_evidence_interactive.html)            |
+
+---
+
+## 5. Quick setup
+
+The project was developed with Python 3.10.13.
 
 ```bash
+git clone https://github.com/Harishprabhu30/drone-localisation.git
 cd drone-localisation
+
+# Optional if pyenv is used
 pyenv local 3.10.13
-python --version
+
+python -m venv .drone_venv
 source .drone_venv/bin/activate
-which python
-python --version
-export PYTHONPATH=$PWD/src
+
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+# ML packages used by the final learned frontends/retrieval experiments
+pip install torch==2.2.2 torchvision==0.17.2 pillow
+
+export PYTHONPATH="$PWD/src"
 ```
 
-Common command pattern:
+`requirements.txt` captures the base repository dependencies. Some historical map-rebuild and optional learned-verifier branches use extra packages that are checked by their individual scripts;
+
+### XFeat dependency
+
+The final relative frontend loads the official VERLab XFeat checkout from `third_party/accelerated_features`. The tested project version used commit:
+
+```text
+e92685f57f8318b18725c5c8c0bd28c7fe188d9a
+```
+
+Set it up with:
 
 ```bash
-export PYTHONPATH=$PWD/src
-python scripts/<script_name>.py --config configs/<dataset_config>.yaml
+mkdir -p third_party
+
+git clone https://github.com/verlab/accelerated_features.git \
+  third_party/accelerated_features
+
+git -C third_party/accelerated_features checkout \
+  e92685f57f8318b18725c5c8c0bd28c7fe188d9a
+```
+
+### DINOv2 model
+
+DINOv2 is loaded through PyTorch Hub. The first run may need internet access to populate the local Torch Hub/model cache; later runs can reuse the cached model.
+
+### LightGlue
+
+LightGlue/SuperPoint was evaluated as a separate learned-verifier diagnostic. It is **not required for the promoted final Villoc fusion path**, which uses ORB verification. If reproducing the LightGlue experiments, install the upstream LightGlue package in the active environment.
+
+---
+
+## 6. Data required to rerun the final Villoc experiment
+
+Large/raw data are intentionally not versioned in this repository. A fresh clone can inspect the committed code, documentation, figures, tables, and HTML demonstrations, but the full experiment requires the local UAV and map data.
+
+Expected Villoc raw inputs:
+
+```text
+data/raw/villoc/traj01_90deg_stable120m/
+├── villoc_traj01_90deg_stable120m_V_merged.MP4
+└── villoc_traj01_90deg_stable120m_V_merged.SRT
+```
+
+The final run also used the Villoc 90° orthophoto/tile assets and generated descriptor caches. The main dataset config is:
+
+```text
+configs/dataset_villoc_traj01_90deg_stable120m.yaml
+```
+
+Output root:
+
+```text
+outputs/villoc/traj01_90deg_stable120m/
+```
+
+Important: `data/raw/`, `data/processed/`, `outputs/`, `third_party/`, large model files, and large media files are ignored by Git and also, they are confidential. 
+
+---
+
+## 7. Pipeline execution order
+
+The final Villoc workflow is organized into deterministic stages:
+
+```text
+S8.1–S8.5   Parse SRT, extract frames, build reference trajectory,
+            audit image quality, create canonical UAV index
+
+S8.6        Check orthophoto AOI reuse
+
+S8.10B      Audit query-to-tile geometric coverage / oracle availability
+
+S8.11B/C    Build or reuse DINOv2 query/map descriptor caches
+
+S8.11D      Run independent DINOv2 Top-K image-to-map retrieval
+
+S8.12D      Build retrieval diagnostics and failure buckets
+
+S8.12E.1    ORB + RANSAC verification/reranking inside DINO Top-20
+
+S8.12E.1B   LightGlue Top-20 diagnostic comparison
+
+S8.R1–R3    ORB and KLT relative baselines
+
+S8.R4       XFeat relative visual odometry
+
+S8.F1       Build absolute correction manifest and online confidence policies
+
+S8.F2       Controlled relative–absolute fusion replay
+
+S8.F3       Temporal-consistency gating
+
+S8.F3B      Temporal-gated fusion replay
+
+```
+
+The complete commands, inputs, output paths, branch decisions, and troubleshooting notes are documented in:
+
+* **[Villoc traj01 full pipeline and fusion closeout](docs/README_villoc_traj01_s8_full_pipeline_fusion_closeout.md)**
+
+---
+
+## 8. How the localization pipeline works
+
+### 8.1 Data preparation
+
+Recorded DJI video and SRT telemetry are parsed and synchronized. Frames are extracted at a controlled rate, projected/reference coordinates are prepared for later evaluation, and image-quality diagnostics are generated.
+
+### 8.2 Relative localization
+
+Relative localization estimates motion between consecutive UAV frames and accumulates the motion into a trajectory from the known start point.
+
+Methods evaluated in the repository include:
+
+* ORB + RANSAC,
+* KLT optical flow,
+* XFeat learned local features.
+
+XFeat was promoted for the final Villoc relative branch. Relative localization is continuous and map-independent, but small motion errors accumulate into drift.
+
+### 8.3 Absolute image-to-map retrieval
+
+Each UAV query image is compared against georeferenced orthophoto tiles using DINOv2 descriptors. DINOv2 returns a ranked Top-K candidate list.
+
+This stage is treated as **candidate generation**, not as a final GPS estimate. Repetitive roads, roofs, fields, vegetation, and similar urban structures can produce visually plausible but geographically wrong Top-1 candidates.
+
+### 8.4 Geometric verification
+
+ORB features and RANSAC are applied inside the DINO Top-20 candidate pool. This adds local geometric evidence and reranks the global retrieval candidates.
+
+LightGlue/SuperPoint was also evaluated, but the full Villoc run did not outperform the simpler ORB verifier on the promoted strict criterion, so ORB was retained for the final pipeline.
+
+### 8.5 Confidence gating
+
+Absolute map matches are not accepted blindly. The pipeline uses online-available evidence such as retrieval/verifier score, good matches, RANSAC inliers, inlier ratio, and correction spacing to construct candidate acceptance policies.
+
+### 8.6 Temporal consistency
+
+A proposed absolute correction is checked against recent relative motion. In simplified form:
+
+```text
+relative displacement = current relative position - previous relative position
+absolute displacement = current map anchor - previous accepted map anchor
+
+temporal residual = || absolute displacement - relative displacement ||
+```
+
+A small residual means the relative and absolute branches tell a compatible movement story. This helps reject locally plausible but geographically inconsistent map matches.
+
+### 8.7 Relative–absolute fusion
+
+Accepted absolute anchors are applied as **soft corrections**, not hard frame-by-frame resets:
+
+```text
+fused_position =
+    (1 - alpha) * current_relative_position
+    + alpha * accepted_absolute_position
+```
+
+The selected reporting policy uses `alpha = 0.25`, so a map anchor corrects drift without allowing one noisy absolute estimate to dominate the trajectory.
+
+---
+
+## 9. Reference-data / leakage rule
+
+This boundary is central to the project.
+
+### Allowed during localization
+
+```text
+UAV image content
+map/orthophoto image content
+relative visual displacement
+DINO descriptor similarity/rank
+ORB verifier score
+matches / inliers / inlier ratio
+previous accepted correction state
+distance travelled from the estimated relative trajectory
+```
+
+### Evaluation only
+
+```text
+GNSS/SRT reference latitude and longitude
+reference X/Y trajectory
+ground-truth error
+oracle candidate identity
+<=40 m hit labels
+dangerous-false labels
+post-run RMSE / p95 / maximum error
+```
+
+SRT/video timestamps are used for synchronization. Reference coordinate fields are kept outside the online estimator and are used for reference-trajectory construction, offline map/oracle auditing, plotting, and **post-estimation evaluation**. They are not used to rank retrieval candidates or decide whether an online correction is correct.
+
+---
+
+## 10. Repository structure
+
+```text
+.
+├── configs/              Dataset and experiment YAML configurations
+├── src/uavloc/           Reusable loading, geometry, localization and visualization code
+├── scripts/
+│   ├── satloc/           Retrieval/fusion algorithm-development experiments
+│   └── villoc/           Villoc dataset, retrieval, relative and fusion workflows
+├── docs/                 Detailed stage closeouts and engineering notes
+├── docs/assets/
+│   └── villoc_traj01_final/
+│       ├── figures/      Curated final figures
+│       ├── tables/       Final CSV summaries
+│       ├── maps/         Interactive Folium HTML files
+│       └── manifests/    Interpretation notes
+├── data/                 Local raw/processed datasets (not committed)
+├── outputs/              Generated experiment outputs (not committed)
+└── third_party/          Local learned-feature dependencies (not committed)
 ```
 
 ---
 
-## 3. Important Project Files
+## 11. Development progression
 
-### Dataset Configs
+The repository evolved through three main dataset roles:
 
-```text
-configs/dataset_zurich.yaml
-configs/dataset_zurich_full.yaml
-```
+| Dataset         | Role                                                                | Main lesson / outcome                                                                                                                                                           |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zurich MAV      | Data pipeline, synchronization, relative/local geometry diagnostics | Dataset loading, ENU/reference visualization and ORB tracking worked; oblique geometry and uncertain AGL/camera-to-body interpretation made simple metric conversion unreliable |
+| SATLOC `traj01` | Algorithm-development benchmark                                     | Used to develop full-map retrieval, candidate pools, learned/global retrieval, local verification, confidence gating, temporal coverage and relative–absolute correction logic  |
+| Villoc `traj01` | Final local recorded-data demonstrator                              | Combined the matured relative, absolute, gating, fusion, evaluation and visualization components on a local near-nadir UAV sequence                                             |
 
-### Core Source Modules
-
-```text
-src/uavloc/data/zurich_loader.py
-src/uavloc/data/enrich_zurich_sync.py
-src/uavloc/geometry/gps_enu.py
-src/uavloc/relative/orb_relative_motion.py
-src/uavloc/relative/orb_metric_scaling.py
-src/uavloc/visualization/trajectory_plot.py
-src/uavloc/visualization/folium_map.py
-```
-
-### Main Scripts
-
-```text
-scripts/inspect_dataset.py
-scripts/build_reference_trajectory.py
-scripts/run_reference_visualization.py
-scripts/sync_zurich_frames.py
-scripts/enrich_zurich_synchronized_frames.py
-scripts/run_orb_stride_subset_diagnostics.py
-scripts/run_orb_relative_motion.py
-scripts/run_orb_metric_scaling.py
-scripts/run_orb_metric_scaling_sweep.py
-scripts/inspect_metric_geometry_inputs.py
-scripts/build_relative_evaluation_summary.py
-```
+This README focuses on the final Villoc result.
 
 ---
 
-## 4. Week 1 — Method Review and Dataset Specification
+## 12. Limitations
 
-Week 1 defined the localisation problem and selected the first implementation direction.
+This repository demonstrates a successful offline prototype, but several issues remain before production use:
 
-The project was divided into four method groups:
-
-```text
-1. Relative visual localisation / visual odometry
-2. Absolute map-based localisation
-3. AI / learned visual matching methods
-4. Sensor fusion and robustness methods
-```
-
-The first implementation baseline was selected as ORB-based relative image-motion estimation because it is lightweight, explainable, CPU-friendly, and suitable for validating the dataset pipeline before adding IMU/barometer/map fusion.
-
-Week 1 also established that GNSS/RTK should be isolated from the estimator and used only for evaluation.
-
-Recommended report location if copied into the repository:
-
-```text
-docs/reports/Week_1_Method_Review_and_Dataset_Specification_v1.0.pdf
-```
+* Absolute retrieval is still scene-dependent and can fail in repetitive or visually ambiguous areas.
+* Correct map candidates may exist below Top-1, so candidate-pool design remains important.
+* Accepted absolute corrections can be sparse over difficult route segments.
+* Confidence thresholds and temporal-gating parameters were validated on the available datasets and are not universal constants.
+* The map anchor is based on tile-level localization; it should not be interpreted as guaranteed metre-level sub-tile GPS.
+* Runtime was developed primarily for offline evaluation, not hard real-time onboard deployment.
+* Broader validation is still needed across additional flights, seasons, illumination, altitudes, viewpoints, cameras, and maps.
 
 ---
 
-## 5. Week 2 — Zurich MAV Dataset Pipeline
+## 13. Recommended next steps
 
-Week 2 implemented the reusable dataset pipeline for the Zurich Urban MAV dataset.
-
-### Completed
-
-```text
-- Python environment and repository structure
-- YAML-based dataset configuration
-- Zurich MAV dataset loader
-- Robust CSV reader for messy telemetry logs
-- Dataset inspection and report generation
-- Camera calibration detection
-- Reference trajectory generation
-- GPS scaling fix
-- UTM to local ENU conversion fix
-- Reference trajectory visualisation
-- Folium interactive map visualisation
-- Frame-to-telemetry synchronisation
-```
-
-### Dataset Summary
-
-Zurich MAV sample dataset inspection:
-
-```text
-MAV images:          350
-Calibration images:  30
-Street-view images:  113
-Onboard GPS rows:    81169
-GroundTruthAGL rows: 2708
-OnboardPose rows:    135098
-Barometer rows:      27052
-Accelerometer rows:  27050
-Gyroscope rows:      27050
-Calibration:         available
-```
-
-### Week 2 Commands
-
-```bash
-export PYTHONPATH=$PWD/src
-python scripts/inspect_dataset.py --config configs/dataset_zurich.yaml
-python scripts/build_reference_trajectory.py --config configs/dataset_zurich.yaml
-python scripts/run_reference_visualization.py --config configs/dataset_zurich.yaml
-python scripts/sync_zurich_frames.py --config configs/dataset_zurich.yaml
-```
-
-### Week 2 Outputs
-
-```text
-outputs/zurich_mav_sample/reports/dataset_report.json
-outputs/zurich_mav_sample/trajectories/reference_trajectory.csv
-outputs/zurich_mav_sample/reports/reference_origin.json
-outputs/zurich_mav_sample/reports/reference_trajectory_summary.json
-outputs/zurich_mav_sample/metadata/synchronized_frames.csv
-outputs/zurich_mav_sample/reports/frame_sync_summary.json
-```
-
-### Week 2 Visuals
-
-Local generated visual outputs:
-
-```text
-outputs/zurich_mav_sample/figures/trajectory_xy.png
-outputs/zurich_mav_sample/figures/altitude_profile.png
-outputs/zurich_mav_sample/figures/speed_profile.png
-outputs/zurich_mav_sample/maps/trajectory_map.html
-```
-
-Recommended README/report visuals:
-
-| Visual | Purpose |
-|---|---|
-| `trajectory_xy.png` | Shows the ENU reference trajectory in metres |
-| `altitude_profile.png` | Shows altitude variation across the flight |
-| `speed_profile.png` | Shows reference speed trend |
-| `trajectory_map.html` | Interactive map view of the travelled path |
-
-Reference trajectory summary:
-
-```text
-Rows:        81169
-X range [m]: -193.25 to 165.09
-Y range [m]: -234.27 to 331.58
-Z range [m]: -15.95 to 54.39
-```
+1. Validate the frozen pipeline on more local flights and different map dates/seasons.
+2. Improve candidate retrieval in repetitive vegetation/open-field/urban regions.
+3. Add stronger temporal retrieval and multi-frame context before local verification.
+4. Evaluate IMU/heading/altitude cues as online supporting signals where calibration is reliable.
+5. Profile and optimize DINO/verification runtime for onboard or near-real-time execution.
 
 ---
 
-## 6. Week 3 — ORB Relative Localisation Baseline
+## 15. Key documentation
 
-Week 3 implemented the first visual relative localisation baseline.
-
-### Completed Blocks
-
-```text
-07    — ORB relative image-motion baseline on Zurich sample
-08    — approximate ORB metric scaling on Zurich sample
-08B   — Zurich telemetry enrichment
-09A   — full-dataset ORB stride subset diagnostics
-09B   — full-dataset ORB relative motion subset runs
-09C   — full-dataset ORB metric scaling subset runs
-09C.2 — axis/yaw/scale sweep diagnostics
-09C.3 — geometry and telemetry diagnostics
-09C.4 — stable evaluation summary
-09D   — Zurich MAV evaluation and failure analysis
-```
+* **[Villoc traj01 full pipeline + fusion closeout](docs/README_villoc_traj01_s8_full_pipeline_fusion_closeout.md)** — complete execution order, commands, outputs, results, branch decisions, and troubleshooting.
+* **[Villoc traj01 final asset index](docs/assets/villoc_traj01_final/README.md)** — curated figures, tables, interactive maps, and interpretation notes.
+* **[`requirements.txt`](requirements.txt)** — base Python dependencies used by the repository.
 
 ---
 
-## 7. Week 3 Sample-Dataset Results
-
-### ORB Image-Motion Baseline
-
-Command:
-
-```bash
-export PYTHONPATH=$PWD/src
-python scripts/run_orb_relative_motion.py --config configs/dataset_zurich.yaml
-```
-
-Outputs:
-
-```text
-outputs/zurich_mav_sample/trajectories/07_orb_relative_motion/orb_relative_trajectory.csv
-outputs/zurich_mav_sample/reports/07_orb_relative_motion/orb_relative_motion_summary.json
-outputs/zurich_mav_sample/figures/07_orb_relative_motion/orb_relative_xy.png
-outputs/zurich_mav_sample/figures/07_orb_relative_motion/orb_reference_comparison_xy.png
-```
-
-Successful sample run:
-
-```text
-Frames used:         350
-Attempted pairs:     349
-OK pairs:            349
-Failed pairs:        0
-Median matches:      1347.0
-Median inliers:      1202.0
-Median inlier ratio: 0.903
-Aligned RMSE [m]:    0.656
-```
-
-Interpretation:
-
-```text
-ORB image-to-image tracking works well on the Zurich MAV sample.
-The raw ORB trajectory is in image-motion pixel units.
-The similarity-aligned comparison is only a diagnostic shape comparison.
-```
-
-### Approximate Metric Scaling on Sample
-
-Outputs:
-
-```text
-outputs/zurich_mav_sample/metadata/synchronized_frames_enriched.csv
-outputs/zurich_mav_sample/reports/08b_sync_enrichment/sync_enrichment_summary.json
-outputs/zurich_mav_sample/reports/08c_metric_input_inspection/metric_input_inspection_summary.json
-```
-
-Final sample metric result using enriched height/yaw candidates:
-
-```text
-Height column:       height_agl_m
-Yaw column:          yaw_deg
-Estimated path:      1.489 m
-Reference path:      6.095 m
-RMSE:                1.703 m
-Mean error:          1.629 m
-Max error:           2.193 m
-Final error:         1.323 m
-Drift per 100 m:     21.71
-Shape RMSE:          0.684 m
-```
-
-Important sensor warning:
-
-```text
-OnboardPose Height is constant zero and unusable.
-OnboardPose Azimuth is constant zero and unusable.
-height_agl_m is approximate/debug only, not verified true AGL.
-yaw_deg is a candidate from GroundTruthAGL omega_gt.
-```
-
----
-
-## 8. Week 3 Full-Dataset Results
-
-The Zurich MAV full dataset contains:
-
-```text
-Total synchronised frames: 81169
-Config: configs/dataset_zurich_full.yaml
-```
-
-### 09A — ORB Stride Diagnostics
-
-Five representative full-dataset windows were tested:
-
-```text
-full_00001_01000
-full_20000_21000
-full_40000_41000
-full_60000_61000
-full_80000_81169
-```
-
-Tested strides:
-
-```text
-1, 2, 3, 5, 10
-```
-
-Median inlier ratio range across tested segments:
-
-```text
-stride 1:  0.982 to 0.992
-stride 2:  0.960 to 0.985
-stride 3:  0.936 to 0.974
-stride 5:  0.901 to 0.944
-stride 10: 0.828 to 0.916
-```
-
-Decision:
-
-```text
-stride 1  = safest and strongest baseline
-stride 5  = fast-mode candidate
-stride 10 = diagnostic mode only
-```
-
-### 09B and 09C — Official Evaluation Runs
-
-Official Week 3 evaluation windows:
-
-```text
-full_00001_01000_stride1
-full_00001_01000_stride5
-full_40000_41000_stride1
-full_40000_41000_stride5
-```
-
-Stable evaluation summary outputs:
-
-```text
-outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary_all_runs.csv
-outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary_official_runs.csv
-outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary_diagnostic_runs.csv
-outputs/zurich_mav_full/reports/09d_relative_evaluation_summary/evaluation_summary.json
-```
-
-The summary separates:
-
-```text
-all runs:        127
-official runs:   8
-diagnostic runs: 119
-```
-
----
-
-## 9. Official Week 3 Metrics
-
-### ORB Tracking Quality
-
-filename understanding: `full_imgidstart_imgidend_strideused`; full means whole dataset
-
-| Run | Frames | Median inlier ratio | Interpretation |
-|---|---:|---:|---|
-| `full_00001_01000_stride1` | 1000 | 0.915 | strong tracking |
-| `full_00001_01000_stride5` | 200 | 0.803 | usable fast mode |
-| `full_40000_41000_stride1` | 1001 | 0.914 | strong tracking |
-| `full_40000_41000_stride5` | 201 | 0.661 | usable but weaker |
-
-### Metric ENU Trajectory Evaluation
-
-| Run | Estimated path | Reference path | RMSE | Final error | Drift / 100 m |
-|---|---:|---:|---:|---:|---:|
-| `full_00001_01000_stride1` | 5.961 m | 19.312 m | 3.548 m | 6.799 m | 35.208 m |
-| `full_00001_01000_stride5` | 6.423 m | 19.056 m | 3.481 m | 6.744 m | 35.389 m |
-| `full_40000_41000_stride1` | 24.911 m | 41.235 m | 22.675 m | 28.345 m | 68.741 m |
-| `full_40000_41000_stride5` | 26.288 m | 41.235 m | 20.519 m | 24.774 m | 60.080 m |
-
-Main conclusion:
-
-```text
-ORB image-to-image tracking works well.
-The main limitation is metric conversion from image motion to local ENU motion.
-```
-
----
-
-## 10. Geometry and Telemetry Diagnostics
-
-A diagnostic block was added to inspect why metric scaling does not generalise across Zurich MAV windows.
-
-Command:
-
-```bash
-export PYTHONPATH=$PWD/src
-python scripts/inspect_metric_geometry_inputs.py --config configs/dataset_zurich_full.yaml
-```
-
-Outputs:
-
-```text
-outputs/zurich_mav_full/metadata/09c3_geometry_telemetry_diagnostics/metric_geometry_inputs_by_frame.csv
-outputs/zurich_mav_full/reports/09c3_geometry_telemetry_diagnostics/metric_geometry_summary.json
-outputs/zurich_mav_full/figures/09c3_geometry_telemetry_diagnostics/height_candidates.png
-outputs/zurich_mav_full/figures/09c3_geometry_telemetry_diagnostics/yaw_vs_reference_course.png
-```
-
-Diagnostic findings:
-
-```text
-height_agl_m is not reliable enough as a true AGL scale source across all segments.
-Barometer altitude is smoother, but it is relative/pressure altitude, not direct height above visible ground.
-Yaw/course comparison is noisy when computed frame-to-frame and should be smoothed over larger frame gaps.
-Zurich MAV is useful for tracking and failure analysis, but not ideal for simple nadir-style altitude scaling.
-```
-
----
-
-## 11. Report-Ready Visuals
-
-Week 2 reference trajectory:
-
-![Zurich sample reference trajectory](docs/assets/week2_zurich_sample/trajectory_xy.png)
-
-Week 2 altitude profile:
-
-![Zurich sample altitude profile](docs/assets/week2_zurich_sample/altitude_profile.png)
-
-Week 3 early segment — metric trajectory versus reference:
-
-![Early stride 5 metric trajectory versus reference](docs/assets/week3_zurich/early_stride5_metric_vs_reference.png)
-
-Week 3 early segment — error over frame:
-
-![Early stride 5 error over frame](docs/assets/week3_zurich/early_stride5_error_over_frame.png)
-
-Week 3 middle segment — metric trajectory versus reference:
-
-![Middle stride 5 metric trajectory versus reference](docs/assets/week3_zurich/middle_stride5_metric_vs_reference.png)
-
-Week 3 middle segment — error over frame:
-
-![Middle stride 5 error over frame](docs/assets/week3_zurich/middle_stride5_error_over_frame.png)
-
-Height and barometer candidate diagnostic:
-
-![Height and barometer candidate comparison](docs/assets/week3_zurich/height_candidates.png)
-
----
-
-## 12. Current Technical Interpretation
-
-Zurich MAV is retained as a strong dataset for:
-
-```text
-- dataset loading and synchronization
-- ORB tracking tests
-- stride diagnostics
-- camera-only relative localisation baseline
-- metric-scaling failure analysis
-- future visual-inertial and map-alignment experiments
-```
-
-Zurich MAV is limited for:
-
-```text
-- simple nadir-camera altitude scaling
-- true AGL-based image-to-metre conversion
-- direct ENU conversion without reliable camera-to-body orientation
-```
-
-The current finding is not ORB failing. The finding is that ORB tracking works, while metric conversion needs better geometry, better height/depth information, or fusion.
-
----
-
-## 13. Sensor Fusion Status
-
-IMU, barometer, and optical-sensor fusion have not yet been implemented in the estimator.
-
-Current status:
-
-| Sensor / Input | Status |
-|---|---|
-| Camera frames | used |
-| Camera calibration | used |
-| GNSS/reference | evaluation only |
-| Barometer | inspected, not fused |
-| Accelerometer | available, not fused |
-| Gyroscope | available, not fused |
-| OnboardPose height | inspected, unusable/zero |
-| OnboardPose azimuth | inspected, unusable/zero |
-| Optical sensor / optical flow | planned |
-| EKF / VIO | planned |
-
-Reason:
-
-```text
-The first milestone was to establish a visual relative-localisation baseline.
-Fusion requires careful timestamp alignment, IMU units/axes, camera-to-IMU extrinsics, noise modelling, and validation.
-```
-
-Planned next branch:
-
-```text
-ORB / optical-flow image motion
-+
-gyro / accel
-+
-barometer relative altitude
-+
-optional optical sensor velocity
-↓
-EKF / ESKF / visual-inertial smoothing
-↓
-reference comparison
-```
-
----
-
-## 14. Next Development Plan
-
-Dataset contingency:
-
-```text
-If SatLoc, ALTO, or own data becomes available:
-  - create a dataset-specific loader/config
-  - convert it to the same canonical outputs
-  - reuse the same ORB + metric evaluation pipeline
-
-For now:
-  - continue with Zurich as the main oblique/urban visual-inertial development dataset
-```
----

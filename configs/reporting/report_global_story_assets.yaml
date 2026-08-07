@@ -112,6 +112,8 @@ inputs:
     required: false
     description: SatLoc S5C query source breakdown.
 
+  satloc_s6_a
+
   satloc_s6b_policy_summary:
     path: outputs/satloc/metadata/s6b_relative_absolute/s6b2d_raw_policy_selection.csv
     kind: csv
