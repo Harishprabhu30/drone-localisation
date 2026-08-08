@@ -665,14 +665,63 @@ def main() -> None:
         }
     )
 
+    
     if not usable.all():
-        bad = int(
-            (~usable).sum()
+        failed_indices = manifest.index[
+            ~usable
+        ].tolist()
+
+        failed_count = len(
+            failed_indices
         )
 
-        raise RuntimeError(
-            f"{bad} frame extractions failed."
+        terminal_index = (
+            len(manifest) - 1
         )
+
+        terminal_only_failure = (
+            failed_count == 1
+            and failed_indices[0]
+            == terminal_index
+        )
+
+        if terminal_only_failure:
+            failed_row = manifest.loc[
+                failed_indices[0]
+            ]
+
+            print()
+            print(
+                "[WARN] Final blind query could not "
+                "be decoded."
+            )
+            print(
+                "       Dropping terminal sample only:"
+            )
+            print(
+                f"       timestamp_s="
+                f"{failed_row['timestamp_s']:.3f}"
+            )
+            print(
+                f"       source_frame="
+                f"{failed_row['source_video_frame_index']}"
+            )
+
+            manifest = (
+                manifest.loc[
+                    usable
+                ]
+                .reset_index(
+                    drop=True
+                )
+            )
+
+        else:
+            raise RuntimeError(
+                f"{failed_count} frame extractions "
+                "failed, including a non-terminal "
+                "sample. Refusing to continue."
+            )
 
     manifest.to_csv(
         manifest_path,
