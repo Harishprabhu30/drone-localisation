@@ -1,0 +1,118 @@
+dataset:
+  folder_name: demonstration
+  name: villoc_blind_recorded_demo_20260807
+  sequence_name: blind_recorded_flight_trimmed_nadir
+  type: villoc_video_blind
+  view_angle_group: 90deg
+
+  description: >
+    Blind recorded-flight Villoc demonstration using the trimmed near-nadir
+    portion of DJI_20260807171627_0003_V. Localization must not use SRT,
+    GNSS, GPS, reference coordinates, oracle labels, or evaluation metrics.
+
+  raw_root: data/raw/villoc/demonstration
+  processed_root: data/processed/villoc/demonstration
+  output_root: outputs/demo_runs
+
+
+streams:
+  V:
+    modality: rgb
+    role: primary_visual
+
+    video: DJI_20260807171627_0003_V_trimmed.MP4
+
+    fps_expected: 29.97
+
+    reference_available: false
+
+
+blind:
+  enabled: true
+
+  sample_rate_fps: 1.0
+
+  # Dataset/flight assumption supplied before localization.
+  # This is not read from withheld SRT.
+  assumed_rel_alt_m: 122.0
+
+  assumed_gimbal_pitch_deg: -90.0
+  view_assumption: near_nadir
+
+  freeze_before_evaluation: true
+
+
+map:
+  reuse_existing_map: true
+
+  map_reference_dataset: villoc_90deg_aoi300m
+  map_source: ort10lt_2024_2026
+
+  canonical_aoi_tif: >
+    data/processed/villoc/90_deg/maps/ort10lt_2024_2026/
+    ort10lt_2024_2026_aoi300m.tif
+
+  primary_variant: 512_s256
+
+  tile_index: >
+    outputs/villoc/90_deg/metadata/
+    s8_9_satellite_tile_index_512_s256.csv
+
+  tiles_dir: >
+    data/processed/villoc/90_deg/maps/ort10lt_2024_2026/
+    tiles_512_s256
+
+
+retrieval:
+  method: dinov2
+
+  descriptor_tag: dinov2_vits14_img518_center_square_avgpatch_cpu
+
+  map_descriptor_cache: >
+    outputs/villoc/90_deg/descriptors/
+    s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+
+  verifier: orb_top20
+
+
+relative_localization:
+  frontend: xfeat
+
+
+fusion:
+  method: causal_temporal_soft_correction
+
+
+rules:
+  online_allowed:
+    - video_frames
+    - assumed_relative_altitude
+    - assumed_gimbal_pitch
+    - orthophoto_tiles
+    - map_tile_geometry
+    - dino_descriptor_similarity
+    - dino_rank
+    - orb_geometric_evidence
+    - xfeat_relative_motion
+    - causal_temporal_consistency
+    - previously_accepted_blind_corrections
+
+  forbidden_before_freeze:
+    - srt
+    - gps
+    - gnss
+    - latitude_reference
+    - longitude_reference
+    - reference_enu
+    - ground_truth_trajectory
+    - oracle_tile_identity
+    - ground_truth_error
+    - hit_threshold_labels
+    - rmse
+    - p95
+    - final_error
+    - evaluation_derived_alignment
+
+  evaluation_policy: >
+    Reference or SRT may be attached only after the blind trajectory has
+    been frozen and hashed.
