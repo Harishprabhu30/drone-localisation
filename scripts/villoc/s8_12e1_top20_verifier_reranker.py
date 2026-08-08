@@ -83,6 +83,7 @@ import json
 import math
 import re
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -897,6 +898,8 @@ def run(args: argparse.Namespace) -> None:
     assert out_root is not None
     out_root.mkdir(parents=True, exist_ok=True)
 
+    stage_started = time.perf_counter()
+
     info("S8.12E.1 Top-K verifier / reranker")
     info("-------------------------------------")
     info(f"config:       {config_path}")
@@ -916,12 +919,30 @@ def run(args: argparse.Namespace) -> None:
     rank_col = cols["topk_rank_col"]
     merged = merged[pd.to_numeric(merged[rank_col], errors="coerce") <= args.top_n].copy()
     merged = merged.sort_values(["__query_id_norm", rank_col], kind="mergesort")
+
+    if args.limit_queries and args.limit_queries > 0:
+        ordered_qids = list(
+            merged["__query_id_norm"]
+            .dropna()
+            .drop_duplicates()
+        )
+
+        keep_qids = set(
+            ordered_qids[: args.limit_queries]
+        )
+
+        merged = merged.loc[
+            merged["__query_id_norm"].isin(keep_qids)
+        ].copy()
+
     merged = evaluate_candidate_errors(merged, cols)
 
     info("\nResolved columns")
     info("----------------")
     for k, v in cols.items():
         info(f"{k}: {v}")
+
+    rerank_started = time.perf_counter()
 
     detector = create_detector(args.verifier, args.nfeatures)
     feature_cache: Dict[str, FeaturePack] = {}
@@ -965,6 +986,8 @@ def run(args: argparse.Namespace) -> None:
         })
         rows.append(d)
 
+    rerank_finished = time.perf_counter()
+
     scored = pd.DataFrame(rows)
     # DINO prior from original rank only, avoiding unknown score scale.
     r = pd.to_numeric(scored[rank_col], errors="coerce")
@@ -984,13 +1007,69 @@ def run(args: argparse.Namespace) -> None:
     }
     summary = summarize(query_summary, args, files, cols)
 
+    rerank_core_s = float(
+        rerank_finished - rerank_started
+    )
+
+    query_count_runtime = int(
+        summary["query_count"]
+    )
+
+    summary["runtime"] = {
+        "verifier_rerank_core_s": rerank_core_s,
+        "query_candidate_pairs": int(total_pairs),
+        "queries": query_count_runtime,
+        "ms_per_query_candidate_pair": (
+            1000.0 * rerank_core_s / total_pairs
+            if total_pairs
+            else None
+        ),
+        "ms_per_query": (
+            1000.0 * rerank_core_s / query_count_runtime
+            if query_count_runtime
+            else None
+        ),
+        "pairs_per_s": (
+            total_pairs / rerank_core_s
+            if rerank_core_s > 0
+            else None
+        ),
+        "unique_feature_images": int(
+            len(feature_cache)
+        ),
+        "limit_queries": int(
+            args.limit_queries
+        ),
+    }
+
     scored_path = out_root / "s8_12e1_all_candidate_verifier_scores.csv"
     qsum_path = out_root / "s8_12e1_query_summary.csv"
     summary_path = out_root / "s8_12e1_summary.json"
     scored.to_csv(scored_path, index=False)
     query_summary.to_csv(qsum_path, index=False)
-    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     save_figures(query_summary, out_root)
+
+    stage_finished = time.perf_counter()
+
+    summary["runtime"][
+        "output_write_and_plot_s"
+    ] = float(
+        stage_finished - rerank_finished
+    )
+
+    summary["runtime"][
+        "total_stage_wall_s"
+    ] = float(
+        stage_finished - stage_started
+    )
+
+    summary_path.write_text(
+        json.dumps(
+            summary,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     info("\nTop-1 diagnostic")
     info("----------------")
@@ -1044,6 +1123,15 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument("--policy", choices=["verifier", "hybrid"], default="hybrid", help="Top-1 selection policy")
     p.add_argument("--rank-prior-weight", type=float, default=2.0, help="Weight for original DINO rank prior in hybrid policy")
     p.add_argument("--progress-every", type=int, default=100, help="Progress print frequency in verified pairs")
+    p.add_argument(
+        "--limit-queries",
+        type=int,
+        default=0,
+        help=(
+            "Benchmark/smoke mode: process only the first N query IDs. "
+            "0 preserves the normal full-run behavior."
+        ),
+    )
     return p.parse_args(argv)
 
 

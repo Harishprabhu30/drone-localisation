@@ -94,10 +94,22 @@ def load_manifest(repo_root: Path, manifest_path: Path, sequence: str, max_frame
     if "sequence" in df.columns:
         df = df[df["sequence"].astype(str) == sequence].copy()
 
-    required = {"sequence_frame_id", "token0_id", "x_enu_m", "y_enu_m"}
+    # Core relative tracking requires only frame identity
+    # and images. Reference ENU coordinates are optional
+    # evaluation inputs and must never be required in blind mode.
+    required = {"sequence_frame_id", "token0_id"}
     missing = sorted(required - set(df.columns))
     if missing:
         raise RuntimeError(f"Manifest missing columns: {missing}")
+
+    has_x_enu = "x_enu_m" in df.columns
+    has_y_enu = "y_enu_m" in df.columns
+
+    if has_x_enu != has_y_enu:
+        raise RuntimeError(
+            "Evaluation reference must provide both "
+            "x_enu_m and y_enu_m, or neither."
+        )
 
     image_col = None
     for c in ["image_path_resolved", "image_path", "resolved_image_path"]:
@@ -107,10 +119,25 @@ def load_manifest(repo_root: Path, manifest_path: Path, sequence: str, max_frame
     if image_col is None:
         raise RuntimeError("Manifest has no usable image path column.")
 
-    df["sequence_frame_id"] = pd.to_numeric(df["sequence_frame_id"], errors="raise").astype(int)
-    df["token0_id"] = pd.to_numeric(df["token0_id"], errors="raise").astype(int)
-    df["x_enu_m"] = pd.to_numeric(df["x_enu_m"], errors="raise")
-    df["y_enu_m"] = pd.to_numeric(df["y_enu_m"], errors="raise")
+    df["sequence_frame_id"] = pd.to_numeric(
+        df["sequence_frame_id"],
+        errors="raise",
+    ).astype(int)
+
+    df["token0_id"] = pd.to_numeric(
+        df["token0_id"],
+        errors="raise",
+    ).astype(int)
+
+    if has_x_enu:
+        df["x_enu_m"] = pd.to_numeric(
+            df["x_enu_m"],
+            errors="raise",
+        )
+        df["y_enu_m"] = pd.to_numeric(
+            df["y_enu_m"],
+            errors="raise",
+        )
     df = df.sort_values("sequence_frame_id", kind="mergesort").reset_index(drop=True)
 
     if max_frames is not None and max_frames > 0:
@@ -324,9 +351,9 @@ def main():
     p.add_argument("--manifest", type=Path, required=True)
     p.add_argument("--output-root", type=Path, required=True)
     p.add_argument("--xfeat-repo", type=Path, default=Path("third_party/accelerated_features"))
-    p.add_argument("--orb-pairs", type=Path, required=True)
-    p.add_argument("--orb-aligned", type=Path, required=True)
-    p.add_argument("--orb-summary", type=Path, required=True)
+    p.add_argument("--orb-pairs", type=Path, default=None)
+    p.add_argument("--orb-aligned", type=Path, default=None)
+    p.add_argument("--orb-summary", type=Path, default=None)
     p.add_argument("--sequence", default="traj01")
     p.add_argument("--device", choices=["auto", "cpu", "cuda"], default="cpu")
     p.add_argument("--resize-long", type=int, default=960)
@@ -339,6 +366,15 @@ def main():
     p.add_argument("--sustain-frames", type=int, default=5)
     p.add_argument("--max-frames", type=int, default=0)
     p.add_argument("--allow-unpinned-xfeat", action="store_true")
+    p.add_argument(
+        "--blind-only",
+        action="store_true",
+        help=(
+            "Run image-only XFeat relative tracking and save "
+            "the raw visual trajectory without reading or "
+            "requiring reference ENU coordinates."
+        ),
+    )
     args = p.parse_args()
 
     repo_root = args.repo_root.resolve()
@@ -355,7 +391,40 @@ def main():
         args.max_frames if args.max_frames > 0 else None,
     )
     pair_manifest = build_pair_manifest(seq)
-    thresholds = [float(x.strip()) for x in args.thresholds_m.split(",") if x.strip()]
+
+    evaluation_reference_available = {
+        "x_enu_m",
+        "y_enu_m",
+    }.issubset(seq.columns)
+
+    if not args.blind_only:
+        if not evaluation_reference_available:
+            raise RuntimeError(
+                "Reference ENU is unavailable. "
+                "Use --blind-only for reference-free tracking."
+            )
+
+        missing_eval_inputs = [
+            name
+            for name, value in [
+                ("--orb-pairs", args.orb_pairs),
+                ("--orb-aligned", args.orb_aligned),
+                ("--orb-summary", args.orb_summary),
+            ]
+            if value is None
+        ]
+
+        if missing_eval_inputs:
+            raise RuntimeError(
+                "Evaluation mode requires: "
+                + ", ".join(missing_eval_inputs)
+            )
+
+    thresholds = [
+        float(x.strip())
+        for x in args.thresholds_m.split(",")
+        if x.strip()
+    ]
 
     torch, model, device, xfeat_commit = mod.load_official_xfeat(
         xfeat_repo,
@@ -478,6 +547,156 @@ def main():
             "pairs": str(pair_path),
         },
     }
+
+    # -----------------------------------------------------
+    # Blind-safe raw relative trajectory
+    # -----------------------------------------------------
+
+    if affine_success:
+        width = int(
+            feature_df.iloc[0]["width"]
+        )
+        height = int(
+            feature_df.iloc[0]["height"]
+        )
+
+        raw_traj = (
+            mod.integrate_se2_scale_normalized(
+                pair_df,
+                width,
+                height,
+            )
+        )
+
+        blind_raw = (
+            seq[
+                [
+                    "sequence_frame_id",
+                    "token0_id",
+                ]
+            ]
+            .merge(
+                raw_traj,
+                on="sequence_frame_id",
+                how="inner",
+                validate="one_to_one",
+            )
+            .sort_values(
+                "sequence_frame_id",
+                kind="mergesort",
+            )
+            .reset_index(drop=True)
+        )
+
+        forbidden_blind_columns = {
+            "x_enu_m",
+            "y_enu_m",
+            "reference_x_m",
+            "reference_y_m",
+            "reference_cumulative_distance_m",
+            "prefix_aligned_x_m",
+            "prefix_aligned_y_m",
+            "global_aligned_x_m",
+            "global_aligned_y_m",
+            "prefix_locked_error_m",
+            "global_alignment_error_m",
+            "lat",
+            "lon",
+            "latitude",
+            "longitude",
+        }
+
+        leaked = sorted(
+            forbidden_blind_columns
+            & set(blind_raw.columns)
+        )
+
+        if leaked:
+            raise RuntimeError(
+                "Reference/evaluation leakage into "
+                f"blind raw XFeat trajectory: {leaked}"
+            )
+
+        blind_raw["coordinate_contract"] = (
+            "relative_visual_image_only"
+        )
+        blind_raw["reference_used"] = False
+
+        blind_raw_path = (
+            metadata_dir
+            / "s8r4_xfeat_relative_trajectory_blind_raw.csv"
+        )
+
+        blind_raw.to_csv(
+            blind_raw_path,
+            index=False,
+        )
+
+        report["outputs"]["blind_raw"] = str(
+            blind_raw_path
+        )
+
+        report["blind_contract"] = {
+            "reference_used": False,
+            "gps_used": False,
+            "srt_used": False,
+            "coordinate_unit": (
+                "integrated_visual_pixel_scale"
+            ),
+            "metric_scale_available": False,
+            "map_alignment_available": False,
+        }
+
+    # In blind mode we deliberately stop before any
+    # reference alignment, error scoring, ORB comparison,
+    # or evaluation plotting.
+    if args.blind_only:
+        if not affine_success:
+            raise RuntimeError(
+                "Cannot emit complete blind trajectory "
+                "because XFeat affine chain is incomplete."
+            )
+
+        report["status"] = (
+            "PASS_XFEAT_RELATIVE_FRONTEND_BLIND"
+        )
+
+        report_path = (
+            reports_dir
+            / "s8r4_xfeat_relative_frontend_report.json"
+        )
+
+        report_path.write_text(
+            json.dumps(
+                report,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        print()
+        print("Blind XFeat summary")
+        print("-" * 72)
+        print("status:", report["status"])
+        print("frames:", report["frames"])
+        print("pairs:", report["pairs"])
+        print(
+            "reference used:",
+            report["blind_contract"]["reference_used"],
+        )
+        print(
+            "metric scale available:",
+            report["blind_contract"][
+                "metric_scale_available"
+            ],
+        )
+        print(
+            "blind raw trajectory:",
+            report["outputs"]["blind_raw"],
+        )
+        print("report:", report_path)
+
+        return
 
     comparison_rows = []
 

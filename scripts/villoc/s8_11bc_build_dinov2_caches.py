@@ -478,11 +478,31 @@ def build_or_skip_cache(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--force-query-cache",
+        action="store_true",
+        help=(
+            "Force rebuilding only the per-flight query "
+            "descriptor cache. Map caches can still be "
+            "reused with --reuse-map-caches."
+        ),
+    )
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--crop-mode", choices=["center_square", "resize_square"], default="center_square")
     parser.add_argument("--pooling", choices=["avgpatch", "cls"], default="avgpatch")
     parser.add_argument("--config", required=True)
+    parser.add_argument(
+        "--query-csv",
+        default=None,
+        help=(
+            "Optional explicit query manifest. "
+            "When omitted, preserve the existing automatic "
+            "S8 manifest discovery behaviour. This allows "
+            "reference-free blind_query_manifest.csv to be "
+            "used without duplicating the descriptor stage."
+        ),
+    )
     parser.add_argument("--reuse-map-caches", action="store_true", help="Build query cache for this dataset but skip rebuilding map caches if they already exist.",)
     parser.add_argument("--map-cache-root", default=None, help="Optional descriptor directory for reused map caches, e.g. outputs/villoc/90_deg/descriptors",)
 
@@ -490,7 +510,17 @@ def main() -> None:
 
     cfg = load_yaml(root_join(ROOT, args.config))
 
-    QUERY_CSV = infer_query_manifest(ROOT, cfg)
+    if args.query_csv is not None:
+        QUERY_CSV = root_join(
+            ROOT,
+            args.query_csv,
+        )
+    else:
+        QUERY_CSV = infer_query_manifest(
+            ROOT,
+            cfg,
+        )
+
     TILE_INDEXES = infer_tile_indexes(ROOT, cfg)
 
     OUT_DESC_DIR, OUT_REPORT_DIR = descriptor_dirs(ROOT, cfg)
@@ -576,7 +606,10 @@ def main() -> None:
         variant="v_1fps",
         model=model,
         torch=torch,
-        force=args.force,
+        force=(
+            args.force
+            or args.force_query_cache
+        ),
     )
 
     summary["outputs"]["query_cache"] = {
