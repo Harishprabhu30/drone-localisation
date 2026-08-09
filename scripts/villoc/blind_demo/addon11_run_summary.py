@@ -292,7 +292,6 @@ def runtime_table_rows(
             "Relative frontend — XFeat",
             [
                 "relative_odometry",
-                "relative_frontend",
             ],
             [
                 "xfeat",
@@ -301,8 +300,7 @@ def runtime_table_rows(
         (
             "DINO query encoding",
             [
-                "dino_query_descriptor_encoding",
-                "dino_query_encoding",
+                "dino_query_descriptor_extraction",
             ],
             [
                 "dino",
@@ -313,8 +311,6 @@ def runtime_table_rows(
             "DINO cached retrieval",
             [
                 "dino_retrieval_against_map_cache",
-                "dino_cached_retrieval",
-                "dino_retrieval",
             ],
             [
                 "dino",
@@ -324,29 +320,37 @@ def runtime_table_rows(
         (
             "ORB Top-20 verification/reranking",
             [
-                "orb_top20_reranking",
-                "orb_reranking",
+                "orb_topk_reranking",
             ],
             [
                 "orb",
             ],
         ),
         (
-            "Temporal gating",
+            "Blind map bootstrap",
             [
-                "temporal_gating",
+                "blind_map_bootstrap",
             ],
             [
-                "temporal",
+                "bootstrap",
             ],
         ),
         (
-            "Fusion",
+            "Map-alignment continuation",
             [
-                "fusion_replay",
-                "fusion",
+                "blind_map_alignment",
             ],
             [
+                "alignment",
+            ],
+        ),
+        (
+            "Temporal fusion/control",
+            [
+                "blind_temporal_fusion",
+            ],
+            [
+                "temporal",
                 "fusion",
             ],
         ),
@@ -868,13 +872,27 @@ def main() -> None:
     )
 
     require(
-        len(manifest) == 403,
-        f"Expected 403 blind manifest rows, got {len(manifest)}.",
+        len(manifest) > 0,
+        "Blind manifest is empty.",
     )
 
     require(
-        len(submission) == 403,
-        f"Expected 403 submission rows, got {len(submission)}.",
+        len(submission) > 0,
+        "Submission trajectory is empty.",
+    )
+
+    require(
+        len(manifest)
+        == len(submission)
+        == len(relative)
+        == len(temporal_manifest),
+        (
+            "Blind run summary input row counts differ: "
+            f"manifest={len(manifest)}, "
+            f"submission={len(submission)}, "
+            f"relative={len(relative)}, "
+            f"temporal={len(temporal_manifest)}."
+        ),
     )
 
     reference_available = (
@@ -1078,6 +1096,49 @@ def main() -> None:
         & estimated_lon.notna()
     )
 
+    localization_state = (
+        str(
+            submission[
+                "localization_state"
+            ].iloc[0]
+        )
+        if (
+            "localization_state"
+            in submission.columns
+        )
+        else (
+            "ABSOLUTE_LOCKED"
+            if bool(
+                map_available.any()
+            )
+            else "UNKNOWN"
+        )
+    )
+
+    if (
+        "localization_state"
+        in submission.columns
+    ):
+        require(
+            submission[
+                "localization_state"
+            ]
+            .astype(str)
+            .eq(
+                localization_state
+            )
+            .all(),
+            (
+                "Submission contains mixed "
+                "localization states."
+            ),
+        )
+
+    no_trusted_lock = (
+        localization_state
+        == "NO_TRUSTED_ABSOLUTE_LOCK"
+    )
+
     confidence = pd.to_numeric(
         submission[
             "confidence_score"
@@ -1175,8 +1236,20 @@ def main() -> None:
             f"**{'Yes' if evaluation_included else 'No'}**."
         ),
         (
-            "- Blind map coordinates become available only "
-            "after causal map initialization."
+            "- Localization state: "
+            f"**{localization_state}**."
+        ),
+        (
+            "- Geographic/map coordinates are "
+            + (
+                "**unavailable because no trusted "
+                "absolute map lock was acquired.**"
+                if no_trusted_lock
+                else (
+                    "available only after causal "
+                    "map initialization."
+                )
+            )
         ),
     ])
 
@@ -1235,8 +1308,8 @@ def main() -> None:
         ),
         (
             "- Runtime registry: "
-            f"**{timing.get('measured_rows', 'n/a')} measured**, "
-            f"**{timing.get('pending_rows', 'n/a')} pending**."
+            f"**{timing.get('counts', {}).get('measured_rows', timing.get('measured_rows', 'n/a'))} measured**, "
+            f"**{timing.get('counts', {}).get('pending_rows', timing.get('pending_rows', 'n/a'))} pending**."
         ),
         (
             "- Map/cache reuse is treated separately from "
@@ -1358,8 +1431,18 @@ def main() -> None:
             f"**{int((correction_candidate & ~correction_accepted).sum())}**."
         ),
         (
-            "- Fusion policy: continuous relative propagation "
-            "with sparse confidence/temporal-gated absolute corrections."
+            "- Fusion state: "
+            + (
+                "**metric absolute fusion not applicable; "
+                "the visual-relative trajectory was preserved "
+                "without fabricated corrections.**"
+                if no_trusted_lock
+                else (
+                    "continuous relative propagation with "
+                    "sparse confidence/temporal-gated "
+                    "absolute corrections."
+                )
+            )
         ),
         (
             "- Decision reasons: "
@@ -1394,7 +1477,16 @@ def main() -> None:
             "to "
             f"**{fmt_number(estimated_lon.max(), 8)}**."
         ),
-        f"- **{LATLON_NOTE}**",
+        (
+            "- "
+            + (
+                "**No estimated latitude/longitude was "
+                "exported because no trusted map lock "
+                "was acquired.**"
+                if no_trusted_lock
+                else f"**{LATLON_NOTE}**"
+            )
+        ),
     ])
 
     # 9
@@ -1603,6 +1695,18 @@ def main() -> None:
             / "figures"
             / "estimated_fused_xy.png",
             "Blind fused map trajectory",
+        ),
+        (
+            run_root
+            / "figures"
+            / "visual_step_motion_vs_time.png",
+            "Blind relative step motion vs time",
+        ),
+        (
+            run_root
+            / "figures"
+            / "visual_cumulative_motion_vs_time.png",
+            "Blind cumulative visual motion vs time",
         ),
         (
             run_root
@@ -1954,6 +2058,18 @@ def main() -> None:
         (
             run_root
             / "figures"
+            / "visual_step_motion_vs_time.png",
+            "Relative step-motion figure",
+        ),
+        (
+            run_root
+            / "figures"
+            / "visual_cumulative_motion_vs_time.png",
+            "Cumulative visual-motion figure",
+        ),
+        (
+            run_root
+            / "figures"
             / "confidence_vs_time.png",
             "Confidence timeline",
         ),
@@ -2062,6 +2178,12 @@ def main() -> None:
         ),
         "status": (
             "PASS_ADDON11_RUN_SUMMARY"
+        ),
+        "registry_mode": (
+            "PASS_NATIVE_BLIND_RUN_SUMMARY"
+        ),
+        "localization_state": (
+            localization_state
         ),
         "human_facing_outputs": {
             "markdown": str(
@@ -2181,6 +2303,11 @@ def main() -> None:
     )
 
     print()
+    print(
+        "localization state    :",
+        localization_state,
+    )
+
     print(
         "saved Markdown        :",
         md_path,

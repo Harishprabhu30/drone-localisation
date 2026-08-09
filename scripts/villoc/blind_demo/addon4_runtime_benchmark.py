@@ -277,7 +277,7 @@ def save_runtime_plot(
     )
 
     ax.set_title(
-        "Villoc traj01 runtime by stage"
+        "Blind recorded-flight runtime by stage"
     )
 
     ax.grid(
@@ -347,6 +347,1249 @@ def pending_row(
     )
 
 
+
+def run_native_blind_registry(
+    *,
+    run_root: Path,
+    map_root: Path,
+    variant: str,
+    tag: str,
+    metrics_dir: Path,
+    figures_dir: Path,
+) -> None:
+
+    # =====================================================
+    # Runtime registry constructed ONLY from artifacts
+    # produced by the current blind recorded-flight run.
+    #
+    # Historical traj01 evaluation, LightGlue diagnostics,
+    # smoke tests, map-variant diagnostics and GT-based
+    # stages are intentionally excluded.
+    # =====================================================
+
+    def required_json(
+        path: Path,
+        allowed_status: set[str],
+    ) -> dict:
+
+        data = load_json(
+            path
+        )
+
+        status = data.get(
+            "status"
+        )
+
+        if status not in allowed_status:
+            raise RuntimeError(
+                "Unexpected runtime-source status "
+                f"for {path}: {status!r}"
+            )
+
+        return data
+
+
+    rows: list[
+        dict[str, Any]
+    ] = []
+
+    # -------------------------------------------------
+    # Stable source paths for THIS blind run.
+    # -------------------------------------------------
+
+    env_path = (
+        run_root
+        / "metrics/env_check_report.json"
+    )
+
+    manifest_report_path = (
+        run_root
+        / "reports/"
+          "blind_query_manifest_report.json"
+    )
+
+    manifest_path = (
+        run_root
+        / "metadata/"
+          "blind_query_manifest.csv"
+    )
+
+    xfeat_path = (
+        run_root
+        / "reports/"
+          "s8_xfeat_relative_frontend/"
+          "s8r4_xfeat_relative_frontend_report.json"
+    )
+
+    query_cache_path = (
+        run_root
+        / "descriptors"
+        / (
+            "s8_11c_dinov2_queries_v_1fps_"
+            f"{tag}.npz"
+        )
+    )
+
+    map_cache_path = (
+        map_root
+        / "descriptors"
+        / (
+            f"s8_11b_dinov2_map_{variant}_"
+            f"{tag}.npz"
+        )
+    )
+
+    retrieval_path = (
+        run_root
+        / "reports/s8_11d_blind"
+        / (
+            f"s8_11d_blind_retrieval_{variant}_"
+            f"{tag}.json"
+        )
+    )
+
+    orb_path = (
+        run_root
+        / "reports/"
+          "s8_12e1_top20_verifier_reranker/"
+          f"{variant}_orb_hybrid_top20_img518/"
+          "s8_12e1_summary.json"
+    )
+
+    bootstrap_path = (
+        run_root
+        / "reports/blind_map_bootstrap/"
+          "blind_map_bootstrap_report.json"
+    )
+
+    alignment_path = (
+        run_root
+        / "reports/blind_map_alignment/"
+          "blind_map_alignment_report.json"
+    )
+
+    fusion_path = (
+        run_root
+        / "reports/blind_temporal_fusion/"
+          "blind_temporal_fusion_report.json"
+    )
+
+    addon9_path = (
+        run_root
+        / "reports/addon9_estimated_latlon/"
+          "estimated_latlon_export_report.json"
+    )
+
+    addon10_path = (
+        run_root
+        / "reports/addon10_no_reference_visuals/"
+          "no_reference_visuals_report.json"
+    )
+
+    addon11_path = (
+        run_root
+        / "reports/addon11_run_summary/"
+          "run_summary_report.json"
+    )
+
+    # -------------------------------------------------
+    # Environment preflight.
+    # -------------------------------------------------
+
+    env = required_json(
+        env_path,
+        {
+            "PASS_ADDON12_ENVIRONMENT_CHECK",
+        },
+    )
+
+    env_s = float(
+        env[
+            "runtime"
+        ][
+            "environment_check_s"
+        ]
+    )
+
+    rows.append(
+        timing_row(
+            stage="environment_check",
+            component="Environment preflight",
+            cost_scope="per_new_flight_preflight",
+            runtime_s=env_s,
+            work_count=1,
+            work_unit="preflight_check",
+            source_path=env_path,
+            cache_state=(
+                "prepared environment/map/cache checks"
+            ),
+            notes=(
+                "Blind-safe startup overhead. "
+                "Not localization latency."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # Blind manifest / extraction.
+    # -------------------------------------------------
+
+    manifest_report = required_json(
+        manifest_report_path,
+        {
+            "PASS_BLIND_QUERY_MANIFEST",
+        },
+    )
+
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            manifest_path
+        )
+
+    manifest_rows = len(
+        pd.read_csv(
+            manifest_path,
+            usecols=[
+                "sequence_frame_id",
+            ],
+        )
+    )
+
+    if manifest_rows <= 0:
+        raise RuntimeError(
+            "Blind manifest has no usable rows."
+        )
+
+    mruntime = manifest_report[
+        "runtime"
+    ]
+
+    for (
+        stage,
+        component,
+        runtime_key,
+        work_count,
+        work_unit,
+    ) in [
+        (
+            "video_metadata_read",
+            "Video metadata read",
+            "video_metadata_read_s",
+            1,
+            "video",
+        ),
+        (
+            "frame_extraction",
+            "Blind 1-fps frame extraction",
+            "frame_extraction_s",
+            manifest_rows,
+            "frame",
+        ),
+        (
+            "query_manifest_build",
+            "Blind query manifest construction",
+            "query_manifest_build_s",
+            manifest_rows,
+            "query_frame",
+        ),
+    ]:
+        rows.append(
+            timing_row(
+                stage=stage,
+                component=component,
+                cost_scope=(
+                    "per_new_flight_preprocessing"
+                ),
+                runtime_s=float(
+                    mruntime[
+                        runtime_key
+                    ]
+                ),
+                work_count=work_count,
+                work_unit=work_unit,
+                source_path=(
+                    manifest_report_path
+                ),
+                cache_state=(
+                    "not_applicable"
+                ),
+                notes=(
+                    "Measured reference-free "
+                    "recorded-flight preprocessing."
+                ),
+            )
+        )
+
+    # -------------------------------------------------
+    # XFeat relative frontend.
+    # -------------------------------------------------
+
+    xfeat = required_json(
+        xfeat_path,
+        {
+            "PASS_XFEAT_RELATIVE_FRONTEND_BLIND",
+        },
+    )
+
+    xpairs = xfeat[
+        "pair_summary"
+    ]
+
+    pair_count = max(
+        manifest_rows - 1,
+        0,
+    )
+
+    rows.append(
+        timing_row(
+            stage="relative_odometry",
+            component="XFeat relative frontend",
+            cost_scope="per_new_flight_localization",
+            runtime_s=float(
+                xpairs[
+                    "wall_seconds"
+                ]
+            ),
+            work_count=pair_count,
+            work_unit="frame_pair",
+            source_path=xfeat_path,
+            cache_state=(
+                "features generated for current flight"
+            ),
+            notes=(
+                "Full XFeat relative-front-end "
+                "wall time."
+            ),
+        )
+    )
+
+    rows.append(
+        timing_row(
+            stage="relative_odometry_features",
+            component="XFeat feature extraction",
+            cost_scope="component_breakdown",
+            runtime_s=float(
+                xpairs[
+                    "feature_seconds"
+                ]
+            ),
+            work_count=manifest_rows,
+            work_unit="frame",
+            source_path=xfeat_path,
+            notes=(
+                "Component of relative_odometry; "
+                "do not add again to total."
+            ),
+        )
+    )
+
+    rows.append(
+        timing_row(
+            stage="relative_odometry_matching",
+            component="XFeat matching + RANSAC",
+            cost_scope="component_breakdown",
+            runtime_s=float(
+                xpairs[
+                    "matching_ransac_seconds"
+                ]
+            ),
+            work_count=pair_count,
+            work_unit="frame_pair",
+            source_path=xfeat_path,
+            notes=(
+                "Component of relative_odometry; "
+                "do not add again to total."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # DINO query descriptor encoding.
+    # -------------------------------------------------
+
+    query_meta = load_npz_meta(
+        query_cache_path
+    )
+
+    query_count = int(
+        query_meta[
+            "row_count"
+        ]
+    )
+
+    if query_count != manifest_rows:
+        raise RuntimeError(
+            "DINO query-cache row mismatch: "
+            f"{query_count} vs {manifest_rows}"
+        )
+
+    rows.append(
+        timing_row(
+            stage=(
+                "dino_query_descriptor_extraction"
+            ),
+            component=(
+                "DINOv2 query descriptor encoding"
+            ),
+            cost_scope="per_new_flight_localization",
+            runtime_s=float(
+                query_meta[
+                    "runtime_s"
+                ]
+            ),
+            work_count=query_count,
+            work_unit="query_image",
+            source_path=query_cache_path,
+            cache_state=(
+                "current-flight descriptor cache build"
+            ),
+            notes=(
+                "CPU DINOv2 query-image encoding."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # Reusable offline map descriptor cache.
+    # -------------------------------------------------
+
+    map_meta = load_npz_meta(
+        map_cache_path
+    )
+
+    map_tiles = int(
+        map_meta[
+            "row_count"
+        ]
+    )
+
+    rows.append(
+        timing_row(
+            stage=(
+                "dino_map_descriptor_cache_creation"
+            ),
+            component=(
+                "DINOv2 map descriptor encoding"
+            ),
+            cost_scope="offline_map_preparation",
+            runtime_s=float(
+                map_meta[
+                    "runtime_s"
+                ]
+            ),
+            work_count=map_tiles,
+            work_unit="map_tile",
+            source_path=map_cache_path,
+            cache_state=(
+                "reusable prepared map cache"
+            ),
+            notes=(
+                "One-time reusable AOI cost; "
+                "must not be counted as flight runtime."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # Primary 512_s256 cached DINO retrieval.
+    # -------------------------------------------------
+
+    retrieval = required_json(
+        retrieval_path,
+        {
+            "PASS_BLIND_DINO_TOPK_RETRIEVAL",
+        },
+    )
+
+    retrieval_s = float(
+        retrieval[
+            "runtime"
+        ][
+            "matrix_retrieval_s"
+        ]
+    )
+
+    rows.append(
+        timing_row(
+            stage=(
+                "dino_retrieval_against_map_cache"
+            ),
+            component="DINO cosine Top-K ranking",
+            cost_scope="per_new_flight_localization",
+            runtime_s=retrieval_s,
+            work_count=manifest_rows,
+            work_unit="query",
+            source_path=retrieval_path,
+            cache_state=(
+                "query and map descriptors cached"
+            ),
+            notes=(
+                "Primary promoted 512_s256 matrix "
+                "retrieval core only."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # Primary ORB Top-20 run.
+    # -------------------------------------------------
+
+    orb = required_json(
+        orb_path,
+        {
+            "PASS_TOPK_VERIFIER_RERANKER_BLIND",
+        },
+    )
+
+    ort = orb[
+        "runtime"
+    ]
+
+    orb_pairs = int(
+        ort[
+            "query_candidate_pairs"
+        ]
+    )
+
+    orb_queries = int(
+        ort[
+            "queries"
+        ]
+    )
+
+    if orb_queries != manifest_rows:
+        raise RuntimeError(
+            "ORB query-count mismatch: "
+            f"{orb_queries} vs {manifest_rows}"
+        )
+
+    rows.append(
+        timing_row(
+            stage="orb_topk_reranking",
+            component="ORB Top-20 verifier/reranker",
+            cost_scope="per_new_flight_localization",
+            runtime_s=float(
+                ort[
+                    "verifier_rerank_core_s"
+                ]
+            ),
+            work_count=orb_pairs,
+            work_unit="query_candidate_pair",
+            secondary_count=orb_queries,
+            secondary_unit="query",
+            source_path=orb_path,
+            cache_state=(
+                "feature cache internal to current ORB run"
+            ),
+            notes=(
+                "Primary full blind run only. "
+                "Smoke and map-variant diagnostics excluded."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # No-lock-safe downstream operational stages.
+    # -------------------------------------------------
+
+    bootstrap = required_json(
+        bootstrap_path,
+        {
+            "PASS_BLIND_MAP_BOOTSTRAP",
+            "PASS_BLIND_MAP_BOOTSTRAP_NO_LOCK",
+        },
+    )
+
+    rows.append(
+        timing_row(
+            stage="blind_map_bootstrap",
+            component="Blind map bootstrap",
+            cost_scope="per_new_flight_localization",
+            runtime_s=float(
+                bootstrap[
+                    "runtime"
+                ][
+                    "total_stage_wall_s"
+                ]
+            ),
+            work_count=manifest_rows,
+            work_unit="query_frame",
+            source_path=bootstrap_path,
+            notes=(
+                "Measured causal bootstrap stage. "
+                "No-lock is a valid operational outcome."
+            ),
+        )
+    )
+
+    alignment = required_json(
+        alignment_path,
+        {
+            "PASS_BLIND_MAP_ALIGNED_RELATIVE_TRAJECTORY",
+            "PASS_BLIND_RELATIVE_ONLY_NO_MAP_LOCK",
+        },
+    )
+
+    rows.append(
+        timing_row(
+            stage="blind_map_alignment",
+            component="Map-alignment continuation",
+            cost_scope="per_new_flight_localization",
+            runtime_s=float(
+                alignment[
+                    "runtime"
+                ][
+                    "total_stage_wall_s"
+                ]
+            ),
+            work_count=manifest_rows,
+            work_unit="trajectory_row",
+            source_path=alignment_path,
+            notes=(
+                "Current run continued relative-only "
+                "because no trusted map lock existed."
+            ),
+        )
+    )
+
+    fusion = required_json(
+        fusion_path,
+        {
+            "PASS_BLIND_TEMPORAL_FUSION",
+            (
+                "PASS_BLIND_TEMPORAL_FUSION_"
+                "SKIPPED_NO_MAP_LOCK"
+            ),
+        },
+    )
+
+    rows.append(
+        timing_row(
+            stage="blind_temporal_fusion",
+            component="Temporal fusion/control stage",
+            cost_scope="per_new_flight_localization",
+            runtime_s=float(
+                fusion[
+                    "runtime"
+                ][
+                    "total_stage_wall_s"
+                ]
+            ),
+            work_count=manifest_rows,
+            work_unit="trajectory_row",
+            source_path=fusion_path,
+            notes=(
+                "Measured stage overhead. "
+                "Metric fusion correctly skipped "
+                "for the no-lock state."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # Add-on 9.
+    # -------------------------------------------------
+
+    addon9 = required_json(
+        addon9_path,
+        {
+            "PASS_ADDON9_ESTIMATED_LATLON_EXPORT",
+            (
+                "PASS_ADDON9_NO_ABSOLUTE_"
+                "EXPORT_NO_MAP_LOCK"
+            ),
+        },
+    )
+
+    rows.append(
+        timing_row(
+            stage="estimated_latlon_export",
+            component="Estimated-output export",
+            cost_scope="per_new_flight_output",
+            runtime_s=float(
+                addon9[
+                    "runtime"
+                ][
+                    "total_stage_wall_s"
+                ]
+            ),
+            work_count=manifest_rows,
+            work_unit="trajectory_row",
+            source_path=addon9_path,
+            notes=(
+                "No-lock run wrote the stable "
+                "submission interface but correctly "
+                "performed no coordinate transform."
+            ),
+        )
+    )
+
+    # -------------------------------------------------
+    # Add-on 10.
+    # -------------------------------------------------
+
+    addon10 = required_json(
+        addon10_path,
+        {
+            "PASS_ADDON10_NO_REFERENCE_VISUALS",
+            (
+                "PASS_ADDON10_RELATIVE_ONLY_"
+                "VISUALS_NO_MAP_LOCK"
+            ),
+        },
+    )
+
+    at = addon10[
+        "timing"
+    ]
+
+    plot_count = int(
+        at[
+            "plot_count"
+        ]
+    )
+
+    rows.append(
+        timing_row(
+            stage="plot_generation",
+            component="Blind-safe plot generation",
+            cost_scope="supporting_output",
+            runtime_s=float(
+                at[
+                    "plot_generation_s"
+                ]
+            ),
+            work_count=plot_count,
+            work_unit="plot",
+            source_path=addon10_path,
+            notes=(
+                "Reference-free static plots."
+            ),
+        )
+    )
+
+    # Folium is conditional on whether Add-on 10
+    # actually had an estimated geographic trajectory.
+    #
+    # ABSOLUTE_LOCKED:
+    #   Add-on 10 generates the estimated Folium map and
+    #   reports a positive measured runtime.
+    #
+    # NO_TRUSTED_ABSOLUTE_LOCK:
+    #   no estimated lat/lon map is available, therefore
+    #   Folium is legitimately not applicable.
+    folium_runtime_s = float(
+        at.get(
+            "folium_html_map_generation_s",
+            0.0,
+        )
+    )
+
+    folium_map_path = (
+        run_root
+        / "maps"
+        / "estimated_fused_map.html"
+    )
+
+    if folium_runtime_s > 0.0:
+        if not folium_map_path.exists():
+            raise RuntimeError(
+                "Add-on 10 reports measured Folium "
+                "runtime but the estimated map is missing: "
+                f"{folium_map_path}"
+            )
+
+        folium_row = timing_row(
+            stage="folium_html_map_generation",
+            component="Folium HTML map generation",
+            cost_scope="supporting_output",
+            runtime_s=folium_runtime_s,
+            work_count=1,
+            work_unit="html_map",
+            source_path=addon10_path,
+            notes=(
+                "Measured Add-on 10 blind-safe Folium "
+                "map generation from estimated visual "
+                "map-matching latitude/longitude."
+            ),
+        )
+
+    else:
+        folium_row = timing_row(
+            stage="folium_html_map_generation",
+            component="Folium HTML map generation",
+            cost_scope="supporting_output",
+            runtime_s=0.0,
+            work_count=0,
+            work_unit="html_map",
+            source_path=addon10_path,
+            measurement_status=(
+                "SKIPPED_NOT_APPLICABLE"
+            ),
+            notes=(
+                "Correctly skipped: no trusted map "
+                "lock or estimated latitude/longitude."
+            ),
+        )
+
+    rows.append(
+        folium_row
+    )
+
+    # -------------------------------------------------
+    # Add-on 11 is expected to be pending at this
+    # stage. Add-on 4 can be rerun after summary.
+    # -------------------------------------------------
+
+    if addon11_path.exists():
+
+        addon11 = required_json(
+            addon11_path,
+            {
+                "PASS_ADDON11_RUN_SUMMARY",
+            },
+        )
+
+        runtime_s = float(
+            addon11[
+                "runtime"
+            ][
+                "run_summary_generation_s"
+            ]
+        )
+
+        rows.append(
+            timing_row(
+                stage="run_summary_generation",
+                component="Run summary generation",
+                cost_scope="supporting_output",
+                runtime_s=runtime_s,
+                work_count=1,
+                work_unit="markdown_summary",
+                source_path=addon11_path,
+                notes=(
+                    "Markdown run-summary generation."
+                ),
+            )
+        )
+
+    else:
+
+        rows.append(
+            pending_row(
+                "run_summary_generation",
+                "Run summary generation",
+                "supporting_output",
+                (
+                    "Pending because Add-on 11 "
+                    "has not run yet."
+                ),
+            )
+        )
+
+    # -------------------------------------------------
+    # Reference/SRT is deliberately not part of the
+    # current blind runtime.
+    # -------------------------------------------------
+
+    srt_row = pending_row(
+        "srt_reference_parsing",
+        "Optional SRT/reference parsing",
+        "evaluation_optional",
+        (
+            "Not run before blind result freeze."
+        ),
+    )
+
+    srt_row[
+        "measurement_status"
+    ] = "OPTIONAL_NOT_RUN"
+
+    rows.append(
+        srt_row
+    )
+
+    # =================================================
+    # Build registry.
+    # =================================================
+
+    table = pd.DataFrame(
+        rows
+    )
+
+    measured = (
+        table[
+            "measurement_status"
+        ]
+        == "MEASURED"
+    )
+
+    pending = (
+        table[
+            "measurement_status"
+        ]
+        == "PENDING"
+    )
+
+    skipped = (
+        table[
+            "measurement_status"
+        ]
+        == "SKIPPED_NOT_APPLICABLE"
+    )
+
+    optional_not_run = (
+        table[
+            "measurement_status"
+        ]
+        == "OPTIONAL_NOT_RUN"
+    )
+
+    # -------------------------------------------------
+    # Useful non-double-counted runtime summaries.
+    # -------------------------------------------------
+
+    stage_lookup = (
+        table.set_index(
+            "stage"
+        )
+    )
+
+    def runtime_sum(
+        stage_names: list[str],
+    ) -> float:
+
+        total = 0.0
+
+        for stage_name in stage_names:
+
+            if (
+                stage_name
+                not in stage_lookup.index
+            ):
+                continue
+
+            value = stage_lookup.loc[
+                stage_name,
+                "runtime_s",
+            ]
+
+            value = pd.to_numeric(
+                pd.Series(
+                    [
+                        value,
+                    ]
+                ),
+                errors="coerce",
+            ).iloc[0]
+
+            if pd.notna(
+                value
+            ):
+                total += float(
+                    value
+                )
+
+        return total
+
+
+    preprocessing_s = runtime_sum(
+        [
+            "video_metadata_read",
+            "frame_extraction",
+            "query_manifest_build",
+        ]
+    )
+
+    localization_s = runtime_sum(
+        [
+            "relative_odometry",
+            "dino_query_descriptor_extraction",
+            "dino_retrieval_against_map_cache",
+            "orb_topk_reranking",
+            "blind_map_bootstrap",
+            "blind_map_alignment",
+            "blind_temporal_fusion",
+        ]
+    )
+
+    output_s = runtime_sum(
+        [
+            "estimated_latlon_export",
+            "plot_generation",
+        ]
+    )
+
+    offline_map_s = runtime_sum(
+        [
+            "dino_map_descriptor_cache_creation",
+        ]
+    )
+
+    # =================================================
+    # Stable outputs.
+    # =================================================
+
+    csv_path = (
+        metrics_dir
+        / "timing_summary.csv"
+    )
+
+    json_path = (
+        metrics_dir
+        / "timing_summary.json"
+    )
+
+    figure_path = (
+        figures_dir
+        / "runtime_by_stage.png"
+    )
+
+    table.to_csv(
+        csv_path,
+        index=False,
+    )
+
+    save_runtime_plot(
+        table,
+        figure_path,
+    )
+
+    report = {
+        "addon": (
+            "Add-on 4 — Runtime benchmark layer"
+        ),
+        "status": (
+            "PASS_PARTIAL_RUNTIME_REGISTRY"
+            if bool(
+                pending.any()
+            )
+            else "PASS_RUNTIME_BENCHMARK"
+        ),
+        "registry_mode": (
+            "PASS_NATIVE_BLIND_RUNTIME_REGISTRY"
+        ),
+        "variant": variant,
+        "descriptor_tag": tag,
+        "localization_state": (
+            addon10.get(
+                "localization_state"
+            )
+        ),
+        "counts": {
+            "measured_rows": int(
+                measured.sum()
+            ),
+            "pending_rows": int(
+                pending.sum()
+            ),
+            "skipped_not_applicable_rows": int(
+                skipped.sum()
+            ),
+            "optional_not_run_rows": int(
+                optional_not_run.sum()
+            ),
+        },
+        "runtime_summary_s": {
+            "environment_preflight": (
+                env_s
+            ),
+            "per_flight_preprocessing": (
+                preprocessing_s
+            ),
+            "per_flight_localization_core": (
+                localization_s
+            ),
+            "per_flight_output_support": (
+                output_s
+            ),
+            "offline_reusable_map_preparation": (
+                offline_map_s
+            ),
+        },
+        "important_rules": [
+            (
+                "Only artifacts produced by the "
+                "current blind run are used for "
+                "per-flight runtime."
+            ),
+            (
+                "Stage-7 diagnostics, smoke tests, "
+                "map-variant experiments and "
+                "historical LightGlue are excluded."
+            ),
+            (
+                "DINO map descriptor creation is "
+                "offline/reusable and not counted "
+                "as per-flight localization cost."
+            ),
+            (
+                "XFeat feature/matching rows are "
+                "component breakdowns and are not "
+                "double-counted in localization total."
+            ),
+            (
+                "Folium is recorded as skipped, not "
+                "as a zero-cost executed stage."
+            ),
+        ],
+        "rows": (
+            table.astype(
+                object
+            )
+            .where(
+                pd.notna(
+                    table
+                ),
+                None,
+            )
+            .to_dict(
+                orient="records"
+            )
+        ),
+        "outputs": {
+            "csv": str(
+                csv_path
+            ),
+            "json": str(
+                json_path
+            ),
+            "figure": str(
+                figure_path
+            ),
+        },
+    }
+
+    json_path.write_text(
+        json.dumps(
+            report,
+            indent=2,
+            allow_nan=False,
+        ),
+        encoding="utf-8",
+    )
+
+    print("=" * 88)
+    print(
+        "STAGE 8F.1 — NATIVE BLIND "
+        "RUNTIME BENCHMARK REGISTRY"
+    )
+    print("=" * 88)
+
+    print()
+    print(
+        "registry mode          : "
+        "PASS_NATIVE_BLIND_RUNTIME_REGISTRY"
+    )
+
+    print(
+        "status                 :",
+        report[
+            "status"
+        ],
+    )
+
+    print(
+        "measured rows          :",
+        int(
+            measured.sum()
+        ),
+    )
+
+    print(
+        "pending rows           :",
+        int(
+            pending.sum()
+        ),
+    )
+
+    print(
+        "skipped not applicable :",
+        int(
+            skipped.sum()
+        ),
+    )
+
+    print(
+        "optional not run       :",
+        int(
+            optional_not_run.sum()
+        ),
+    )
+
+    print()
+    print("Runtime summary")
+    print("-" * 88)
+
+    print(
+        "preprocessing          :",
+        f"{preprocessing_s:.3f} s",
+    )
+
+    print(
+        "localization core      :",
+        f"{localization_s:.3f} s",
+    )
+
+    print(
+        "output/support         :",
+        f"{output_s:.3f} s",
+    )
+
+    print(
+        "offline map preparation:",
+        f"{offline_map_s:.3f} s",
+    )
+
+    print()
+    print("Measured primary stages")
+    print("-" * 88)
+
+    display = table.loc[
+        measured,
+        [
+            "stage",
+            "runtime_s",
+            "work_count",
+            "work_unit",
+            "ms_per_work_item",
+            "cost_scope",
+        ],
+    ]
+
+    print(
+        display.to_string(
+            index=False
+        )
+    )
+
+    print()
+    print("Non-executed states")
+    print("-" * 88)
+
+    for _, row in table.loc[
+        ~measured
+    ].iterrows():
+
+        print(
+            f"{row['stage']}: "
+            f"{row['measurement_status']}"
+        )
+
+    print()
+    print("Saved")
+    print("-" * 88)
+
+    print(csv_path)
+    print(json_path)
+    print(figure_path)
+
+    print()
+    print(
+        "PASS_DEMO_STAGE8F1_NATIVE_RUNTIME_REGISTRY"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
@@ -412,6 +1655,32 @@ def main() -> None:
 
     tag = args.tag
     variant = args.variant
+
+    # -----------------------------------------------------
+    # Native recorded-flight blind runtime path.
+    #
+    # If the run contains the reference-free manifest
+    # report, use only runtime evidence from this run.
+    # Otherwise retain the historical traj01 registry
+    # behavior below for backwards compatibility.
+    # -----------------------------------------------------
+
+    native_blind_marker = (
+        run_root
+        / "reports"
+        / "blind_query_manifest_report.json"
+    )
+
+    if native_blind_marker.exists():
+        run_native_blind_registry(
+            run_root=run_root,
+            map_root=map_root,
+            variant=variant,
+            tag=tag,
+            metrics_dir=metrics_dir,
+            figures_dir=figures_dir,
+        )
+        return
 
     # ---------------------------------------------------------
     # Exact trusted source paths

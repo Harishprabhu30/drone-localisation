@@ -345,6 +345,8 @@ def main() -> None:
         "sequence_frame_id",
         "query_id",
         "token0_id",
+        "visual_x_px",
+        "visual_y_px",
         "relative_x_m",
         "relative_y_m",
         "relative_cumulative_distance_m",
@@ -383,11 +385,8 @@ def main() -> None:
     )
 
     require(
-        len(traj) == 403,
-        (
-            "Expected 403 trajectory rows, got "
-            f"{len(traj)}."
-        ),
+        len(traj) > 0,
+        "Input trajectory is empty.",
     )
 
     traj["sequence_frame_id"] = pd.to_numeric(
@@ -441,12 +440,20 @@ def main() -> None:
         )
     )
 
+    bootstrap_status = bootstrap.get(
+        "status"
+    )
+
     require(
-        bootstrap.get("status")
-        == "PASS_BLIND_MAP_BOOTSTRAP",
+        bootstrap_status
+        in {
+            "PASS_BLIND_MAP_BOOTSTRAP",
+            "PASS_BLIND_MAP_BOOTSTRAP_NO_LOCK",
+        },
         (
-            "Bootstrap report is not a passing "
-            "blind bootstrap."
+            "Bootstrap report is not a valid "
+            "blind bootstrap outcome: "
+            f"{bootstrap_status!r}"
         ),
     )
 
@@ -470,6 +477,609 @@ def main() -> None:
                 f"{key}={contract.get(key)!r}"
             ),
         )
+
+    # =====================================================
+    # No-map-lock continuation.
+    #
+    # Temporal fusion operates in metric map coordinates.
+    # Without a trusted visual-to-map bootstrap there is
+    # no valid metric residual, map displacement or map
+    # correction to compute.
+    #
+    # Therefore:
+    #   - preserve visual-relative motion,
+    #   - apply zero absolute corrections,
+    #   - expose zero map-aligned rows,
+    #   - do not fabricate metric/map coordinates.
+    # =====================================================
+
+    if (
+        bootstrap_status
+        == "PASS_BLIND_MAP_BOOTSTRAP_NO_LOCK"
+    ):
+        require(
+            bootstrap.get(
+                "localization_state"
+            )
+            == "NO_TRUSTED_ABSOLUTE_LOCK",
+            (
+                "No-lock bootstrap has unexpected "
+                "localization state."
+            ),
+        )
+
+        require(
+            bootstrap.get(
+                "map_lock"
+            )
+            is None,
+            (
+                "No-lock bootstrap unexpectedly "
+                "contains a map lock."
+            ),
+        )
+
+        require(
+            not bool_series(
+                traj[
+                    "map_aligned_available"
+                ]
+            ).any(),
+            (
+                "No-lock Stage10B3 trajectory "
+                "contains map-aligned rows."
+            ),
+        )
+
+        require(
+            not bool_series(
+                traj[
+                    "reference_used"
+                ]
+            ).any(),
+            (
+                "No-lock trajectory unexpectedly "
+                "uses reference information."
+            ),
+        )
+
+        unavailable_cols = [
+            "relative_x_m",
+            "relative_y_m",
+            "relative_cumulative_distance_m",
+            "estimated_map_x",
+            "estimated_map_y",
+        ]
+
+        for col in unavailable_cols:
+            require(
+                pd.to_numeric(
+                    traj[col],
+                    errors="coerce",
+                )
+                .isna()
+                .all(),
+                (
+                    "No-lock trajectory contains "
+                    f"unexpected metric/map values: {col}"
+                ),
+            )
+
+        visual_x = pd.to_numeric(
+            traj[
+                "visual_x_px"
+            ],
+            errors="raise",
+        ).to_numpy(float)
+
+        visual_y = pd.to_numeric(
+            traj[
+                "visual_y_px"
+            ],
+            errors="raise",
+        ).to_numpy(float)
+
+        require(
+            np.isfinite(
+                visual_x
+            ).all()
+            and np.isfinite(
+                visual_y
+            ).all(),
+            (
+                "Visual-relative trajectory contains "
+                "non-finite coordinates."
+            ),
+        )
+
+        visual_xy = np.column_stack(
+            [
+                visual_x,
+                visual_y,
+            ]
+        )
+
+        if len(
+            visual_xy
+        ) >= 2:
+            visual_steps = np.linalg.norm(
+                np.diff(
+                    visual_xy,
+                    axis=0,
+                ),
+                axis=1,
+            )
+
+            visual_path_length_px = float(
+                visual_steps.sum()
+            )
+
+        else:
+            visual_path_length_px = 0.0
+
+        df = traj.copy()
+
+        # No absolute/map correction can exist.
+        df[
+            "strict_a_blind"
+        ] = False
+
+        df[
+            "strict_b_blind"
+        ] = False
+
+        df[
+            "correction_candidate"
+        ] = False
+
+        df[
+            "correction_accepted"
+        ] = False
+
+        df[
+            "correction_applied"
+        ] = False
+
+        df[
+            "correction_reason"
+        ] = (
+            "skipped_no_trusted_map_lock"
+        )
+
+        for col in [
+            "temporal_residual_m",
+            "temporal_threshold_m",
+            "distance_since_anchor_m",
+            "anchor_token0_id_before",
+            "correction_delta_easting_m",
+            "correction_delta_northing_m",
+            "correction_magnitude_m",
+            "relative_map_x",
+            "relative_map_y",
+        ]:
+            df[col] = np.nan
+
+        # Fusion alpha is a configured policy value,
+        # but no fusion was actually executed.
+        df[
+            "fusion_alpha"
+        ] = np.nan
+
+        df[
+            "temporal_policy"
+        ] = (
+            "not_applicable_no_map_lock"
+        )
+
+        df[
+            "map_estimate_source"
+        ] = (
+            "unavailable_no_trusted_absolute_lock"
+        )
+
+        # =================================================
+        # Save stable Stage10B4 outputs.
+        # =================================================
+
+        metadata_dir = (
+            run_root
+            / "metadata/blind_temporal_fusion"
+        )
+
+        trajectory_dir = (
+            run_root
+            / "trajectories"
+        )
+
+        report_dir = (
+            run_root
+            / "reports/blind_temporal_fusion"
+        )
+
+        metadata_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        trajectory_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        report_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        manifest_path = (
+            metadata_dir
+            / "blind_temporal_correction_manifest.csv"
+        )
+
+        trajectory_path = (
+            trajectory_dir
+            / "blind_temporal_fused_trajectory.csv"
+        )
+
+        report_path = (
+            report_dir
+            / "blind_temporal_fusion_report.json"
+        )
+
+        manifest_cols = [
+            "sequence_frame_id",
+            "query_id",
+            "token0_id",
+            "timestamp_s",
+            "map_aligned_available",
+            "strict_a_blind",
+            "strict_b_blind",
+            "correction_candidate",
+            "correction_accepted",
+            "correction_applied",
+            "correction_reason",
+        ]
+
+        trajectory_cols = [
+            "frame_index",
+            "timestamp_s",
+            "image_path",
+            "sequence_frame_id",
+            "query_id",
+            "token0_id",
+            "visual_x_px",
+            "visual_y_px",
+            "visual_yaw_rad",
+            "visual_yaw_deg_unwrapped",
+            "step_motion_px",
+            "relative_x_m",
+            "relative_y_m",
+            "relative_cumulative_distance_m",
+            "relative_map_x",
+            "relative_map_y",
+            "estimated_map_x",
+            "estimated_map_y",
+            "map_aligned_available",
+            "initialization_state",
+            "map_crs",
+            "correction_candidate",
+            "correction_accepted",
+            "correction_applied",
+            "correction_reason",
+            "temporal_residual_m",
+            "temporal_threshold_m",
+            "distance_since_anchor_m",
+            "anchor_token0_id_before",
+            "correction_delta_easting_m",
+            "correction_delta_northing_m",
+            "correction_magnitude_m",
+            "fusion_alpha",
+            "temporal_policy",
+            "map_estimate_source",
+        ]
+
+        manifest_cols = [
+            col
+            for col in manifest_cols
+            if col in df.columns
+        ]
+
+        trajectory_cols = [
+            col
+            for col in trajectory_cols
+            if col in df.columns
+        ]
+
+        manifest_out = df[
+            manifest_cols
+        ].copy()
+
+        trajectory_out = df[
+            trajectory_cols
+        ].copy()
+
+        for name, out_df in [
+            (
+                "correction manifest",
+                manifest_out,
+            ),
+            (
+                "relative-only trajectory",
+                trajectory_out,
+            ),
+        ]:
+            leaked = sorted(
+                FORBIDDEN_BLIND_COLUMNS
+                & set(
+                    out_df.columns
+                )
+            )
+
+            require(
+                not leaked,
+                (
+                    f"{name} contains forbidden "
+                    f"columns: {leaked}"
+                ),
+            )
+
+        write_start = time.perf_counter()
+
+        manifest_out.to_csv(
+            manifest_path,
+            index=False,
+        )
+
+        trajectory_out.to_csv(
+            trajectory_path,
+            index=False,
+        )
+
+        write_s = (
+            time.perf_counter()
+            - write_start
+        )
+
+        hashes_after = {
+            "map_trajectory":
+                sha256_file(
+                    map_path
+                ),
+            "bootstrap_report":
+                sha256_file(
+                    bootstrap_path
+                ),
+            "absolute_query_summary":
+                sha256_file(
+                    qsum_path
+                ),
+            "absolute_candidate_scores":
+                sha256_file(
+                    cand_path
+                ),
+        }
+
+        require(
+            hashes_before
+            == hashes_after,
+            (
+                "Frozen Stage10B4 inputs changed "
+                "during no-lock continuation."
+            ),
+        )
+
+        stage_s = (
+            time.perf_counter()
+            - stage_start
+        )
+
+        report = {
+            "stage": (
+                "STAGE_10B4_BLIND_TEMPORAL_FUSION"
+            ),
+            "status": (
+                "PASS_BLIND_TEMPORAL_FUSION_"
+                "SKIPPED_NO_MAP_LOCK"
+            ),
+            "localization_state": (
+                "NO_TRUSTED_ABSOLUTE_LOCK"
+            ),
+            "trajectory_state": (
+                "RELATIVE_VISUAL_ONLY"
+            ),
+            "fusion_state": (
+                "NOT_APPLICABLE_NO_MAP_LOCK"
+            ),
+            "no_lock_reason": (
+                bootstrap.get(
+                    "no_lock_reason"
+                )
+            ),
+            "blind_contract": {
+                "gps_used": False,
+                "srt_used": False,
+                "reference_used": False,
+                "oracle_used": False,
+                "evaluation_error_used": False,
+                "ground_truth_used_for_decisions": False,
+                "map_coordinates_from_visual_matching": False,
+                "prelock_backfill_performed": False,
+            },
+            "policy": {
+                "configured_alpha": float(
+                    args.alpha
+                ),
+                "temporal_fusion_executed": False,
+                "reason": (
+                    "Metric temporal fusion requires "
+                    "a trusted causal map lock."
+                ),
+            },
+            "availability": {
+                "relative_visual_available": True,
+                "metric_relative_available": False,
+                "map_alignment_available": False,
+                "absolute_coordinates_available": False,
+                "temporal_fusion_available": False,
+            },
+            "counts": {
+                "rows": int(
+                    len(df)
+                ),
+                "map_aligned_rows": 0,
+                "correction_candidates": 0,
+                "accepted_corrections": 0,
+                "applied_corrections": 0,
+            },
+            "visual_relative_summary": {
+                "first_frame": int(
+                    df.iloc[0][
+                        "sequence_frame_id"
+                    ]
+                ),
+                "last_frame": int(
+                    df.iloc[-1][
+                        "sequence_frame_id"
+                    ]
+                ),
+                "first_timestamp_s": float(
+                    df.iloc[0][
+                        "timestamp_s"
+                    ]
+                ),
+                "last_timestamp_s": float(
+                    df.iloc[-1][
+                        "timestamp_s"
+                    ]
+                ),
+                "visual_path_length_px": (
+                    visual_path_length_px
+                ),
+            },
+            "input_sha256": hashes_before,
+            "runtime": {
+                "output_write_s": float(
+                    write_s
+                ),
+                "total_stage_wall_s": float(
+                    stage_s
+                ),
+            },
+            "outputs": {
+                "correction_manifest": str(
+                    manifest_path
+                ),
+                "trajectory": str(
+                    trajectory_path
+                ),
+                "report": str(
+                    report_path
+                ),
+            },
+            "important_note": (
+                "Temporal fusion was correctly "
+                "skipped because no trusted absolute "
+                "map lock exists. The blind visual-"
+                "relative trajectory remains available."
+            ),
+        }
+
+        report_path.write_text(
+            json.dumps(
+                report,
+                indent=2,
+                default=json_safe,
+                allow_nan=False,
+            ),
+            encoding="utf-8",
+        )
+
+        print("=" * 80)
+        print(
+            "STAGE 10B.4 — TEMPORAL FUSION "
+            "NO-LOCK CONTINUATION"
+        )
+        print("=" * 80)
+
+        print()
+        print("Localization state")
+        print("-" * 80)
+
+        print(
+            "state                   : "
+            "NO_TRUSTED_ABSOLUTE_LOCK"
+        )
+
+        print(
+            "trajectory              : "
+            "RELATIVE_VISUAL_ONLY"
+        )
+
+        print(
+            "temporal fusion         : skipped"
+        )
+
+        print(
+            "reason                  :",
+            bootstrap.get(
+                "no_lock_reason"
+            ),
+        )
+
+        print()
+        print("Availability")
+        print("-" * 80)
+
+        print(
+            "relative visual         : available"
+        )
+
+        print(
+            "metric relative         : unavailable"
+        )
+
+        print(
+            "map alignment           : unavailable"
+        )
+
+        print(
+            "absolute coordinates    : unavailable"
+        )
+
+        print(
+            "accepted corrections    : 0"
+        )
+
+        print()
+        print("Trajectory")
+        print("-" * 80)
+
+        print(
+            "rows                    :",
+            len(df),
+        )
+
+        print(
+            "visual path length      :",
+            f"{visual_path_length_px:.3f} px",
+        )
+
+        print()
+        print("Saved")
+        print("-" * 80)
+
+        print(manifest_path)
+        print(trajectory_path)
+        print(report_path)
+
+        print()
+        print(
+            "status: "
+            "PASS_BLIND_TEMPORAL_FUSION_"
+            "SKIPPED_NO_MAP_LOCK"
+        )
+
+        return
 
     lock = bootstrap.get(
         "map_lock"

@@ -818,9 +818,38 @@ def main() -> None:
         .reset_index(drop=True)
     )
 
-    if len(safe) != 403:
+    # -------------------------------------------------
+    # Generic recorded-flight row integrity.
+    #
+    # The original development validation used the
+    # 403-frame traj01 sequence. A production/demo
+    # bootstrap must instead preserve the input
+    # manifest cardinality for any valid blind run.
+    # -------------------------------------------------
+
+    expected_frames = int(
+        len(blind)
+    )
+
+    if len(visual) != expected_frames:
         raise RuntimeError(
-            f"Expected 403 rows, got {len(safe)}."
+            "Blind manifest / relative trajectory "
+            "row mismatch: "
+            f"{expected_frames} vs {len(visual)}."
+        )
+
+    if len(qsum) != expected_frames:
+        raise RuntimeError(
+            "Blind manifest / ORB summary "
+            "row mismatch: "
+            f"{expected_frames} vs {len(qsum)}."
+        )
+
+    if len(safe) != expected_frames:
+        raise RuntimeError(
+            "Blind bootstrap merge lost rows: "
+            f"expected {expected_frames}, "
+            f"got {len(safe)}."
         )
 
     strict_a = safe[
@@ -831,12 +860,16 @@ def main() -> None:
         safe["strict_b_blind"]
     ].copy()
 
-    if strict_a.empty:
-        raise RuntimeError(
-            "No strict-A blind anchors."
-        )
+    # Absence of trusted anchors is a legitimate
+    # operational result. Do not weaken the frozen
+    # strict-A/B gates and do not fabricate a map lock.
 
-    first_a = strict_a.iloc[0]
+    first_a = (
+        strict_a.iloc[0]
+        if len(strict_a)
+        else None
+    )
+
     first_b = (
         strict_b.iloc[0]
         if len(strict_b)
@@ -1007,12 +1040,38 @@ def main() -> None:
 
     if lock is None:
         status = (
-            "REVIEW_NO_BLIND_MAP_LOCK"
+            "PASS_BLIND_MAP_BOOTSTRAP_NO_LOCK"
         )
+
+        localization_state = (
+            "NO_TRUSTED_ABSOLUTE_LOCK"
+        )
+
+        if strict_a.empty:
+            no_lock_reason = (
+                "NO_STRICT_A_CANDIDATES"
+            )
+
+        elif strict_b.empty:
+            no_lock_reason = (
+                "NO_STRICT_B_CANDIDATES"
+            )
+
+        else:
+            no_lock_reason = (
+                "BOOTSTRAP_CONSENSUS_NOT_REACHED"
+            )
+
     else:
         status = (
             "PASS_BLIND_MAP_BOOTSTRAP"
         )
+
+        localization_state = (
+            "ABSOLUTE_LOCKED"
+        )
+
+        no_lock_reason = None
 
     metadata_dir = (
         run_root
@@ -1074,6 +1133,12 @@ def main() -> None:
             "STAGE_10B2_BLIND_MAP_BOOTSTRAP"
         ),
         "status": status,
+        "localization_state": (
+            localization_state
+        ),
+        "no_lock_reason": (
+            no_lock_reason
+        ),
         "blind_contract": {
             "gps_used": False,
             "srt_used": False,
@@ -1094,11 +1159,19 @@ def main() -> None:
             ),
         },
         "acquisition": {
-            "first_strict_a_time_s": float(
-                first_a["timestamp_s"]
+            "first_strict_a_time_s": (
+                float(
+                    first_a["timestamp_s"]
+                )
+                if first_a is not None
+                else None
             ),
-            "first_strict_a_query_id": int(
-                first_a["query_id"]
+            "first_strict_a_query_id": (
+                int(
+                    first_a["query_id"]
+                )
+                if first_a is not None
+                else None
             ),
             "first_strict_b_time_s": (
                 float(
@@ -1140,6 +1213,20 @@ def main() -> None:
             "requires_strict_b_support": True,
         },
         "map_lock": lock,
+        "continuation": {
+            "relative_trajectory": str(
+                visual_path
+            ),
+            "map_alignment_available": bool(
+                lock is not None
+            ),
+            "absolute_coordinates_available": bool(
+                lock is not None
+            ),
+            "relative_only_safe": bool(
+                lock is None
+            ),
+        },
         "runtime": {
             "total_stage_wall_s": float(
                 finished
@@ -1186,11 +1273,17 @@ def main() -> None:
     print("Acquisition")
     print("-" * 80)
 
-    print(
-        "first strict-A fix        :",
-        f"{float(first_a['timestamp_s']):.3f} s",
-        f"(query {int(first_a['query_id'])})",
-    )
+    if first_a is not None:
+        print(
+            "first strict-A fix        :",
+            f"{float(first_a['timestamp_s']):.3f} s",
+            f"(query {int(first_a['query_id'])})",
+        )
+    else:
+        print(
+            "first strict-A fix        :",
+            "none",
+        )
 
     if first_b is not None:
         print(
@@ -1217,6 +1310,21 @@ def main() -> None:
 
     if lock is None:
         print("LOCK NOT FOUND")
+
+        print(
+            "localization state        :",
+            localization_state,
+        )
+
+        print(
+            "reason                    :",
+            no_lock_reason,
+        )
+
+        print(
+            "continuation              :",
+            "relative-only",
+        )
 
     else:
         print(
@@ -1293,6 +1401,16 @@ def main() -> None:
 
     print()
     print("status:", status)
+    print(
+        "localization state:",
+        localization_state,
+    )
+
+    if no_lock_reason is not None:
+        print(
+            "no-lock reason:",
+            no_lock_reason,
+        )
 
 
 if __name__ == "__main__":

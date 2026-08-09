@@ -252,6 +252,1003 @@ def online_row(
     }
 
 
+
+def run_native_blind_deployment_breakdown(
+    *,
+    run_root: Path,
+    metrics_dir: Path,
+    timing: pd.DataFrame,
+    timing_report: dict[str, Any],
+    resource: dict[str, Any],
+    cache: dict[str, Any],
+    sampled_query_rate_hz: float,
+) -> None:
+
+    # =====================================================
+    # Native recorded-flight deployment interpretation.
+    #
+    # Uses ONLY the promoted blind-demo stages.
+    # Historical LightGlue, F1/F3/F3B, smoke tests and
+    # map-variant diagnostics are not included.
+    # =====================================================
+
+    if (
+        timing_report.get(
+            "registry_mode"
+        )
+        != "PASS_NATIVE_BLIND_RUNTIME_REGISTRY"
+    ):
+        raise RuntimeError(
+            "Timing registry is not native blind mode."
+        )
+
+    if (
+        resource.get(
+            "registry_mode"
+        )
+        != "PASS_NATIVE_BLIND_RESOURCE_REGISTRY"
+    ):
+        raise RuntimeError(
+            "Resource registry is not native blind mode."
+        )
+
+    # -------------------------------------------------
+    # Offline reusable preparation.
+    # -------------------------------------------------
+
+    map_cache_runtime = stage_runtime(
+        timing,
+        "dino_map_descriptor_cache_creation",
+    )
+
+    offline_rows = [
+        classification_row(
+            category="offline_one_time",
+            stage="orthophoto_crop",
+            label="Orthophoto AOI crop",
+            status="NOT_TIMED",
+            runtime_s=None,
+            reusable=True,
+            notes=(
+                "Existing prepared AOI is reused. "
+                "Historical crop runtime was not recorded."
+            ),
+        ),
+        classification_row(
+            category="offline_one_time",
+            stage="tile_generation",
+            label="Satellite tile generation",
+            status="NOT_TIMED",
+            runtime_s=None,
+            reusable=True,
+            notes=(
+                "Prepared 512_s256 tile set is reused "
+                "for flights inside the same AOI."
+            ),
+        ),
+        classification_row(
+            category="offline_one_time",
+            stage="tile_index_creation",
+            label="Tile index creation",
+            status="NOT_TIMED",
+            runtime_s=None,
+            reusable=True,
+            notes=(
+                "Prepared georeferenced tile index "
+                "is reused."
+            ),
+        ),
+        classification_row(
+            category="offline_one_time",
+            stage="dino_map_descriptor_cache_creation",
+            label="DINO map descriptor cache build",
+            status=(
+                "MEASURED"
+                if map_cache_runtime is not None
+                else "NOT_TIMED"
+            ),
+            runtime_s=map_cache_runtime,
+            reusable=True,
+            notes=(
+                "Measured reusable neural-map "
+                "descriptor preparation."
+            ),
+        ),
+    ]
+
+    measured_offline_total_s = sum(
+        row["runtime_s"]
+        for row in offline_rows
+        if row["runtime_s"] is not None
+    )
+
+    offline_not_timed = [
+        row["stage"]
+        for row in offline_rows
+        if row["runtime_s"] is None
+    ]
+
+    # -------------------------------------------------
+    # Per-new-flight stages.
+    # -------------------------------------------------
+
+    per_flight_specs = [
+        (
+            "video_metadata_read",
+            "Video metadata read",
+            "Recorded-flight metadata inspection.",
+        ),
+        (
+            "frame_extraction",
+            "Blind frame extraction",
+            "Reference-free 1-fps image extraction.",
+        ),
+        (
+            "query_manifest_build",
+            "Blind query manifest",
+            "Reference-free frame/query manifest.",
+        ),
+        (
+            "relative_odometry",
+            "XFeat relative frontend",
+            "Relative visual motion for this flight.",
+        ),
+        (
+            "dino_query_descriptor_extraction",
+            "DINO query encoding",
+            "Query descriptors must be computed per flight.",
+        ),
+        (
+            "dino_retrieval_against_map_cache",
+            "DINO cached retrieval",
+            "Ranks current query descriptors against reusable map descriptors.",
+        ),
+        (
+            "orb_topk_reranking",
+            "ORB Top-20 verifier/reranker",
+            "Primary promoted absolute-verification stage.",
+        ),
+        (
+            "blind_map_bootstrap",
+            "Blind map bootstrap",
+            "Attempts causal trusted map initialization.",
+        ),
+        (
+            "blind_map_alignment",
+            "Map-alignment continuation",
+            "Map alignment when locked; relative-only continuation otherwise.",
+        ),
+        (
+            "blind_temporal_fusion",
+            "Temporal fusion/control",
+            "Metric fusion when locked; safely skipped for no-lock.",
+        ),
+        (
+            "estimated_latlon_export",
+            "Estimated-output export",
+            "Stable output export; no coordinate conversion in no-lock state.",
+        ),
+    ]
+
+    per_flight_rows = []
+
+    for stage, label, notes in per_flight_specs:
+
+        runtime_s = stage_runtime(
+            timing,
+            stage,
+        )
+
+        per_flight_rows.append(
+            classification_row(
+                category="per_new_flight",
+                stage=stage,
+                label=label,
+                status=(
+                    "MEASURED"
+                    if runtime_s is not None
+                    else "PENDING"
+                ),
+                runtime_s=runtime_s,
+                reusable=False,
+                notes=notes,
+            )
+        )
+
+    measured_per_flight_total_s = sum(
+        row["runtime_s"]
+        for row in per_flight_rows
+        if row["runtime_s"] is not None
+    )
+
+    per_flight_pending = [
+        row["stage"]
+        for row in per_flight_rows
+        if row["runtime_s"] is None
+    ]
+
+    # -------------------------------------------------
+    # Supporting output stages.
+    # -------------------------------------------------
+
+    plot_runtime = stage_runtime(
+        timing,
+        "plot_generation",
+    )
+
+    folium_record = timing_lookup(
+        timing,
+        "folium_html_map_generation",
+    )
+
+    supporting_output = {
+        "plot_generation": {
+            "status": (
+                "MEASURED"
+                if plot_runtime is not None
+                else "PENDING"
+            ),
+            "runtime_s": plot_runtime,
+        },
+        "folium_html_map_generation": {
+            "status": (
+                folium_record.get(
+                    "measurement_status"
+                )
+                if folium_record is not None
+                else "UNKNOWN"
+            ),
+            "runtime_s": (
+                finite_float(
+                    folium_record.get(
+                        "runtime_s"
+                    )
+                )
+                if folium_record is not None
+                else None
+            ),
+            "reason": (
+                "Skipped because no trusted "
+                "absolute latitude/longitude existed."
+            ),
+        },
+    }
+
+    # -------------------------------------------------
+    # Normalized online-like costs.
+    # -------------------------------------------------
+
+    relative_ms = normalized_value(
+        timing,
+        "relative_odometry",
+        "ms_per_pair",
+    )
+
+    dino_encode_ms = normalized_value(
+        timing,
+        "dino_query_descriptor_extraction",
+        "ms_per_frame",
+    )
+
+    dino_retrieval_ms = normalized_value(
+        timing,
+        "dino_retrieval_against_map_cache",
+        "ms_per_query",
+    )
+
+    orb_ms = normalized_value(
+        timing,
+        "orb_topk_reranking",
+        "ms_per_query",
+    )
+
+    bootstrap_ms = normalized_value(
+        timing,
+        "blind_map_bootstrap",
+        "ms_per_query",
+    )
+
+    alignment_ms = normalized_value(
+        timing,
+        "blind_map_alignment",
+        "ms_per_work_item",
+    )
+
+    fusion_ms = normalized_value(
+        timing,
+        "blind_temporal_fusion",
+        "ms_per_work_item",
+    )
+
+    online_rows = [
+        online_row(
+            stage="relative_odometry",
+            label="XFeat relative motion",
+            normalized_field="ms_per_pair",
+            normalized_unit="ms/pair",
+            latency_ms=relative_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "relative_odometry",
+            ),
+            notes=(
+                "Consecutive-frame relative motion."
+            ),
+        ),
+        online_row(
+            stage="dino_query_descriptor_extraction",
+            label="DINO query encoding",
+            normalized_field="ms_per_frame",
+            normalized_unit="ms/frame",
+            latency_ms=dino_encode_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "dino_query_descriptor_extraction",
+            ),
+            notes=(
+                "CPU DINOv2 encoding of one query image."
+            ),
+        ),
+        online_row(
+            stage="dino_retrieval_against_map_cache",
+            label="DINO cached retrieval",
+            normalized_field="ms_per_query",
+            normalized_unit="ms/query",
+            latency_ms=dino_retrieval_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "dino_retrieval_against_map_cache",
+            ),
+            notes=(
+                "Cosine ranking against cached map descriptors."
+            ),
+        ),
+        online_row(
+            stage="orb_topk_reranking",
+            label="ORB Top-20 verification",
+            normalized_field="ms_per_query",
+            normalized_unit="ms/query",
+            latency_ms=orb_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "orb_topk_reranking",
+            ),
+            notes=(
+                "Includes twenty UAV-to-map candidate checks."
+            ),
+        ),
+        online_row(
+            stage="blind_map_bootstrap",
+            label="Blind map bootstrap",
+            normalized_field="ms_per_query",
+            normalized_unit="ms/query",
+            latency_ms=bootstrap_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "blind_map_bootstrap",
+            ),
+            notes=(
+                "Causal trusted-lock decision stage."
+            ),
+        ),
+        online_row(
+            stage="blind_map_alignment",
+            label="Map-alignment continuation",
+            normalized_field="ms_per_work_item",
+            normalized_unit="ms/trajectory-row",
+            latency_ms=alignment_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "blind_map_alignment",
+            ),
+            notes=(
+                "Relative-only continuation in this no-lock run."
+            ),
+        ),
+        online_row(
+            stage="blind_temporal_fusion",
+            label="Temporal fusion/control",
+            normalized_field="ms_per_work_item",
+            normalized_unit="ms/trajectory-row",
+            latency_ms=fusion_ms,
+            peak_rss_mib=memory_peak(
+                resource,
+                "blind_temporal_fusion",
+            ),
+            notes=(
+                "Fusion-control overhead; metric fusion was "
+                "not applicable because no map lock existed."
+            ),
+        ),
+    ]
+
+    serial_components = [
+        row
+        for row in online_rows
+        if row["latency_ms"] is not None
+    ]
+
+    serial_online_ms = sum(
+        float(
+            row["latency_ms"]
+        )
+        for row in serial_components
+    )
+
+    serial_online_hz = (
+        1000.0 / serial_online_ms
+        if serial_online_ms > 0
+        else None
+    )
+
+    target_rate_hz = float(
+        sampled_query_rate_hz
+    )
+
+    target_budget_ms = (
+        1000.0 / target_rate_hz
+        if target_rate_hz > 0
+        else None
+    )
+
+    realtime_factor = (
+        serial_online_ms
+        / target_budget_ms
+        if (
+            target_budget_ms is not None
+            and target_budget_ms > 0
+        )
+        else None
+    )
+
+    nominal_rate_met = (
+        realtime_factor <= 1.0
+        if realtime_factor is not None
+        else None
+    )
+
+    # -------------------------------------------------
+    # Optimization priorities.
+    # -------------------------------------------------
+
+    optimization_rows = []
+
+    for row in serial_components:
+
+        latency_ms = float(
+            row["latency_ms"]
+        )
+
+        share = (
+            latency_ms / serial_online_ms
+            if serial_online_ms > 0
+            else 0.0
+        )
+
+        if share >= 0.40:
+            priority = "VERY_HIGH"
+        elif share >= 0.20:
+            priority = "HIGH"
+        elif share >= 0.05:
+            priority = "MEDIUM"
+        else:
+            priority = "LOW"
+
+        optimization_rows.append(
+            {
+                "stage":
+                    row["stage"],
+
+                "label":
+                    row["label"],
+
+                "latency_ms":
+                    latency_ms,
+
+                "serial_latency_share":
+                    share,
+
+                "serial_latency_percent":
+                    100.0 * share,
+
+                "optimization_priority":
+                    priority,
+            }
+        )
+
+    optimization_rows.sort(
+        key=lambda item:
+            item["latency_ms"],
+        reverse=True,
+    )
+
+    # -------------------------------------------------
+    # Memory interpretation.
+    # -------------------------------------------------
+
+    measured_peaks = [
+        {
+            "stage":
+                stage,
+
+            "peak_rss_mib":
+                finite_float(
+                    record.get(
+                        "peak_process_tree_rss_mib"
+                    )
+                ),
+        }
+        for stage, record
+        in resource.get(
+            "stage_memory",
+            {},
+        ).items()
+        if finite_float(
+            record.get(
+                "peak_process_tree_rss_mib"
+            )
+        ) is not None
+    ]
+
+    if measured_peaks:
+
+        max_memory_stage = max(
+            measured_peaks,
+            key=lambda item:
+                item["peak_rss_mib"],
+        )
+
+        memory_assessment = (
+            "Live peak-RAM measurements are available "
+            "for at least one stage."
+        )
+
+    else:
+
+        max_memory_stage = None
+
+        memory_assessment = (
+            "No live per-stage peak-RAM measurements "
+            "were captured for this run. Static system "
+            "RAM and storage are known, but stage peak "
+            "RSS must remain unknown until measured live."
+        )
+
+    # -------------------------------------------------
+    # Cache/storage context from native resource keys.
+    # -------------------------------------------------
+
+    cache_context = {
+        "query_descriptor_cache_mib":
+            finite_float(
+                cache[
+                    "query_descriptor_cache"
+                ].get(
+                    "size_mib"
+                )
+            ),
+
+        "map_descriptor_cache_mib":
+            finite_float(
+                cache[
+                    "map_descriptor_cache"
+                ].get(
+                    "size_mib"
+                )
+            ),
+
+        "prepared_tile_folder_mib":
+            finite_float(
+                cache[
+                    "prepared_tile_folder"
+                ].get(
+                    "size_mib"
+                )
+            ),
+
+        "blind_frame_folder_mib":
+            finite_float(
+                cache[
+                    "blind_frame_folder"
+                ].get(
+                    "size_mib"
+                )
+            ),
+
+        "blind_run_output_folder_mib":
+            finite_float(
+                cache[
+                    "blind_run_output_folder"
+                ].get(
+                    "size_mib"
+                )
+            ),
+    }
+
+    theoretical_compute = {
+        "required_for_current_cpu_baseline":
+            False,
+
+        "status":
+            "NOT_REQUIRED_FOR_CURRENT_DEPLOYMENT_BASELINE",
+
+        "reason": (
+            "Measured latency and workload directly "
+            "characterize this CPU implementation. "
+            "FLOPS/TOPS become useful when comparing "
+            "future GPU/NPU deployment targets."
+        ),
+    }
+
+    # -------------------------------------------------
+    # Final report.
+    # -------------------------------------------------
+
+    status = (
+        "PASS_DEPLOYMENT_COST_BREAKDOWN"
+        if not per_flight_pending
+        else "PASS_PARTIAL_DEPLOYMENT_COST_BREAKDOWN"
+    )
+
+    report = {
+        "addon":
+            "Add-on 6 — Offline vs online cost breakdown",
+
+        "status":
+            status,
+
+        "registry_mode":
+            "PASS_NATIVE_BLIND_DEPLOYMENT_BREAKDOWN",
+
+        "localization_state":
+            timing_report.get(
+                "localization_state"
+            ),
+
+        "interpretation_rule":
+            INTERPRETATION_RULE,
+
+        "timing_registry_status":
+            timing_report.get(
+                "status"
+            ),
+
+        "offline_one_time": {
+            "rows":
+                offline_rows,
+
+            "measured_total_s":
+                measured_offline_total_s,
+
+            "measured_total_human":
+                fmt_seconds(
+                    measured_offline_total_s
+                ),
+
+            "not_timed_stages":
+                offline_not_timed,
+        },
+
+        "per_new_flight": {
+            "rows":
+                per_flight_rows,
+
+            "measured_total_s":
+                measured_per_flight_total_s,
+
+            "measured_total_human":
+                fmt_seconds(
+                    measured_per_flight_total_s
+                ),
+
+            "pending_stages":
+                per_flight_pending,
+        },
+
+        "supporting_output": (
+            supporting_output
+        ),
+
+        "online_like": {
+            "rows":
+                online_rows,
+
+            "serial_equivalent_latency_ms":
+                serial_online_ms,
+
+            "serial_equivalent_latency_s":
+                serial_online_ms
+                / 1000.0,
+
+            "serial_equivalent_capacity_hz":
+                serial_online_hz,
+
+            "nominal_input_query_rate_hz":
+                target_rate_hz,
+
+            "nominal_query_budget_ms":
+                target_budget_ms,
+
+            "serial_realtime_factor":
+                realtime_factor,
+
+            "nominal_rate_met":
+                nominal_rate_met,
+
+            "important_note": (
+                "This is a serial-equivalent deployment "
+                "planning estimate obtained by summing "
+                "independently measured normalized stage "
+                "latencies. It is not a claim that the "
+                "current scripts run as a streaming "
+                "real-time pipeline."
+            ),
+        },
+
+        "optimization_priority":
+            optimization_rows,
+
+        "memory_assessment": {
+            "system_ram_gib":
+                finite_float(
+                    resource.get(
+                        "system",
+                        {},
+                    ).get(
+                        "system_ram_total_gib"
+                    )
+                ),
+
+            "largest_measured_stage_peak":
+                max_memory_stage,
+
+            "assessment":
+                memory_assessment,
+        },
+
+        "cache_context":
+            cache_context,
+
+        "excluded_from_promoted_demo": [
+            "LightGlue diagnostics",
+            "ORB smoke runs",
+            "map-variant comparison runs",
+            "historical F1/F3/F3B evaluation pipeline",
+        ],
+
+        "theoretical_compute_metrics":
+            theoretical_compute,
+    }
+
+    json_path = (
+        metrics_dir
+        / "deployment_cost_breakdown.json"
+    )
+
+    md_path = (
+        metrics_dir
+        / "deployment_cost_breakdown.md"
+    )
+
+    json_path.write_text(
+        json.dumps(
+            report,
+            indent=2,
+            allow_nan=False,
+        ),
+        encoding="utf-8",
+    )
+
+    # -------------------------------------------------
+    # Human-readable Markdown.
+    # -------------------------------------------------
+
+    lines = [
+        "# Add-on 6 — Deployment Cost Breakdown",
+        "",
+        f"- Status: `{status}`",
+        (
+            "- Registry mode: "
+            "`PASS_NATIVE_BLIND_DEPLOYMENT_BREAKDOWN`"
+        ),
+        (
+            "- Localization state: "
+            f"`{report['localization_state']}`"
+        ),
+        (
+            "- Nominal sampled query rate: "
+            f"`{target_rate_hz:g} Hz`"
+        ),
+        "",
+        "## Offline reusable preparation",
+        "",
+        (
+            "- Measured reusable map-cache build: "
+            f"`{fmt_seconds(measured_offline_total_s)}`"
+        ),
+        (
+            "- Not timed: "
+            + (
+                ", ".join(
+                    offline_not_timed
+                )
+                if offline_not_timed
+                else "none"
+            )
+        ),
+        "",
+        "## Per new flight",
+        "",
+        (
+            "- Measured processing total: "
+            f"`{fmt_seconds(measured_per_flight_total_s)}`"
+        ),
+        "",
+        "## Serial-equivalent online-like latency",
+        "",
+        (
+            "- Total: "
+            f"`{serial_online_ms:.2f} ms/query`"
+        ),
+        (
+            "- Equivalent capacity: "
+            f"`{serial_online_hz:.3f} Hz`"
+        ),
+        (
+            "- 1 Hz realtime factor: "
+            f"`{realtime_factor:.3f}x`"
+        ),
+        (
+            "- Nominal 1 Hz target met: "
+            f"`{nominal_rate_met}`"
+        ),
+        "",
+        "### Stage contribution",
+        "",
+        "| Stage | Latency | Share | Priority |",
+        "|---|---:|---:|---|",
+    ]
+
+    for row in optimization_rows:
+
+        lines.append(
+            "| "
+            + str(
+                row["stage"]
+            )
+            + " | "
+            + f"{row['latency_ms']:.2f} ms"
+            + " | "
+            + f"{row['serial_latency_percent']:.1f}%"
+            + " | "
+            + str(
+                row["optimization_priority"]
+            )
+            + " |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Memory",
+            "",
+            memory_assessment,
+            "",
+            "## Interpretation",
+            "",
+            INTERPRETATION_RULE,
+            "",
+            (
+                "Folium was intentionally skipped "
+                "because this run had no trusted "
+                "absolute map lock."
+            ),
+            "",
+        ]
+    )
+
+    md_path.write_text(
+        "\n".join(
+            lines
+        ),
+        encoding="utf-8",
+    )
+
+    print("=" * 88)
+    print(
+        "STAGE 8F.3 — NATIVE BLIND "
+        "DEPLOYMENT COST BREAKDOWN"
+    )
+    print("=" * 88)
+
+    print()
+    print(
+        "registry mode         : "
+        "PASS_NATIVE_BLIND_DEPLOYMENT_BREAKDOWN"
+    )
+
+    print(
+        "status                :",
+        status,
+    )
+
+    print(
+        "localization state    :",
+        report[
+            "localization_state"
+        ],
+    )
+
+    print()
+    print("Cost classes")
+    print("-" * 88)
+
+    print(
+        "offline measured      :",
+        f"{measured_offline_total_s:.3f} s",
+    )
+
+    print(
+        "per-new-flight total  :",
+        f"{measured_per_flight_total_s:.3f} s",
+    )
+
+    print()
+    print("Online-like serial estimate")
+    print("-" * 88)
+
+    print(
+        "latency/query         :",
+        f"{serial_online_ms:.3f} ms",
+    )
+
+    print(
+        "equivalent capacity   :",
+        f"{serial_online_hz:.3f} Hz",
+    )
+
+    print(
+        "1 Hz realtime factor  :",
+        f"{realtime_factor:.3f}x",
+    )
+
+    print(
+        "1 Hz target met       :",
+        nominal_rate_met,
+    )
+
+    print()
+    print("Optimization priority")
+    print("-" * 88)
+
+    for row in optimization_rows:
+
+        print(
+            f"{row['stage']:40s}"
+            f"{row['latency_ms']:10.3f} ms  "
+            f"{row['serial_latency_percent']:6.2f}%  "
+            f"{row['optimization_priority']}"
+        )
+
+    print()
+    print("Memory")
+    print("-" * 88)
+
+    print(memory_assessment)
+
+    print()
+    print("Saved")
+    print("-" * 88)
+
+    print(json_path)
+    print(md_path)
+
+    print()
+    print(
+        "PASS_DEMO_STAGE8F3_NATIVE_DEPLOYMENT_BREAKDOWN"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
@@ -334,6 +1331,29 @@ def main() -> None:
     cache = load_json(
         cache_json
     )
+
+    if (
+        timing_report.get(
+            "registry_mode"
+        )
+        == "PASS_NATIVE_BLIND_RUNTIME_REGISTRY"
+        and resource.get(
+            "registry_mode"
+        )
+        == "PASS_NATIVE_BLIND_RESOURCE_REGISTRY"
+    ):
+        run_native_blind_deployment_breakdown(
+            run_root=run_root,
+            metrics_dir=metrics_dir,
+            timing=timing,
+            timing_report=timing_report,
+            resource=resource,
+            cache=cache,
+            sampled_query_rate_hz=(
+                args.sampled_query_rate_hz
+            ),
+        )
+        return
 
     # =====================================================
     # 1. Offline / one-time map preparation

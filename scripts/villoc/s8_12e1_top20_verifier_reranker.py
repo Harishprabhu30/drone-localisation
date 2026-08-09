@@ -575,7 +575,7 @@ def prepare_inputs(
         cols["tile_xmax_col"] = tile_xmax_col
         cols["tile_ymin_col"] = tile_ymin_col
         cols["tile_ymax_col"] = tile_ymax_col
-        
+
     if query_x_col and query_y_col:
         cols["query_x_col"] = query_x_col
         cols["query_y_col"] = query_y_col
@@ -766,6 +766,146 @@ def build_query_summary(scored: pd.DataFrame, cols: Dict[str, str], top_n: int, 
     return pd.DataFrame(rows)
 
 
+def build_blind_query_summary(
+    scored: pd.DataFrame,
+    cols: Dict[str, str],
+    top_n: int,
+    policy: str,
+) -> pd.DataFrame:
+    """
+    Build the operational reranker summary without using
+    query reference coordinates, oracle labels, or GT errors.
+    """
+
+    qcol = "__query_id_norm"
+    rank_col = cols["topk_rank_col"]
+
+    policy_score = (
+        "hybrid_score"
+        if policy == "hybrid"
+        else "verifier_score"
+    )
+
+    rows: List[Dict[str, Any]] = []
+
+    for qid, g in scored.groupby(
+        qcol,
+        sort=False,
+    ):
+        original = (
+            g.sort_values(
+                rank_col,
+                kind="mergesort",
+            )
+            .iloc[0]
+        )
+
+        reranked = g.sort_values(
+            [
+                policy_score,
+                "verifier_score",
+                rank_col,
+            ],
+            ascending=[
+                False,
+                False,
+                True,
+            ],
+            kind="mergesort",
+        )
+
+        chosen = reranked.iloc[0]
+
+        rows.append({
+            "query_id":
+                qid,
+
+            "original_top1_tile_id":
+                original.get(
+                    cols["topk_tile_col"]
+                ),
+
+            "original_top1_rank":
+                original.get(
+                    rank_col
+                ),
+
+            "original_top1_dino_score":
+                original.get(
+                    cols["topk_score_col"]
+                ),
+
+            "rerank_policy":
+                policy,
+
+            "reranked_top1_tile_id":
+                chosen.get(
+                    cols["topk_tile_col"]
+                ),
+
+            "reranked_top1_original_rank":
+                chosen.get(
+                    rank_col
+                ),
+
+            "reranked_top1_dino_score":
+                chosen.get(
+                    cols["topk_score_col"]
+                ),
+
+            "reranked_top1_verifier_score":
+                chosen.get(
+                    "verifier_score"
+                ),
+
+            "reranked_top1_hybrid_score":
+                chosen.get(
+                    "hybrid_score"
+                ),
+
+            "reranked_top1_good_matches":
+                chosen.get(
+                    "good_matches"
+                ),
+
+            "reranked_top1_inliers":
+                chosen.get(
+                    "inliers"
+                ),
+
+            "reranked_top1_inlier_ratio":
+                chosen.get(
+                    "inlier_ratio"
+                ),
+
+            "reranked_top1_query_inlier_coverage":
+                chosen.get(
+                    "query_inlier_coverage"
+                ),
+
+            "reranked_top1_sat_inlier_coverage":
+                chosen.get(
+                    "sat_inlier_coverage"
+                ),
+
+            "reranked_top1_homography_ok":
+                bool(
+                    chosen.get(
+                        "homography_ok",
+                        False,
+                    )
+                ),
+
+            "top_n":
+                int(top_n),
+
+            "reference_used":
+                False,
+        })
+
+    return pd.DataFrame(rows)
+
+
 def summarize(query_summary: pd.DataFrame, args: argparse.Namespace, files: Dict[str, str], cols: Dict[str, str]) -> Dict[str, Any]:
     n = int(len(query_summary))
     def med(col: str) -> Optional[float]:
@@ -835,6 +975,182 @@ def summarize(query_summary: pd.DataFrame, args: argparse.Namespace, files: Dict
         "rerank_worsened_rows": int((improved < 0).sum()),
         "rerank_equal_rows": int((improved == 0).sum()),
         "resolved_columns": cols,
+    }
+
+
+def summarize_blind(
+    query_summary: pd.DataFrame,
+    scored: pd.DataFrame,
+    args: argparse.Namespace,
+    files: Dict[str, str],
+    cols: Dict[str, str],
+) -> Dict[str, Any]:
+
+    n_queries = int(
+        len(query_summary)
+    )
+
+    n_pairs = int(
+        len(scored)
+    )
+
+    homography = (
+        scored["homography_ok"]
+        .fillna(False)
+        .astype(bool)
+    )
+
+    selected_h = (
+        query_summary[
+            "reranked_top1_homography_ok"
+        ]
+        .fillna(False)
+        .astype(bool)
+    )
+
+    def median_numeric(
+        df: pd.DataFrame,
+        column: str,
+    ) -> Optional[float]:
+
+        values = (
+            pd.to_numeric(
+                df[column],
+                errors="coerce",
+            )
+            .dropna()
+        )
+
+        if not len(values):
+            return None
+
+        return float(
+            values.median()
+        )
+
+    return {
+        "stage":
+            "S8.12E.1_BLIND",
+
+        "status":
+            "PASS_TOPK_VERIFIER_RERANKER_BLIND",
+
+        "config":
+            files["config"],
+
+        "query_csv":
+            files["query_csv"],
+
+        "topk_csv":
+            files["topk_csv"],
+
+        "tile_index_csv":
+            files["tile_index_csv"],
+
+        "variant":
+            args.variant,
+
+        "tag":
+            args.tag,
+
+        "top_n":
+            int(args.top_n),
+
+        "verifier":
+            args.verifier,
+
+        "preprocess":
+            args.preprocess,
+
+        "resize_long":
+            int(args.resize_long),
+
+        "policy":
+            args.policy,
+
+        "query_count":
+            n_queries,
+
+        "query_candidate_pairs":
+            n_pairs,
+
+        "candidate_homography_success_count":
+            int(
+                homography.sum()
+            ),
+
+        "candidate_homography_success_rate":
+            float(
+                homography.mean()
+            )
+            if n_pairs
+            else None,
+
+        "candidate_inliers_median":
+            median_numeric(
+                scored,
+                "inliers",
+            ),
+
+        "candidate_inlier_ratio_median":
+            median_numeric(
+                scored,
+                "inlier_ratio",
+            ),
+
+        "selected_homography_success_count":
+            int(
+                selected_h.sum()
+            ),
+
+        "selected_homography_success_rate":
+            float(
+                selected_h.mean()
+            )
+            if n_queries
+            else None,
+
+        "selected_inliers_median":
+            median_numeric(
+                query_summary,
+                "reranked_top1_inliers",
+            ),
+
+        "selected_inlier_ratio_median":
+            median_numeric(
+                query_summary,
+                "reranked_top1_inlier_ratio",
+            ),
+
+        "selected_query_coverage_median":
+            median_numeric(
+                query_summary,
+                "reranked_top1_query_inlier_coverage",
+            ),
+
+        "selected_original_rank_median":
+            median_numeric(
+                query_summary,
+                "reranked_top1_original_rank",
+            ),
+
+        "blind_contract": {
+            "reference_used":
+                False,
+            "gps_used":
+                False,
+            "srt_used":
+                False,
+            "oracle_used":
+                False,
+            "ground_truth_used":
+                False,
+            "evaluation_metrics_computed":
+                False,
+        },
+
+        "resolved_columns":
+            cols,
     }
 
 
@@ -915,6 +1231,47 @@ def run(args: argparse.Namespace) -> None:
     topk_df = pd.read_csv(topk_csv)
     tile_df = pd.read_csv(tile_index_csv)
 
+    if args.blind_only:
+        forbidden_query_columns = {
+            "latitude",
+            "longitude",
+            "lat",
+            "lon",
+            "easting",
+            "northing",
+            "x_enu_m",
+            "y_enu_m",
+            "reference_x_m",
+            "reference_y_m",
+            "reference_cumulative_distance_m",
+            "gps_lat",
+            "gps_lon",
+            "srt_lat",
+            "srt_lon",
+            "oracle",
+            "oracle_tile_id",
+            "oracle_tile_ids",
+            "ground_truth",
+            "ground_truth_x",
+            "ground_truth_y",
+            "error_m",
+        }
+
+        present_forbidden = sorted(
+            forbidden_query_columns
+            & {
+                str(c).strip().lower()
+                for c in query_df.columns
+            }
+        )
+
+        if present_forbidden:
+            die(
+                "Blind mode refuses query reference/"
+                "evaluation columns: "
+                f"{present_forbidden}"
+            )
+
     merged, cols = prepare_inputs(query_df, topk_df, tile_df)
     rank_col = cols["topk_rank_col"]
     merged = merged[pd.to_numeric(merged[rank_col], errors="coerce") <= args.top_n].copy()
@@ -935,7 +1292,11 @@ def run(args: argparse.Namespace) -> None:
             merged["__query_id_norm"].isin(keep_qids)
         ].copy()
 
-    merged = evaluate_candidate_errors(merged, cols)
+    if not args.blind_only:
+        merged = evaluate_candidate_errors(
+            merged,
+            cols,
+        )
 
     info("\nResolved columns")
     info("----------------")
@@ -997,15 +1358,50 @@ def run(args: argparse.Namespace) -> None:
     scored["verifier_rank"] = scored.groupby("__query_id_norm")["verifier_score"].rank(method="first", ascending=False)
     scored["hybrid_rank"] = scored.groupby("__query_id_norm")["hybrid_score"].rank(method="first", ascending=False)
 
-    query_summary = build_query_summary(scored, cols, args.top_n, args.hit_threshold_m, args.policy)
-
     files = {
         "config": str(config_path),
         "query_csv": str(query_csv),
         "topk_csv": str(topk_csv),
-        "tile_index_csv": str(tile_index_csv),
+        "tile_index_csv": str(
+            tile_index_csv
+        ),
     }
-    summary = summarize(query_summary, args, files, cols)
+
+    if args.blind_only:
+        query_summary = (
+            build_blind_query_summary(
+                scored,
+                cols,
+                args.top_n,
+                args.policy,
+            )
+        )
+
+        summary = summarize_blind(
+            query_summary,
+            scored,
+            args,
+            files,
+            cols,
+        )
+
+    else:
+        query_summary = (
+            build_query_summary(
+                scored,
+                cols,
+                args.top_n,
+                args.hit_threshold_m,
+                args.policy,
+            )
+        )
+
+        summary = summarize(
+            query_summary,
+            args,
+            files,
+            cols,
+        )
 
     rerank_core_s = float(
         rerank_finished - rerank_started
@@ -1047,7 +1443,12 @@ def run(args: argparse.Namespace) -> None:
     summary_path = out_root / "s8_12e1_summary.json"
     scored.to_csv(scored_path, index=False)
     query_summary.to_csv(qsum_path, index=False)
-    save_figures(query_summary, out_root)
+
+    if not args.blind_only:
+        save_figures(
+            query_summary,
+            out_root,
+        )
 
     stage_finished = time.perf_counter()
 
@@ -1070,32 +1471,88 @@ def run(args: argparse.Namespace) -> None:
         ),
         encoding="utf-8",
     )
+    if not args.blind_only:
+        info("\nTop-1 diagnostic")
+        info("----------------")
+        info(f"queries:                   {summary['query_count']}")
+        info(f"DINO Top-1 center<=40m:    {summary['original_top1_hit_le_40m_hits']} / {summary['query_count']}")
+        info(f"DINO Top-1 contains body:  {summary['original_top1_contains_body_hits']} / {summary['query_count']}")
+        info(f"Rerank Top-1 center<=40m:  {summary['reranked_top1_hit_le_40m_hits']} / {summary['query_count']}")
+        info(f"Rerank Top-1 contains body:{summary['reranked_top1_contains_body_hits']} / {summary['query_count']}")
+        info(f"DINO contains body Top-5:  {summary['dino_contains_body_top5_hits']} / {summary['query_count']}")
+        info(f"DINO contains body Top-10: {summary['dino_contains_body_top10_hits']} / {summary['query_count']}")
+        info(f"DINO contains body Top-20: {summary['dino_contains_body_top20_hits']} / {summary['query_count']}")
+        info(f"DINO center<=40m Top-20:   {summary['dino_hit_le_40m_top20_hits']} / {summary['query_count']}")
+        info(f"DINO median center error:  {summary['original_top1_error_median_m']:.3f} m")
+        info(f"Rerank median center err:  {summary['reranked_top1_error_median_m']:.3f} m")
+        info(f"Best Top-20 median error:  {summary['dino_best_error_top20_median_m']:.3f} m")
+        info(f"Oracle mode:              {query_summary['oracle_mode'].mode().iloc[0] if 'oracle_mode' in query_summary.columns and len(query_summary) else 'unknown'}")
+        info(f"rerank improved rows:      {summary['rerank_improved_rows']}")
+        info(f"rerank worsened rows:      {summary['rerank_worsened_rows']}")
 
-    info("\nTop-1 diagnostic")
-    info("----------------")
-    info(f"queries:                   {summary['query_count']}")
-    info(f"DINO Top-1 center<=40m:    {summary['original_top1_hit_le_40m_hits']} / {summary['query_count']}")
-    info(f"DINO Top-1 contains body:  {summary['original_top1_contains_body_hits']} / {summary['query_count']}")
-    info(f"Rerank Top-1 center<=40m:  {summary['reranked_top1_hit_le_40m_hits']} / {summary['query_count']}")
-    info(f"Rerank Top-1 contains body:{summary['reranked_top1_contains_body_hits']} / {summary['query_count']}")
-    info(f"DINO contains body Top-5:  {summary['dino_contains_body_top5_hits']} / {summary['query_count']}")
-    info(f"DINO contains body Top-10: {summary['dino_contains_body_top10_hits']} / {summary['query_count']}")
-    info(f"DINO contains body Top-20: {summary['dino_contains_body_top20_hits']} / {summary['query_count']}")
-    info(f"DINO center<=40m Top-20:   {summary['dino_hit_le_40m_top20_hits']} / {summary['query_count']}")
-    info(f"DINO median center error:  {summary['original_top1_error_median_m']:.3f} m")
-    info(f"Rerank median center err:  {summary['reranked_top1_error_median_m']:.3f} m")
-    info(f"Best Top-20 median error:  {summary['dino_best_error_top20_median_m']:.3f} m")
-    info(f"Oracle mode:              {query_summary['oracle_mode'].mode().iloc[0] if 'oracle_mode' in query_summary.columns and len(query_summary) else 'unknown'}")
-    info(f"rerank improved rows:      {summary['rerank_improved_rows']}")
-    info(f"rerank worsened rows:      {summary['rerank_worsened_rows']}")
+        info("\nOutputs")
+        info("-------")
+        info(f"candidate scores: {scored_path}")
+        info(f"query summary:    {qsum_path}")
+        info(f"summary:          {summary_path}")
+        info(f"figures:          {out_root / 'figures'}")
+    else:
+        info(
+            "\nBlind ORB rerank diagnostic"
+        )
+        info(
+            "--------------------------"
+        )
+        info(
+            f"queries:                   "
+            f"{summary['query_count']}"
+        )
+        info(
+            f"candidate pairs:           "
+            f"{summary['query_candidate_pairs']}"
+        )
+        info(
+            f"candidate homography rate: "
+            f"{summary['candidate_homography_success_rate']}"
+        )
+        info(
+            f"selected homographies:     "
+            f"{summary['selected_homography_success_count']} "
+            f"/ {summary['query_count']}"
+        )
+        info(
+            f"selected median inliers:   "
+            f"{summary['selected_inliers_median']}"
+        )
+        info(
+            f"selected median ratio:     "
+            f"{summary['selected_inlier_ratio_median']}"
+        )
+        info(
+            f"selected median coverage:  "
+            f"{summary['selected_query_coverage_median']}"
+        )
+        info(
+            f"selected original rank med:"
+            f" {summary['selected_original_rank_median']}"
+        )
+        info(
+            "reference used:            false"
+        )
+        info(
+            "oracle used:               false"
+        )
 
-    info("\nOutputs")
-    info("-------")
-    info(f"candidate scores: {scored_path}")
-    info(f"query summary:    {qsum_path}")
-    info(f"summary:          {summary_path}")
-    info(f"figures:          {out_root / 'figures'}")
-    info("\nSTATUS: PASS_TOPK_VERIFIER_RERANKER")
+    if args.blind_only:
+        info(
+            "\nSTATUS: "
+            "PASS_TOPK_VERIFIER_RERANKER_BLIND"
+        )
+    else:
+        info(
+            "\nSTATUS: "
+            "PASS_TOPK_VERIFIER_RERANKER"
+        )
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
@@ -1130,8 +1587,17 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help=(
             "Benchmark/smoke mode: process only the first N query IDs. "
             "0 preserves the normal full-run behavior."
+        ))
+    p.add_argument(
+        "--blind-only",
+        action="store_true",
+        help=(
+            "Run ORB Top-K verification/reranking "
+            "without query reference coordinates, "
+            "oracle labels, GT errors, or evaluation "
+            "plots/metrics."
         ),
-    )
+    ),
     return p.parse_args(argv)
 
 

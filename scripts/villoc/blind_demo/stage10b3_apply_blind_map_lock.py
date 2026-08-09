@@ -302,12 +302,22 @@ def main() -> None:
         )
     )
 
+    bootstrap_status = bootstrap.get(
+        "status"
+    )
+
+    allowed_bootstrap_status = {
+        "PASS_BLIND_MAP_BOOTSTRAP",
+        "PASS_BLIND_MAP_BOOTSTRAP_NO_LOCK",
+    }
+
     require(
-        bootstrap.get("status")
-        == "PASS_BLIND_MAP_BOOTSTRAP",
+        bootstrap_status
+        in allowed_bootstrap_status,
         (
-            "Bootstrap report is not a passing "
-            "blind map lock."
+            "Bootstrap report is not a valid "
+            "blind bootstrap outcome: "
+            f"{bootstrap_status!r}"
         ),
     )
 
@@ -336,35 +346,64 @@ def main() -> None:
         "map_lock"
     )
 
-    require(
-        lock is not None,
-        "Bootstrap report has no map_lock.",
+    has_map_lock = (
+        bootstrap_status
+        == "PASS_BLIND_MAP_BOOTSTRAP"
     )
 
-    required_transform = [
-        "a_real",
-        "a_imag",
-        "b_real",
-        "b_imag",
-        "scale_m_per_visual_px",
-        "rotation_deg",
-        "lock_timestamp_s",
-        "lock_sequence_frame_id",
-    ]
+    if has_map_lock:
+        require(
+            lock is not None,
+            (
+                "Passing map-lock bootstrap "
+                "has no map_lock."
+            ),
+        )
 
-    missing_transform = [
-        key
-        for key in required_transform
-        if key not in lock
-    ]
+        required_transform = [
+            "a_real",
+            "a_imag",
+            "b_real",
+            "b_imag",
+            "scale_m_per_visual_px",
+            "rotation_deg",
+            "lock_timestamp_s",
+            "lock_sequence_frame_id",
+        ]
 
-    require(
-        not missing_transform,
-        (
-            "Bootstrap map_lock missing fields: "
-            f"{missing_transform}"
-        ),
-    )
+        missing_transform = [
+            key
+            for key in required_transform
+            if key not in lock
+        ]
+
+        require(
+            not missing_transform,
+            (
+                "Bootstrap map_lock missing fields: "
+                f"{missing_transform}"
+            ),
+        )
+
+    else:
+        require(
+            lock is None,
+            (
+                "No-lock bootstrap unexpectedly "
+                "contains a map_lock."
+            ),
+        )
+
+        require(
+            bootstrap.get(
+                "localization_state"
+            )
+            == "NO_TRUSTED_ABSOLUTE_LOCK",
+            (
+                "No-lock bootstrap does not expose "
+                "NO_TRUSTED_ABSOLUTE_LOCK."
+            ),
+        )
 
     # =====================================================
     # Identity join.
@@ -451,6 +490,486 @@ def main() -> None:
             "from zero."
         ),
     )
+
+    # =====================================================
+    # Valid no-lock continuation.
+    #
+    # A blind run may complete without a trustworthy
+    # absolute map bootstrap. In that state we preserve
+    # the raw XFeat visual-relative trajectory and make
+    # all map/metric fields explicitly unavailable.
+    #
+    # We do NOT:
+    # - fabricate a visual->map transform,
+    # - infer metres from visual pixels,
+    # - expose map coordinates,
+    # - expose latitude/longitude.
+    # =====================================================
+
+    if not has_map_lock:
+        out[
+            "relative_x_m"
+        ] = np.nan
+
+        out[
+            "relative_y_m"
+        ] = np.nan
+
+        out[
+            "relative_cumulative_distance_m"
+        ] = np.nan
+
+        out[
+            "estimated_map_x"
+        ] = np.nan
+
+        out[
+            "estimated_map_y"
+        ] = np.nan
+
+        out[
+            "map_aligned_available"
+        ] = False
+
+        out[
+            "initialization_state"
+        ] = (
+            "relative_only_no_map_lock"
+        )
+
+        # No map coordinate system is active for
+        # the emitted trajectory because no visual
+        # trajectory was aligned into the map.
+        out[
+            "map_crs"
+        ] = ""
+
+        out[
+            "map_alignment_source"
+        ] = (
+            "unavailable_no_trusted_absolute_lock"
+        )
+
+        out[
+            "bootstrap_transform_frozen"
+        ] = False
+
+        out[
+            "bootstrap_lock_frame"
+        ] = np.nan
+
+        out[
+            "bootstrap_lock_time_s"
+        ] = np.nan
+
+        out[
+            "bootstrap_scale_m_per_visual_px"
+        ] = np.nan
+
+        out[
+            "bootstrap_rotation_deg"
+        ] = np.nan
+
+        # -------------------------------------------------
+        # Leakage / availability guard.
+        # -------------------------------------------------
+
+        leaked = sorted(
+            FORBIDDEN_OUTPUT_COLUMNS
+            & set(out.columns)
+        )
+
+        require(
+            not leaked,
+            (
+                "Reference/evaluation fields leaked "
+                "into relative-only blind trajectory: "
+                f"{leaked}"
+            ),
+        )
+
+        require(
+            not out[
+                "map_aligned_available"
+            ].astype(bool).any(),
+            (
+                "No-lock trajectory unexpectedly "
+                "contains map-aligned rows."
+            ),
+        )
+
+        require(
+            out[
+                [
+                    "estimated_map_x",
+                    "estimated_map_y",
+                    "relative_x_m",
+                    "relative_y_m",
+                    "relative_cumulative_distance_m",
+                ]
+            ].isna().all().all(),
+            (
+                "No-lock trajectory contains "
+                "fabricated metric/map coordinates."
+            ),
+        )
+
+        visual_xy = out[
+            [
+                "visual_x_px",
+                "visual_y_px",
+            ]
+        ].to_numpy(float)
+
+        require(
+            np.isfinite(
+                visual_xy
+            ).all(),
+            (
+                "Visual-relative trajectory contains "
+                "non-finite coordinates."
+            ),
+        )
+
+        visual_path_length_px = (
+            trajectory_length(
+                visual_xy
+            )
+        )
+
+        # -------------------------------------------------
+        # Save using the same stable downstream path.
+        #
+        # The filename is retained as the Stage10B3
+        # interface. Availability columns/report state
+        # explicitly indicate that it is NOT map aligned.
+        # -------------------------------------------------
+
+        trajectory_dir = (
+            run_root
+            / "trajectories"
+        )
+
+        report_dir = (
+            run_root
+            / "reports/blind_map_alignment"
+        )
+
+        trajectory_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        report_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        out_path = (
+            trajectory_dir
+            / "blind_map_aligned_relative_trajectory.csv"
+        )
+
+        report_path = (
+            report_dir
+            / "blind_map_alignment_report.json"
+        )
+
+        front = [
+            "frame_index",
+            "timestamp_s",
+            "image_path",
+            "sequence_frame_id",
+            "query_id",
+            "token0_id",
+            "visual_x_px",
+            "visual_y_px",
+            "visual_yaw_rad",
+            "visual_yaw_deg_unwrapped",
+            "relative_x_m",
+            "relative_y_m",
+            "relative_cumulative_distance_m",
+            "estimated_map_x",
+            "estimated_map_y",
+            "map_aligned_available",
+            "initialization_state",
+            "map_crs",
+            "map_alignment_source",
+            "bootstrap_transform_frozen",
+            "bootstrap_lock_frame",
+            "bootstrap_lock_time_s",
+            "bootstrap_scale_m_per_visual_px",
+            "bootstrap_rotation_deg",
+            "step_motion_px",
+            "pair_safe_image_only",
+            "coordinate_contract",
+            "reference_used",
+        ]
+
+        front = [
+            col
+            for col in front
+            if col in out.columns
+        ]
+
+        out = out[
+            front
+        ].copy()
+
+        write_start = (
+            time.perf_counter()
+        )
+
+        out.to_csv(
+            out_path,
+            index=False,
+        )
+
+        write_seconds = (
+            time.perf_counter()
+            - write_start
+        )
+
+        input_hashes_after = {
+            "blind_manifest":
+                sha256_file(
+                    blind_path
+                ),
+            "raw_relative":
+                sha256_file(
+                    relative_path
+                ),
+            "bootstrap_report":
+                sha256_file(
+                    bootstrap_path
+                ),
+        }
+
+        require(
+            input_hashes_before
+            == input_hashes_after,
+            (
+                "One or more frozen blind inputs "
+                "changed during Stage 10B.3."
+            ),
+        )
+
+        stage_seconds = (
+            time.perf_counter()
+            - stage_start
+        )
+
+        no_lock_reason = (
+            bootstrap.get(
+                "no_lock_reason"
+            )
+        )
+
+        report = {
+            "stage": (
+                "STAGE_10B3_APPLY_BLIND_MAP_LOCK"
+            ),
+            "status": (
+                "PASS_BLIND_RELATIVE_ONLY_NO_MAP_LOCK"
+            ),
+            "localization_state": (
+                "NO_TRUSTED_ABSOLUTE_LOCK"
+            ),
+            "trajectory_state": (
+                "RELATIVE_VISUAL_ONLY"
+            ),
+            "no_lock_reason": (
+                no_lock_reason
+            ),
+            "purpose": (
+                "Preserve the reference-free "
+                "XFeat visual-relative trajectory "
+                "when no trusted blind map lock "
+                "is available."
+            ),
+            "blind_contract": {
+                "gps_used": False,
+                "srt_used": False,
+                "reference_used": False,
+                "oracle_used": False,
+                "evaluation_error_used": False,
+                "prelock_backfill_performed": False,
+                "map_coordinates_from_visual_matching": False,
+            },
+            "coordinate_contract": {
+                "raw_relative": (
+                    "relative_visual_image_only"
+                ),
+                "metric_relative": None,
+                "map_coordinate_system": None,
+                "map_trajectory_type": None,
+                "visual_trajectory_type": (
+                    "relative_visual_image_only"
+                ),
+                "postlock_corrections_applied": False,
+            },
+            "bootstrap": {
+                "bootstrap_status": (
+                    bootstrap_status
+                ),
+                "map_lock_available": False,
+                "no_lock_reason": (
+                    no_lock_reason
+                ),
+            },
+            "availability": {
+                "relative_visual_available": True,
+                "metric_relative_available": False,
+                "map_alignment_available": False,
+                "absolute_coordinates_available": False,
+            },
+            "rows": {
+                "total": int(
+                    len(out)
+                ),
+                "map_aligned_available": 0,
+                "relative_visual_available": int(
+                    len(out)
+                ),
+            },
+            "visual_relative_summary": {
+                "first_frame": int(
+                    out.iloc[0][
+                        "sequence_frame_id"
+                    ]
+                ),
+                "last_frame": int(
+                    out.iloc[-1][
+                        "sequence_frame_id"
+                    ]
+                ),
+                "first_timestamp_s": float(
+                    out.iloc[0][
+                        "timestamp_s"
+                    ]
+                ),
+                "last_timestamp_s": float(
+                    out.iloc[-1][
+                        "timestamp_s"
+                    ]
+                ),
+                "visual_path_length_px": float(
+                    visual_path_length_px
+                ),
+            },
+            "input_sha256": (
+                input_hashes_before
+            ),
+            "runtime": {
+                "trajectory_build_s": float(
+                    stage_seconds
+                    - write_seconds
+                ),
+                "output_write_s": float(
+                    write_seconds
+                ),
+                "total_stage_wall_s": float(
+                    stage_seconds
+                ),
+            },
+            "outputs": {
+                "trajectory": str(
+                    out_path
+                ),
+                "report": str(
+                    report_path
+                ),
+            },
+            "important_note": (
+                "No trusted map lock was obtained. "
+                "Visual-relative XFeat motion is "
+                "preserved, but no metric/map "
+                "coordinates are fabricated."
+            ),
+        }
+
+        report_path.write_text(
+            json.dumps(
+                report,
+                indent=2,
+                default=json_safe,
+                allow_nan=False,
+            ),
+            encoding="utf-8",
+        )
+
+        print("=" * 80)
+        print(
+            "STAGE 10B.3 — RELATIVE-ONLY "
+            "NO-MAP-LOCK CONTINUATION"
+        )
+        print("=" * 80)
+
+        print()
+        print("Blind contract")
+        print("-" * 80)
+        print(
+            "GPS used                : false"
+        )
+        print(
+            "SRT used                : false"
+        )
+        print(
+            "reference used          : false"
+        )
+        print(
+            "oracle used             : false"
+        )
+
+        print()
+        print("Localization state")
+        print("-" * 80)
+        print(
+            "state                   : "
+            "NO_TRUSTED_ABSOLUTE_LOCK"
+        )
+        print(
+            "reason                  :",
+            no_lock_reason,
+        )
+        print(
+            "relative visual         : available"
+        )
+        print(
+            "metric relative         : unavailable"
+        )
+        print(
+            "map coordinates         : unavailable"
+        )
+
+        print()
+        print("Trajectory")
+        print("-" * 80)
+        print(
+            "rows                    :",
+            len(out),
+        )
+        print(
+            "visual path length      :",
+            f"{visual_path_length_px:.3f} px",
+        )
+        print(
+            "map-aligned rows        : 0"
+        )
+
+        print()
+        print("Saved")
+        print("-" * 80)
+        print(out_path)
+        print(report_path)
+
+        print()
+        print(
+            "status: "
+            "PASS_BLIND_RELATIVE_ONLY_NO_MAP_LOCK"
+        )
+
+        return
 
     # =====================================================
     # Frozen visual -> EPSG:3346 similarity.

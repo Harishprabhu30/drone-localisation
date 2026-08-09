@@ -383,11 +383,8 @@ def main() -> None:
     )
 
     require(
-        len(fused) == 403,
-        (
-            "Expected 403 fused rows, got "
-            f"{len(fused)}."
-        ),
+        len(fused) > 0,
+        "Fused trajectory is empty.",
     )
 
     leaked = sorted(
@@ -417,10 +414,6 @@ def main() -> None:
         "map_aligned_available",
         "correction_applied",
         "correction_reason",
-        "reranked_top1_tile_id",
-        "reranked_top1_verifier_score",
-        "reranked_top1_hybrid_score",
-        "reranked_top1_inliers",
         "map_crs",
     }
 
@@ -436,6 +429,64 @@ def main() -> None:
             f"{missing}"
         ),
     )
+
+    # =====================================================
+    # ADDON9_DUAL_FUSED_SCHEMA_CONTRACT
+    #
+    # Add-on 9 supports two legitimate blind fused outputs:
+    #
+    #   1. ABSOLUTE/map-aligned trajectory
+    #      - estimated_map_x / estimated_map_y are available
+    #      - visual_x_px / visual_y_px are optional
+    #
+    #   2. Relative-visual-only trajectory
+    #      - no finite map coordinates are available
+    #      - visual_x_px / visual_y_px are required so the
+    #        blind result can still preserve its relative path
+    #
+    # The older absolute-lock fusion schema never carried
+    # visual_x_px / visual_y_px through temporal fusion.
+    # Therefore those fields must not be required globally.
+    # =====================================================
+
+    map_x_for_contract = pd.to_numeric(
+        fused["estimated_map_x"],
+        errors="coerce",
+    )
+
+    map_y_for_contract = pd.to_numeric(
+        fused["estimated_map_y"],
+        errors="coerce",
+    )
+
+    finite_map_mask_for_contract = (
+        map_x_for_contract.notna()
+        & map_y_for_contract.notna()
+    )
+
+    has_map_positions_for_contract = bool(
+        finite_map_mask_for_contract.any()
+    )
+
+    visual_contract_columns = {
+        "visual_x_px",
+        "visual_y_px",
+    }
+
+    missing_visual_contract = sorted(
+        visual_contract_columns
+        - set(fused.columns)
+    )
+
+    if not has_map_positions_for_contract:
+        require(
+            not missing_visual_contract,
+            (
+                "Relative-visual-only fused trajectory "
+                "requires visual pixel coordinates: "
+                f"{missing_visual_contract}"
+            ),
+        )
 
     fused["query_id"] = pd.to_numeric(
         fused["query_id"],
@@ -468,12 +519,23 @@ def main() -> None:
         )
     )
 
+    fusion_status = fusion_report.get(
+        "status"
+    )
+
     require(
-        fusion_report.get("status")
-        == "PASS_BLIND_TEMPORAL_FUSION",
+        fusion_status
+        in {
+            "PASS_BLIND_TEMPORAL_FUSION",
+            (
+                "PASS_BLIND_TEMPORAL_FUSION_"
+                "SKIPPED_NO_MAP_LOCK"
+            ),
+        },
         (
-            "Fusion report is not a passing "
-            "blind temporal fusion report."
+            "Fusion report is not a valid "
+            "blind temporal-fusion outcome: "
+            f"{fusion_status!r}"
         ),
     )
 
@@ -499,6 +561,666 @@ def main() -> None:
                 f"{blind_contract.get(key)!r}"
             ),
         )
+
+    # =====================================================
+    # Successful no-map-lock export.
+    #
+    # Add-on 9 remains part of the stable pipeline even when
+    # no absolute location is available. In this state it
+    # writes the normal submission path, but map and WGS84
+    # position fields remain explicitly unavailable.
+    # =====================================================
+
+    if (
+        fusion_status
+        == (
+            "PASS_BLIND_TEMPORAL_FUSION_"
+            "SKIPPED_NO_MAP_LOCK"
+        )
+    ):
+        require(
+            fusion_report.get(
+                "localization_state"
+            )
+            == "NO_TRUSTED_ABSOLUTE_LOCK",
+            (
+                "No-lock fusion report has an "
+                "unexpected localization state."
+            ),
+        )
+
+        available = bool_series(
+            fused[
+                "map_aligned_available"
+            ]
+        ).to_numpy(bool)
+
+        require(
+            not available.any(),
+            (
+                "No-lock fused trajectory "
+                "contains map-aligned rows."
+            ),
+        )
+
+        for col in [
+            "relative_x_m",
+            "relative_y_m",
+            "estimated_map_x",
+            "estimated_map_y",
+        ]:
+            require(
+                pd.to_numeric(
+                    fused[col],
+                    errors="coerce",
+                )
+                .isna()
+                .all(),
+                (
+                    "No-lock fused trajectory "
+                    f"unexpectedly contains {col}."
+                ),
+            )
+
+        # ---------------------------------------------
+        # Blind-safe DINO + ORB evidence comes from
+        # the already-produced query summary.
+        # ---------------------------------------------
+
+        qsum = pd.read_csv(
+            qsum_path,
+            usecols=[
+                "query_id",
+                "original_top1_tile_id",
+                "original_top1_dino_score",
+                "reranked_top1_tile_id",
+                "reranked_top1_verifier_score",
+                "reranked_top1_hybrid_score",
+                "reranked_top1_inliers",
+            ],
+        )
+
+        qsum[
+            "query_id"
+        ] = pd.to_numeric(
+            qsum[
+                "query_id"
+            ],
+            errors="raise",
+        ).astype(int)
+
+        require(
+            not qsum[
+                "query_id"
+            ].duplicated().any(),
+            (
+                "Absolute query summary has "
+                "duplicate query IDs."
+            ),
+        )
+
+        out = fused.merge(
+            qsum,
+            on="query_id",
+            how="left",
+            validate="one_to_one",
+        )
+
+        require(
+            len(out) == len(fused),
+            (
+                "Absolute evidence join changed "
+                "trajectory row count."
+            ),
+        )
+
+        require(
+            not out[
+                "original_top1_tile_id"
+            ].isna().any(),
+            (
+                "Missing DINO Top-1 evidence."
+            ),
+        )
+
+        require(
+            not out[
+                "reranked_top1_tile_id"
+            ].isna().any(),
+            (
+                "Missing ORB selected evidence."
+            ),
+        )
+
+        # ---------------------------------------------
+        # No trusted absolute position exists.
+        # ---------------------------------------------
+
+        out[
+            "estimated_lat"
+        ] = np.nan
+
+        out[
+            "estimated_lon"
+        ] = np.nan
+
+        out[
+            "confidence_score"
+        ] = pd.to_numeric(
+            out[
+                "reranked_top1_hybrid_score"
+            ],
+            errors="coerce",
+        )
+
+        out[
+            "accepted_correction"
+        ] = False
+
+        out[
+            "map_lock_event"
+        ] = False
+
+        out[
+            "correction_source"
+        ] = None
+
+        out[
+            "dino_top1_tile_id"
+        ] = out[
+            "original_top1_tile_id"
+        ]
+
+        out[
+            "dino_top1_score"
+        ] = pd.to_numeric(
+            out[
+                "original_top1_dino_score"
+            ],
+            errors="coerce",
+        )
+
+        out[
+            "orb_selected_tile_id"
+        ] = out[
+            "reranked_top1_tile_id"
+        ]
+
+        out[
+            "orb_score"
+        ] = pd.to_numeric(
+            out[
+                "reranked_top1_verifier_score"
+            ],
+            errors="coerce",
+        )
+
+        out[
+            "orb_inliers"
+        ] = pd.to_numeric(
+            out[
+                "reranked_top1_inliers"
+            ],
+            errors="coerce",
+        )
+
+        out[
+            "localization_state"
+        ] = (
+            "NO_TRUSTED_ABSOLUTE_LOCK"
+        )
+
+        # ---------------------------------------------
+        # Runtime evidence remains optional.
+        # ---------------------------------------------
+
+        timing = None
+
+        if timing_path is not None:
+            timing = pd.read_csv(
+                timing_path
+            )
+
+        relative_ms = timing_value(
+            timing,
+            "relative_odometry",
+        )
+
+        retrieval_ms = timing_value(
+            timing,
+            "dino_retrieval_against_map_cache",
+        )
+
+        rerank_ms = timing_value(
+            timing,
+            "orb_topk_reranking",
+            prefer_secondary=True,
+        )
+
+        out[
+            "runtime_relative_ms"
+        ] = (
+            relative_ms
+            if relative_ms is not None
+            else np.nan
+        )
+
+        out[
+            "runtime_retrieval_ms"
+        ] = (
+            retrieval_ms
+            if retrieval_ms is not None
+            else np.nan
+        )
+
+        out[
+            "runtime_rerank_ms"
+        ] = (
+            rerank_ms
+            if rerank_ms is not None
+            else np.nan
+        )
+
+        submission_columns = [
+            "frame_index",
+            "sequence_frame_id",
+            "query_id",
+            "token0_id",
+            "timestamp_s",
+            "image_path",
+
+            "visual_x_px",
+            "visual_y_px",
+
+            "relative_x_m",
+            "relative_y_m",
+
+            "estimated_map_x",
+            "estimated_map_y",
+            "estimated_lat",
+            "estimated_lon",
+
+            "map_aligned_available",
+            "map_lock_event",
+            "localization_state",
+
+            "confidence_score",
+            "accepted_correction",
+            "correction_source",
+
+            "dino_top1_tile_id",
+            "dino_top1_score",
+            "orb_selected_tile_id",
+            "orb_score",
+            "orb_inliers",
+
+            "runtime_relative_ms",
+            "runtime_retrieval_ms",
+            "runtime_rerank_ms",
+        ]
+
+        submission = out[
+            submission_columns
+        ].copy()
+
+        leaked = sorted(
+            FORBIDDEN
+            & set(
+                submission.columns
+            )
+        )
+
+        require(
+            not leaked,
+            (
+                "No-lock submission contains "
+                f"forbidden columns: {leaked}"
+            ),
+        )
+
+        for col in [
+            "relative_x_m",
+            "relative_y_m",
+            "estimated_map_x",
+            "estimated_map_y",
+            "estimated_lat",
+            "estimated_lon",
+        ]:
+            require(
+                pd.to_numeric(
+                    submission[col],
+                    errors="coerce",
+                )
+                .isna()
+                .all(),
+                (
+                    "No-lock submission contains "
+                    f"unexpected values in {col}."
+                ),
+            )
+
+        require(
+            np.isfinite(
+                pd.to_numeric(
+                    submission[
+                        "visual_x_px"
+                    ],
+                    errors="raise",
+                )
+            ).all(),
+            "visual_x_px is not finite.",
+        )
+
+        require(
+            np.isfinite(
+                pd.to_numeric(
+                    submission[
+                        "visual_y_px"
+                    ],
+                    errors="raise",
+                )
+            ).all(),
+            "visual_y_px is not finite.",
+        )
+
+        # ---------------------------------------------
+        # Save using the normal stable submission path.
+        # ---------------------------------------------
+
+        trajectory_dir = (
+            run_root
+            / "trajectories"
+        )
+
+        report_dir = (
+            run_root
+            / "reports/"
+              "addon9_estimated_latlon"
+        )
+
+        trajectory_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        report_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        submission_path = (
+            trajectory_dir
+            / "submission_estimated_trajectory.csv"
+        )
+
+        report_path = (
+            report_dir
+            / "estimated_latlon_export_report.json"
+        )
+
+        write_start = (
+            time.perf_counter()
+        )
+
+        submission.to_csv(
+            submission_path,
+            index=False,
+        )
+
+        write_s = (
+            time.perf_counter()
+            - write_start
+        )
+
+        hashes_after = {
+            "fused_trajectory":
+                sha256_file(
+                    fused_path
+                ),
+
+            "fusion_report":
+                sha256_file(
+                    fusion_report_path
+                ),
+
+            "absolute_query_summary":
+                sha256_file(
+                    qsum_path
+                ),
+        }
+
+        if timing_path is not None:
+            hashes_after[
+                "timing_summary"
+            ] = sha256_file(
+                timing_path
+            )
+
+        if tile_index_path is not None:
+            hashes_after[
+                "tile_index"
+            ] = sha256_file(
+                tile_index_path
+            )
+
+        require(
+            input_hashes_before
+            == hashes_after,
+            (
+                "One or more Add-on 9 inputs "
+                "changed during execution."
+            ),
+        )
+
+        stage_s = (
+            time.perf_counter()
+            - stage_start
+        )
+
+        report = {
+            "stage": (
+                "ADDON9_ESTIMATED_LATLON_EXPORT"
+            ),
+            "status": (
+                "PASS_ADDON9_NO_ABSOLUTE_"
+                "EXPORT_NO_MAP_LOCK"
+            ),
+            "localization_state": (
+                "NO_TRUSTED_ABSOLUTE_LOCK"
+            ),
+            "export_state": (
+                "RELATIVE_VISUAL_ONLY"
+            ),
+            "no_lock_reason": (
+                fusion_report.get(
+                    "no_lock_reason"
+                )
+            ),
+            "blind_contract": {
+                "gps_used": False,
+                "srt_used": False,
+                "reference_used": False,
+                "oracle_used": False,
+                "evaluation_error_used": False,
+                "prelock_backfill_performed": False,
+                "estimated_latlon_are_output_not_input": True,
+            },
+            "availability": {
+                "relative_visual_available": True,
+                "metric_relative_available": False,
+                "map_alignment_available": False,
+                "estimated_map_xy_available": False,
+                "estimated_latlon_available": False,
+            },
+            "coordinate_conversion": {
+                "executed": False,
+                "source_crs": (
+                    args.source_crs
+                ),
+                "target_crs": (
+                    args.target_crs
+                ),
+                "reason": (
+                    "No trusted absolute map "
+                    "alignment is available."
+                ),
+            },
+            "confidence_contract": {
+                "confidence_score_source": (
+                    "reranked_top1_hybrid_score"
+                ),
+                "confidence_score_is_probability": False,
+                "confidence_is_evidence_only": True,
+            },
+            "rows": {
+                "total": int(
+                    len(submission)
+                ),
+                "relative_visual_available": int(
+                    len(submission)
+                ),
+                "map_aligned_available": 0,
+                "estimated_latlon_available": 0,
+                "accepted_corrections": 0,
+                "map_lock_events": 0,
+            },
+            "runtime_contract": {
+                "runtime_relative_ms": (
+                    relative_ms
+                ),
+                "runtime_retrieval_ms": (
+                    retrieval_ms
+                ),
+                "runtime_rerank_ms": (
+                    rerank_ms
+                ),
+            },
+            "runtime": {
+                "coordinate_transform_s": 0.0,
+                "output_write_s": float(
+                    write_s
+                ),
+                "total_stage_wall_s": float(
+                    stage_s
+                ),
+            },
+            "inputs_sha256": (
+                input_hashes_before
+            ),
+            "outputs": {
+                "submission_estimated_trajectory":
+                    str(
+                        submission_path
+                    ),
+                "report":
+                    str(
+                        report_path
+                    ),
+            },
+            "important_note": (
+                "No trusted absolute map lock "
+                "was obtained. Estimated map XY "
+                "and latitude/longitude are "
+                "intentionally unavailable; "
+                "visual-relative localization "
+                "is preserved."
+            ),
+        }
+
+        report_path.write_text(
+            json.dumps(
+                report,
+                indent=2,
+                default=json_safe,
+                allow_nan=False,
+            ),
+            encoding="utf-8",
+        )
+
+        print("=" * 80)
+        print(
+            "ADD-ON 9 — NO-LOCK "
+            "ABSOLUTE EXPORT"
+        )
+        print("=" * 80)
+
+        print()
+        print("Localization state")
+        print("-" * 80)
+
+        print(
+            "state                   : "
+            "NO_TRUSTED_ABSOLUTE_LOCK"
+        )
+
+        print(
+            "relative visual         : available"
+        )
+
+        print(
+            "map XY                  : unavailable"
+        )
+
+        print(
+            "estimated lat/lon       : unavailable"
+        )
+
+        print(
+            "coordinate conversion   : skipped"
+        )
+
+        print()
+        print("Rows")
+        print("-" * 80)
+
+        print(
+            "total                   :",
+            len(submission),
+        )
+
+        print(
+            "lat/lon available       : 0"
+        )
+
+        print()
+        print("Saved")
+        print("-" * 80)
+
+        print(submission_path)
+        print(report_path)
+
+        print()
+        print(
+            "status: "
+            "PASS_ADDON9_NO_ABSOLUTE_"
+            "EXPORT_NO_MAP_LOCK"
+        )
+
+        return
+
+    # Normal locked-path requirements remain unchanged.
+    locked_required = {
+        "reranked_top1_tile_id",
+        "reranked_top1_verifier_score",
+        "reranked_top1_hybrid_score",
+        "reranked_top1_inliers",
+    }
+
+    missing_locked = sorted(
+        locked_required
+        - set(
+            fused.columns
+        )
+    )
+
+    require(
+        not missing_locked,
+        (
+            "Locked fused trajectory missing "
+            "ORB evidence fields: "
+            f"{missing_locked}"
+        ),
+    )
 
     lock_frame = int(
         fusion_report[
@@ -541,7 +1263,7 @@ def main() -> None:
     )
 
     require(
-        len(out) == 403,
+        len(out) == len(fused),
         (
             "DINO evidence join changed "
             "trajectory row count."
