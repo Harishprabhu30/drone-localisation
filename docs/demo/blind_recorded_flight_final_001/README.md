@@ -1,7 +1,7 @@
 # Blind Recorded-Flight UAV Localization Demo
 
 **Run ID:** `blind_recorded_flight_final_001`
-**Pipeline status:** `PASS_DEMO_STAGE9B_ORCHESTRATED_BLIND_RUN`
+**Pipeline status:** `SUCCESSFUL_DEMO_ORCHESTRATED_BLIND_RUN`
 **Stages completed:** `17 / 17`
 **Localization state:** `PROVISIONAL_ABSOLUTE_LOCK`
 **Reference / GT used during localization:** **No**
@@ -215,21 +215,21 @@ The latitude/longitude columns are therefore **visual localization estimates**, 
 
 ### Estimated XY trajectory
 
-[Open ](./figures/estimated_fused_xy.png)[`estimated_fused_xy.png`](./figures/estimated_fused_xy.png)
+[`estimated_fused_xy.png`](./figures/estimated_fused_xy.png)
 
 This shows the map-aligned estimated trajectory after the provisional absolute map state becomes available.
 
 ### Interactive estimated map
 
-[Open ](./maps/estimated_fused_map.html)[`estimated_fused_map.html`](./maps/estimated_fused_map.html)
+[`estimated_fused_map.html`](./maps/estimated_fused_map.html)
 
 This is the Folium map containing the estimated geographic trajectory over the prepared orthophoto.
 
-GitHub does not render the interactive Folium HTML directly. **Download the ****`.html`**** file and open it locally in a web browser** to view the interactive map.
+GitHub does not render the interactive Folium HTML directly. **Download the `.html` file and open it locally in a web browser** to view the interactive map.
 
 ### Run summary
 
-[Open ](./demo_run_summary.md)[`demo_run_summary.md`](./demo_run_summary.md)
+[`demo_run_summary.md`](./demo_run_summary.md)
 
 This contains the automatically generated summary of the final run, including the localization state, number of map-aligned poses, runtime information, and execution status.
 
