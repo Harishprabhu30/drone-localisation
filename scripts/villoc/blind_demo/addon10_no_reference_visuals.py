@@ -1581,10 +1581,442 @@ def map_bounds_from_tile_index(
     ]
 
 
+
+def add_prepared_orthophoto_overlay(
+    fmap,
+    ortho_tif: Path,
+) -> dict[str, Any]:
+    """
+    Add the already-prepared map orthophoto to Folium.
+
+    Blind-safety
+    ------------
+    This function consumes only the map GeoTIFF already available
+    to the localization system. It does not consume SRT, GPS, GT,
+    reference trajectory, oracle labels, or evaluation metrics.
+
+    The raster is downsampled before being embedded so the HTML
+    remains reasonably portable.
+    """
+
+    ortho_tif = ortho_tif.resolve()
+
+    require(
+        ortho_tif.exists(),
+        (
+            "Requested orthophoto does not exist: "
+            f"{ortho_tif}"
+        ),
+    )
+
+    try:
+        import rasterio
+        from rasterio.enums import Resampling
+        from rasterio.warp import transform_bounds
+    except Exception as exc:
+        raise RuntimeError(
+            "--ortho-tif requires rasterio."
+        ) from exc
+
+
+    max_side = 1600
+
+
+    with rasterio.open(
+        ortho_tif
+    ) as src:
+
+        require(
+            src.crs is not None,
+            (
+                "Orthophoto has no CRS: "
+                f"{ortho_tif}"
+            ),
+        )
+
+
+        scale = min(
+            1.0,
+            max_side
+            / float(
+                max(
+                    src.width,
+                    src.height,
+                )
+            ),
+        )
+
+
+        out_width = max(
+            1,
+            int(
+                round(
+                    src.width
+                    * scale
+                )
+            ),
+        )
+
+
+        out_height = max(
+            1,
+            int(
+                round(
+                    src.height
+                    * scale
+                )
+            ),
+        )
+
+
+        if src.count >= 3:
+            indexes = [
+                1,
+                2,
+                3,
+            ]
+        else:
+            indexes = [
+                1,
+            ]
+
+
+        data = src.read(
+            indexes=indexes,
+            out_shape=(
+                len(indexes),
+                out_height,
+                out_width,
+            ),
+            resampling=(
+                Resampling.bilinear
+            ),
+            masked=True,
+        )
+
+
+        mask = np.ma.getmaskarray(
+            data
+        )
+
+
+        if mask.ndim == 3:
+
+            valid = ~np.any(
+                mask,
+                axis=0,
+            )
+
+        else:
+
+            valid = ~mask
+
+
+        rgb = np.zeros(
+            (
+                out_height,
+                out_width,
+                3,
+            ),
+            dtype=np.uint8,
+        )
+
+
+        # Robust display stretch.
+        #
+        # This affects visualization only. It does not alter
+        # the localization map or any descriptor data.
+        normalized_channels = []
+
+
+        for channel_index in range(
+            len(indexes)
+        ):
+
+            band = np.asarray(
+                np.ma.filled(
+                    data[
+                        channel_index
+                    ],
+                    np.nan,
+                ),
+                dtype=float,
+            )
+
+
+            finite = (
+                valid
+                & np.isfinite(
+                    band
+                )
+            )
+
+
+            values = band[
+                finite
+            ]
+
+
+            if len(values) == 0:
+
+                normalized = np.zeros(
+                    (
+                        out_height,
+                        out_width,
+                    ),
+                    dtype=np.uint8,
+                )
+
+            else:
+
+                lo = float(
+                    np.percentile(
+                        values,
+                        2.0,
+                    )
+                )
+
+                hi = float(
+                    np.percentile(
+                        values,
+                        98.0,
+                    )
+                )
+
+
+                if (
+                    not np.isfinite(lo)
+                    or not np.isfinite(hi)
+                    or hi <= lo
+                ):
+
+                    lo = float(
+                        np.nanmin(
+                            values
+                        )
+                    )
+
+                    hi = float(
+                        np.nanmax(
+                            values
+                        )
+                    )
+
+
+                if hi <= lo:
+
+                    normalized = np.zeros(
+                        (
+                            out_height,
+                            out_width,
+                        ),
+                        dtype=np.uint8,
+                    )
+
+                else:
+
+                    stretched = (
+                        (
+                            band - lo
+                        )
+                        /
+                        (
+                            hi - lo
+                        )
+                    )
+
+
+                    stretched = np.clip(
+                        stretched,
+                        0.0,
+                        1.0,
+                    )
+
+
+                    normalized = (
+                        stretched
+                        * 255.0
+                    )
+
+
+                    normalized[
+                        ~np.isfinite(
+                            normalized
+                        )
+                    ] = 0.0
+
+
+                    normalized = (
+                        normalized.astype(
+                            np.uint8
+                        )
+                    )
+
+
+            normalized_channels.append(
+                normalized
+            )
+
+
+        if len(
+            normalized_channels
+        ) == 1:
+
+            for c in range(3):
+
+                rgb[
+                    :,
+                    :,
+                    c,
+                ] = normalized_channels[
+                    0
+                ]
+
+        else:
+
+            for c in range(3):
+
+                rgb[
+                    :,
+                    :,
+                    c,
+                ] = normalized_channels[
+                    c
+                ]
+
+
+        alpha = np.where(
+            valid,
+            255,
+            0,
+        ).astype(
+            np.uint8
+        )
+
+
+        rgba = np.dstack(
+            [
+                rgb,
+                alpha,
+            ]
+        )
+
+
+        west, south, east, north = (
+            transform_bounds(
+                src.crs,
+                "EPSG:4326",
+                src.bounds.left,
+                src.bounds.bottom,
+                src.bounds.right,
+                src.bounds.top,
+                densify_pts=21,
+            )
+        )
+
+
+        source_crs = str(
+            src.crs
+        )
+
+        source_width = int(
+            src.width
+        )
+
+        source_height = int(
+            src.height
+        )
+
+
+    folium.raster_layers.ImageOverlay(
+        image=rgba,
+        bounds=[
+            [
+                south,
+                west,
+            ],
+            [
+                north,
+                east,
+            ],
+        ],
+        name="Prepared orthophoto",
+        opacity=0.68,
+        interactive=False,
+        cross_origin=False,
+        zindex=1,
+        show=True,
+    ).add_to(
+        fmap
+    )
+
+
+    return {
+        "enabled":
+            True,
+
+        "source":
+            str(
+                ortho_tif
+            ),
+
+        "source_crs":
+            source_crs,
+
+        "source_width_px":
+            source_width,
+
+        "source_height_px":
+            source_height,
+
+        "embedded_width_px":
+            int(
+                out_width
+            ),
+
+        "embedded_height_px":
+            int(
+                out_height
+            ),
+
+        "opacity":
+            0.68,
+
+        "wgs84_bounds": {
+            "west":
+                float(
+                    west
+                ),
+
+            "south":
+                float(
+                    south
+                ),
+
+            "east":
+                float(
+                    east
+                ),
+
+            "north":
+                float(
+                    north
+                ),
+        },
+
+        "blind_safe_map_input":
+            True,
+
+        "reference_used":
+            False,
+    }
+
+
 def save_folium_map(
     submission: pd.DataFrame,
     tile_index: pd.DataFrame | None,
     output_path: Path,
+    ortho_tif: Path | None = None,
 ) -> dict[str, Any]:
 
     available = bool_series(
@@ -1658,6 +2090,22 @@ def save_folium_map(
         control_scale=True,
         tiles="OpenStreetMap",
     )
+
+    orthophoto_overlay_info = {
+        "enabled": False,
+        "source": None,
+        "blind_safe_map_input": True,
+        "reference_used": False,
+    }
+
+    if ortho_tif is not None:
+
+        orthophoto_overlay_info = (
+            add_prepared_orthophoto_overlay(
+                fmap=fmap,
+                ortho_tif=ortho_tif,
+            )
+        )
 
     folium.PolyLine(
         list(
@@ -1861,6 +2309,12 @@ def save_folium_map(
         exist_ok=True,
     )
 
+    folium.LayerControl(
+        collapsed=False,
+    ).add_to(
+        fmap
+    )
+
     fmap.save(
         str(
             output_path
@@ -1868,6 +2322,10 @@ def save_folium_map(
     )
 
     return {
+        "orthophoto_overlay":
+            orthophoto_overlay_info,
+
+
         "estimated_latlon_poses": int(
             len(map_df)
         ),
@@ -1930,6 +2388,17 @@ def main() -> None:
         help=(
             "Optional blind-safe prepared map tile index. "
             "Used only for map coverage context."
+        ),
+    )
+
+    parser.add_argument(
+        "--ortho-tif",
+        type=Path,
+        default=None,
+        help=(
+            "Optional prepared georeferenced orthophoto GeoTIFF "
+            "to embed beneath the estimated trajectory in the "
+            "Folium map. This is map input, not GT/reference."
         ),
     )
 
@@ -2832,7 +3301,12 @@ def main() -> None:
         submission,
         tile_index,
         map_path,
-    )
+            ortho_tif=(
+            args.ortho_tif.resolve()
+            if args.ortho_tif is not None
+            else None
+        ),
+)
 
     folium_map_generation_s = (
         time.perf_counter()
