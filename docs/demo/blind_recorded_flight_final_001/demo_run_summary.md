@@ -4,7 +4,6 @@
 - **Run ID:** `blind_recorded_flight_final_001`
 - **Primary mode:** blind / no-reference localization
 - **Evaluation attachment:** not included
-- **Status:** PASS
 
 > The localization result is produced without SRT/GPS/ground truth. Reference unavailable: accuracy metrics not computed.
 
@@ -69,7 +68,7 @@
 
 ## 9. Core runtime and resource summary
 
-The table below intentionally contains only **localization-critical computation**. Plot generation, Folium rendering, CSV writing, and summary-generation overhead are excluded from this headline view.
+The table below intentionally contains only **localization-critical computation**. 
 
 | Core stage | Measured runtime | Normalized cost | Scope |
 |---|---:|---:|---|
@@ -87,7 +86,7 @@ The table below intentionally contains only **localization-critical computation*
 - CUDA available: **False**.
 - Total RAM: **8.00 GiB**.
 
-**Interpretation:** the runtime/resource section is for deployment feasibility. Supporting visualization and report-generation costs are measured in the registry for completeness but are not treated as localization bottlenecks.
+**Interpretation:** the runtime/resource section is for deployment feasibility.
 
 ## 10. Blind-run visual diagnostics
 
@@ -115,7 +114,7 @@ The table below intentionally contains only **localization-critical computation*
 
 **Reference unavailable: accuracy metrics not computed.**
 
-Run this summary generator with `--include-evaluation` only after a frozen blind submission has been evaluated.
+Run this summary generator with `--include-evaluation` only after a frozen blind run has been evaluated.
 
 ## 12. Generated files
 
