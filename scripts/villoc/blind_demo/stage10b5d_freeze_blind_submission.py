@@ -103,6 +103,10 @@ def main() -> None:
             "PASS_ADDON9_NO_ABSOLUTE_"
             "EXPORT_NO_MAP_LOCK"
         ),
+        (
+            "PASS_ADDON9_NO_ABSOLUTE_"
+            "EXPORT_NO_MAP_STATE"
+        ),
     }
 
     if (
@@ -204,8 +208,10 @@ def main() -> None:
         )
 
     no_lock = (
-        localization_state
-        == "NO_TRUSTED_ABSOLUTE_LOCK"
+        localization_state in {
+            "NO_TRUSTED_ABSOLUTE_LOCK",
+            "NO_PROVISIONAL_LOCK",
+        }
     )
 
     if no_lock:
@@ -242,8 +248,16 @@ def main() -> None:
                 )
 
         expected_status = (
-            "PASS_ADDON9_NO_ABSOLUTE_"
-            "EXPORT_NO_MAP_LOCK"
+            (
+                "PASS_ADDON9_NO_ABSOLUTE_"
+                "EXPORT_NO_MAP_STATE"
+            )
+            if localization_state
+            == "NO_PROVISIONAL_LOCK"
+            else (
+                "PASS_ADDON9_NO_ABSOLUTE_"
+                "EXPORT_NO_MAP_LOCK"
+            )
         )
 
         if (

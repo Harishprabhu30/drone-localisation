@@ -897,6 +897,7 @@ def run_native_blind_registry(
         {
             "PASS_BLIND_MAP_BOOTSTRAP",
             "PASS_BLIND_MAP_BOOTSTRAP_NO_LOCK",
+            "PASS_BLIND_MAP_BOOTSTRAP_BACKEND",
         },
     )
 
@@ -927,6 +928,8 @@ def run_native_blind_registry(
         {
             "PASS_BLIND_MAP_ALIGNED_RELATIVE_TRAJECTORY",
             "PASS_BLIND_RELATIVE_ONLY_NO_MAP_LOCK",
+            "PASS_CAUSAL_CANONICAL_MAP_ALIGNMENT",
+            "PASS_CAUSAL_CANONICAL_MAP_ALIGNMENT_NO_MAP_STATE",
         },
     )
 
@@ -959,6 +962,11 @@ def run_native_blind_registry(
             (
                 "PASS_BLIND_TEMPORAL_FUSION_"
                 "SKIPPED_NO_MAP_LOCK"
+            ),
+            "PASS_R3V2_TEMPORAL_AUTHORITY_ROUTER",
+            (
+                "PASS_R3V2_TEMPORAL_AUTHORITY_"
+                "ROUTER_NO_MAP_STATE"
             ),
         },
     )
@@ -997,6 +1005,10 @@ def run_native_blind_registry(
             (
                 "PASS_ADDON9_NO_ABSOLUTE_"
                 "EXPORT_NO_MAP_LOCK"
+            ),
+            (
+                "PASS_ADDON9_NO_ABSOLUTE_"
+                "EXPORT_NO_MAP_STATE"
             ),
         },
     )
@@ -1371,8 +1383,16 @@ def run_native_blind_registry(
         ),
         "variant": variant,
         "descriptor_tag": tag,
+        # Localization authority belongs to the
+        # estimated-output stage, not the visualization stage.
+        #
+        # Add-on 10 fallback is retained only for compatibility
+        # with older historical report layouts.
         "localization_state": (
-            addon10.get(
+            addon9.get(
+                "localization_state"
+            )
+            or addon10.get(
                 "localization_state"
             )
         ),

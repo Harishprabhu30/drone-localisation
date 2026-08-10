@@ -1135,8 +1135,10 @@ def main() -> None:
         )
 
     no_trusted_lock = (
-        localization_state
-        == "NO_TRUSTED_ABSOLUTE_LOCK"
+        localization_state in {
+            "NO_TRUSTED_ABSOLUTE_LOCK",
+            "NO_PROVISIONAL_LOCK",
+        }
     )
 
     confidence = pd.to_numeric(

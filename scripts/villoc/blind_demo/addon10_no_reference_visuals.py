@@ -2530,17 +2530,43 @@ def main() -> None:
     # - geographic Folium trajectory CANNOT be created.
     # =====================================================
 
-    no_map_lock = bool(
+    localization_state = None
+
+    if (
         "localization_state"
         in submission.columns
-        and submission[
-            "localization_state"
-        ]
-        .astype(str)
-        .eq(
-            "NO_TRUSTED_ABSOLUTE_LOCK"
+    ):
+
+        localization_states = (
+            submission[
+                "localization_state"
+            ]
+            .dropna()
+            .astype(str)
+            .unique()
+            .tolist()
         )
-        .all()
+
+        require(
+            len(localization_states)
+            == 1,
+            (
+                "Submission must contain exactly "
+                "one localization state; got "
+                f"{localization_states}"
+            ),
+        )
+
+        localization_state = (
+            localization_states[0]
+        )
+
+    no_map_lock = (
+        localization_state
+        in {
+            "NO_TRUSTED_ABSOLUTE_LOCK",
+            "NO_PROVISIONAL_LOCK",
+        }
     )
 
     if no_map_lock:
@@ -2565,8 +2591,6 @@ def main() -> None:
                 "sequence_frame_id",
                 "query_id",
                 "timestamp_s",
-                "visual_x_px",
-                "visual_y_px",
                 "estimated_map_x",
                 "estimated_map_y",
                 "estimated_lat",
@@ -2869,7 +2893,7 @@ def main() -> None:
                 "VISUALS_NO_MAP_LOCK"
             ),
             "localization_state": (
-                "NO_TRUSTED_ABSOLUTE_LOCK"
+                localization_state
             ),
             "visualization_state": (
                 "RELATIVE_VISUAL_ONLY"
@@ -3007,8 +3031,8 @@ def main() -> None:
         print("-" * 88)
 
         print(
-            "state                 : "
-            "NO_TRUSTED_ABSOLUTE_LOCK"
+            "state                 :",
+            localization_state,
         )
 
         print(

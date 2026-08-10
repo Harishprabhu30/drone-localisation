@@ -34,6 +34,7 @@ No GT / GPS / SRT / reference information is used.
 from __future__ import annotations
 
 import argparse
+import time
 import hashlib
 import json
 import math
@@ -195,6 +196,8 @@ def path_length(
 
 
 def main():
+
+    stage_start = time.perf_counter()
 
     parser = argparse.ArgumentParser()
 
@@ -1283,7 +1286,17 @@ def main():
     ]
 
 
+    stage_wall_s = float(
+        time.perf_counter()
+        - stage_start
+    )
+
     report = {
+        "runtime": {
+            "total_stage_wall_s":
+                stage_wall_s,
+        },
+
         "stage":
             "R5.4F_CAUSAL_CANONICAL_MAP_ALIGNMENT",
 
