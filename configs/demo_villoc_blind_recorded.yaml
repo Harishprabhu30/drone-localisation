@@ -114,3 +114,20 @@ rules:
   evaluation_policy: >
     Reference or SRT may be attached only after the blind trajectory has
     been frozen and hashed.
+
+
+bootstrap:
+  backend: minimum_confident_v2
+
+  implementation: scripts/villoc/blind_demo/bootstrap/minimum_confident_v2_backend.py
+
+  architecture_contract: configs/bootstrap/minimum_confident_v2/architecture_contract.json
+  architecture_contract_sha256: c47acc6313cd8d32a59b81d9457e29047192e7b9d6ef56524f39c4ce3208f93e
+
+  final_policy_contract: configs/bootstrap/minimum_confident_v2/final_policy_contract.json
+  final_policy_contract_sha256: ab074e4f63e126eefe34639beec4703edffb9fbef59f726f48d8c7a5759a4ab6
+
+  canonical_map_state_schema: villoc.blind_map_state.v1
+  canonical_timeline_schema: villoc.blind_map_state_timeline.v1
+
+  temporal_authority: minimum_confident_v2

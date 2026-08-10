@@ -1,0 +1,80 @@
+{
+  "stage": "R5.3_FINAL_MINIMUM_CONFIDENT_BOOTSTRAP_FREEZE",
+  "status": "PASS_R5_3_FINAL_METHOD_CONTRACT_FREEZE",
+  "method_name": "minimum_confident_bootstrap_v2",
+  "research_status": "METHOD_FROZEN_FOR_IN_ENVELOPE_BLIND_DEMO",
+  "architecture_contract": {
+    "path": "/Users/harishprabhu/Documents/drone-localisation/outputs/research_runs/minimum_confident_bootstrap/traj01_blind_r3_001/r5_0_r3v2_architecture_contract.json",
+    "sha256": "c47acc6313cd8d32a59b81d9457e29047192e7b9d6ef56524f39c4ce3208f93e"
+  },
+  "implementation": {
+    "path": "/Users/harishprabhu/Documents/drone-localisation/scripts/villoc/research/minimum_confident_bootstrap/minimum_confident_bootstrap_v2.py",
+    "sha256": "ee29deb6ba432dbe5d22a1ae8460c7bea4de8851d8f3671f1c1c1e1c576eaa83"
+  },
+  "final_policy": {
+    "name": "activate_quarter_track_quarter",
+    "selection_basis": "safety-first tie-break among the already frozen candidate family after secondary validation; not GT accuracy optimization",
+    "activation_threshold_fraction_of_map_spacing": 0.25,
+    "activation_threshold_m": 12.8,
+    "tracking_threshold_fraction_of_map_spacing": 0.25,
+    "tracking_threshold_m": 12.8,
+    "maturity_support_required": 3,
+    "performance_optimality_claimed": false,
+    "safety_priority": true
+  },
+  "absolute_frontend": {
+    "candidate_depth_dino": 20,
+    "bootstrap_top_m": 4,
+    "verifier": "ORB",
+    "map_measurement": "continuous ORB sub-tile projection",
+    "tile_variant": "512_s256"
+  },
+  "state_machine": {
+    "initial": "ACQUISITION",
+    "mature": "TRACKING",
+    "tracking_update": "minimum-innovation accept-or-hold",
+    "safe_fallback": "NO_PROVISIONAL_LOCK"
+  },
+  "operating_envelope": {
+    "camera_view": "near-nadir",
+    "map_requirement": "prepared georeferenced orthophoto with matching 512_s256 descriptor cache",
+    "relative_frontend": "XFeat",
+    "visual_metric_scale": "approximately stationary over the bootstrap/tracking interval",
+    "altitude_behavior": "stable or slowly varying; no numerical altitude tolerance is claimed from current data",
+    "large_altitude_excursions_validated": false,
+    "failure_behavior": "if evidence does not mature consistently, return NO_PROVISIONAL_LOCK rather than force absolute initialization"
+  },
+  "secondary_validation": {
+    "dataset": "Villoc 90_deg",
+    "blind_freeze_path": "/Users/harishprabhu/Documents/drone-localisation/outputs/research_runs/minimum_confident_bootstrap/validation_90deg_blind_r5_2_001/r5_v2/r5_1_blind_implementation_freeze_manifest.json",
+    "blind_freeze_sha256": "9fe09e2c3187fe4294fb8a79d1fd659d4f0c06693304c31806a3b8a56223a635",
+    "blind_result": "NO_PROVISIONAL_LOCK",
+    "top4_gt_inside_tile_queries": 51,
+    "top4_queries": 114,
+    "top4_best_le40": 39,
+    "best_top4_projected_error_median_m": 72.25258615201685,
+    "blind_leader_median_gt_error_m": 277.9027158488172,
+    "best_admissible_median_gt_error_m": 141.8813873568868,
+    "global_similarity_residual_median_m": 59.00168980093113,
+    "global_similarity_residual_p90_m": 108.36142595368642,
+    "local_scale_vs_altitude_spearman": 0.981558773958293,
+    "interpretation": "safe rejection; weak absolute candidate support plus strongly non-stationary monocular visual scale under large altitude variation"
+  },
+  "known_limitations": [
+    "single global visual-to-map similarity is not validated for large altitude-induced scale changes",
+    "Top-4 geographic candidate availability can remain insufficient in repetitive/low-context scenes",
+    "NO_PROVISIONAL_LOCK is a valid safe output and must not be treated as an execution failure"
+  ],
+  "future_research_not_in_current_demo": {
+    "scale_adaptive_similarity": true,
+    "sliding_or_piecewise_similarity": true,
+    "altitude_conditioned_scale": true,
+    "current_method_must_not_be_patched_for_demo": true
+  },
+  "output_contract": {
+    "positive": "PROVISIONAL_ABSOLUTE_LOCK",
+    "negative": "NO_PROVISIONAL_LOCK",
+    "forbidden": "ABSOLUTE_LOCKED"
+  },
+  "next_stage": "R5.4 production adapter + blind recorded-flight demo integration without changing mathematical policy"
+}
