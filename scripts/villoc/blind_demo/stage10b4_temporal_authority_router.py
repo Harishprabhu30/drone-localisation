@@ -708,6 +708,20 @@ def main():
                     "correction_reason"
                 ],
 
+            # Legacy Stage-11 compatibility only.
+            #
+            # These metrics belong to the historical
+            # Stage10B4 temporal policy. R3-v2 does not
+            # compute or use them, so they remain N/A.
+            "distance_since_anchor_m":
+                np.nan,
+
+            "temporal_residual_m":
+                np.nan,
+
+            "temporal_threshold_m":
+                np.nan,
+
             "temporal_policy":
                 fused[
                     "temporal_policy"
@@ -905,6 +919,19 @@ def main():
 
             "legacy_stage10b4_applied":
                 False,
+
+            "legacy_temporal_diagnostics_available":
+                False,
+
+            "legacy_temporal_diagnostics_note":
+                (
+                    "distance_since_anchor_m, "
+                    "temporal_residual_m, and "
+                    "temporal_threshold_m are retained as "
+                    "N/A compatibility columns only. "
+                    "R3-v2 uses its own causal acquisition/"
+                    "tracking innovation logic upstream."
+                ),
 
             "reason":
                 (
