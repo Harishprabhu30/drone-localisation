@@ -77,22 +77,22 @@ STAGES = [
     (
         "07_blind_map_bootstrap",
         "scripts/villoc/blind_demo/"
-        "stage10b2_blind_map_bootstrap_audit.py",
+        "stage10b2_bootstrap_backend.py",
     ),
     (
         "08_map_alignment",
         "scripts/villoc/blind_demo/"
-        "stage10b3_apply_blind_map_lock.py",
+        "stage10b3_map_alignment_router.py",
     ),
     (
         "09_temporal_fusion",
         "scripts/villoc/blind_demo/"
-        "stage10b4_blind_temporal_fusion.py",
+        "stage10b4_temporal_router.py",
     ),
     (
         "10_estimated_output_export",
         "scripts/villoc/blind_demo/"
-        "addon9_estimated_latlon_export.py",
+        "addon9_estimated_output_router.py",
     ),
     (
         "11_blind_safe_visuals",
@@ -1789,9 +1789,13 @@ def main() -> None:
                     repo_root
                     / STAGES[6][1]
                 ),
-                "--root",
+                "--repo-root",
                 str(
-                    run_root
+                    repo_root
+                ),
+                "--config",
+                str(
+                    runtime_cfg_path
                 ),
                 "--run-root",
                 str(
@@ -1810,6 +1814,14 @@ def main() -> None:
                 str(
                     repo_root
                     / STAGES[7][1]
+                ),
+                "--repo-root",
+                str(
+                    repo_root
+                ),
+                "--config",
+                str(
+                    runtime_cfg_path
                 ),
                 "--blind-manifest",
                 str(
@@ -1842,6 +1854,14 @@ def main() -> None:
                 str(
                     repo_root
                     / STAGES[8][1]
+                ),
+                "--repo-root",
+                str(
+                    repo_root
+                ),
+                "--config",
+                str(
+                    runtime_cfg_path
                 ),
                 "--map-trajectory",
                 str(
@@ -1876,6 +1896,14 @@ def main() -> None:
                 str(
                     repo_root
                     / STAGES[9][1]
+                ),
+                "--repo-root",
+                str(
+                    repo_root
+                ),
+                "--config",
+                str(
+                    runtime_cfg_path
                 ),
                 "--fused-trajectory",
                 str(
@@ -1934,6 +1962,15 @@ def main() -> None:
                 "--tile-index",
                 str(
                     tile_index
+                ),
+                "--ortho-tif",
+                str(
+                    (
+                        repo_root
+                        / map_cfg[
+                            "canonical_aoi_tif"
+                        ]
+                    ).resolve()
                 ),
             ],
         ),
