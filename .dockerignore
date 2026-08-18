@@ -39,3 +39,6 @@ docs/
 tmp/
 temp/
 *.log
+
+# Docker runtime working data
+docker_runtime/

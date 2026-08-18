@@ -1,0 +1,86 @@
+services:
+
+  blind:
+
+    image: drone-localisation:stage3-cpu
+
+    pull_policy: never
+
+    platform: linux/amd64
+
+    working_dir: /workspace
+
+    network_mode: "none"
+
+    environment:
+      PYTHONPATH: /workspace/src:/workspace/third_party/accelerated_features
+      TORCH_HOME: /root/.cache/torch
+      DRONELOC_CONTAINER: "1"
+      MPLBACKEND: Agg
+
+    volumes:
+
+      # --------------------------------------------------------
+      # BLIND INPUT
+      # Only RGB video is exposed.
+      # SRT / GPS / reference files are deliberately NOT mounted.
+      # --------------------------------------------------------
+
+      - type: bind
+        source: ../data/raw/villoc/demonstration/DJI_20260807171627_0003_V_trimmed.MP4
+        target: /workspace/data/raw/villoc/demonstration/DJI_20260807171627_0003_V_trimmed.MP4
+        read_only: true
+
+      # --------------------------------------------------------
+      # FLIGHT-SPECIFIC PROCESSED DATA
+      # Frames/query data generated from the input video.
+      # --------------------------------------------------------
+
+      - type: bind
+        source: ../docker_runtime/processed
+        target: /workspace/data/processed/villoc/demonstration
+
+      # --------------------------------------------------------
+      # FIXED AOI MAP ASSETS
+      # --------------------------------------------------------
+
+      - type: bind
+        source: ../data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+        target: /workspace/data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+        read_only: true
+
+      - type: bind
+        source: ../data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_512_s256
+        target: /workspace/data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_512_s256
+        read_only: true
+
+      # --------------------------------------------------------
+      # PRECOMPUTED MAP INDEX / DESCRIPTORS
+      # --------------------------------------------------------
+
+      - type: bind
+        source: ../outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+        target: /workspace/outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+        read_only: true
+
+      - type: bind
+        source: ../outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+        target: /workspace/outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+        read_only: true
+
+      # --------------------------------------------------------
+      # LOCAL DINOv2 MODEL / TORCH HUB CACHE
+      # --------------------------------------------------------
+
+      - type: bind
+        source: ${HOME}/.cache/torch/hub
+        target: /root/.cache/torch/hub
+        read_only: true
+
+      # --------------------------------------------------------
+      # BLIND RUN OUTPUT
+      # --------------------------------------------------------
+
+      - type: bind
+        source: ../docker_runtime/outputs
+        target: /workspace/outputs/demo_runs

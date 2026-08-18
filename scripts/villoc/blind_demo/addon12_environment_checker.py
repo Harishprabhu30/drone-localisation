@@ -456,6 +456,14 @@ def main() -> None:
         )
     )
 
+    container_env = (
+        os.environ.get(
+            "DRONELOC_CONTAINER",
+            "",
+        )
+        == "1"
+    )
+
     in_venv = bool(
         virtual_env
         or sys.prefix
@@ -464,6 +472,7 @@ def main() -> None:
             "base_prefix",
             sys.prefix,
         )
+        or container_env
     )
 
     add_check(
@@ -476,12 +485,16 @@ def main() -> None:
         ),
         required=True,
         detail=(
-            virtual_env
-            if virtual_env
+            "Container-isloated python environment"
+            if container_env
             else (
-                f"sys.prefix={sys.prefix}"
-                if in_venv
-                else "no active virtual environment detected"
+                virtual_env
+                if virtual_env
+                else (
+                    f"sys.prefix={sys.prefix}"
+                    if in_venv
+                    else "no active virtual environment detected"
+                )
             )
         ),
         value=virtual_env,

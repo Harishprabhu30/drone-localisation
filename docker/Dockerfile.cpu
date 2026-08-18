@@ -9,7 +9,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     MPLBACKEND=Agg \
     PYTHONPATH=/workspace/src:/workspace/third_party/accelerated_features \
-    TORCH_HOME=/opt/torch-cache
+    TORCH_HOME=/root/.cache/torch \
+    DRONELOC_CONTAINER=1
 
 WORKDIR /workspace
 
