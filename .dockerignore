@@ -1,0 +1,41 @@
+# Git / local environments
+.git
+.gitignore
+.drone_venv
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+
+# Large/local experimental data
+data/
+outputs/
+third_party/
+
+# Documentation/assets are not needed in the runtime image
+docs/
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Large generated/model/media artifacts
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.tif
+*.tiff
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+
+# Temporary files
+tmp/
+temp/
+*.log
