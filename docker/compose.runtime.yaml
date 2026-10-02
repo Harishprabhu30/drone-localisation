@@ -2,7 +2,7 @@ services:
 
   blind:
 
-    image: drone-localisation:stage3-cpu
+    image: drone-localisation:stage4-cpu
 
     pull_policy: never
 
@@ -27,8 +27,8 @@ services:
       # --------------------------------------------------------
 
       - type: bind
-        source: ../data/raw/villoc/demonstration/DJI_20260807171627_0003_V_trimmed.MP4
-        target: /workspace/data/raw/villoc/demonstration/DJI_20260807171627_0003_V_trimmed.MP4
+        source: ${BLIND_VIDEO_PATH:-../data/raw/villoc/demonstration/DJI_20260807171627_0003_V_trimmed.MP4}
+        target: /workspace/inputs/flight.mp4
         read_only: true
 
       # --------------------------------------------------------
