@@ -1,0 +1,91 @@
+dataset:
+  folder_name: traj01_90deg_stable120m
+  name: villoc_traj01_90deg_stable120m_blind_v2
+  sequence_name: traj01_90deg_stable120m_blind
+  type: villoc_video_blind
+  view_angle_group: 90deg
+  description: Blind Villoc benchmark using the full traj01_90deg_stable120m near-nadir recorded flight.
+    Localization must not use SRT, GNSS, GPS, reference coordinates, oracle labels, or evaluation metrics
+    before the blind trajectory is frozen and hashed.
+  raw_root: data/raw/villoc/traj01_90deg_stable120m
+  processed_root: data/processed/villoc/traj01_90deg_stable120m
+  output_root: outputs/demo_runs/traj01_90deg_stable120m_blind_v2_001
+streams:
+  V:
+    modality: rgb
+    role: primary_visual
+    video: villoc_traj01_90deg_stable120m_V_merged.MP4
+    fps_expected: 29.97
+    reference_available: false
+blind:
+  enabled: true
+  sample_rate_fps: 1.0
+  assumed_rel_alt_m: 120.0
+  assumed_gimbal_pitch_deg: -90.0
+  view_assumption: near_nadir
+  freeze_before_evaluation: true
+map:
+  reuse_existing_map: true
+  map_reference_dataset: villoc_90deg_aoi300m
+  map_source: ort10lt_2024_2026
+  crs: EPSG:3346
+  canonical_aoi_tif: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+  primary_variant: 512_s256
+  tile_variants:
+    512_s256:
+      tiles_dir: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/tiles_512_s256
+      index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+retrieval:
+  method: dinov2
+  top_k: 20
+  descriptor_tag: dinov2_vits14_img518_center_square_avgpatch_cpu
+  map_descriptor_cache: outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  verifier: orb_top20
+relative_localization:
+  frontend: xfeat
+fusion:
+  method: causal_temporal_soft_correction
+export:
+  target_crs: EPSG:4326
+rules:
+  online_allowed:
+  - video_frames
+  - assumed_relative_altitude
+  - assumed_gimbal_pitch
+  - orthophoto_tiles
+  - map_tile_geometry
+  - dino_descriptor_similarity
+  - dino_rank
+  - orb_geometric_evidence
+  - xfeat_relative_motion
+  - causal_temporal_consistency
+  - previously_accepted_blind_corrections
+  forbidden_before_freeze:
+  - srt
+  - gps
+  - gnss
+  - latitude_reference
+  - longitude_reference
+  - reference_enu
+  - ground_truth_trajectory
+  - oracle_tile_identity
+  - ground_truth_error
+  - hit_threshold_labels
+  - rmse
+  - p95
+  - final_error
+  - evaluation_derived_alignment
+  evaluation_policy: 'Reference or SRT may be attached only after the blind trajectory has been frozen
+    and hashed.
+
+    '
+bootstrap:
+  backend: minimum_confident_v2
+  implementation: scripts/villoc/blind_demo/bootstrap/minimum_confident_v2_backend.py
+  architecture_contract: configs/bootstrap/minimum_confident_v2/architecture_contract.json
+  architecture_contract_sha256: c47acc6313cd8d32a59b81d9457e29047192e7b9d6ef56524f39c4ce3208f93e
+  final_policy_contract: configs/bootstrap/minimum_confident_v2/final_policy_contract.json
+  final_policy_contract_sha256: ab074e4f63e126eefe34639beec4703edffb9fbef59f726f48d8c7a5759a4ab6
+  canonical_map_state_schema: villoc.blind_map_state.v1
+  canonical_timeline_schema: villoc.blind_map_state_timeline.v1
+  temporal_authority: minimum_confident_v2
