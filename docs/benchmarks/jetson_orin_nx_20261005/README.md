@@ -8,8 +8,8 @@ execution, measure speed, freeze the blind submission, and only then evaluate
 against the sequence's SRT/GT. Start a fresh run; retain the existing baselines.
 
 Repository: `Harishprabhu30/drone-localisation`.
-Handoff/next-work branch: `benchmark/jetson-orin-nx-traj01-gpu`.
-Base: `benchmark/jetson-native-blind-baseline` at
+Handoff/next-work branch: `benchmark/jetson-native-blind-baseline`.
+Base checkpoint on this branch:
 `3dd33d0415cbeef75781bc37663d227cb4548c18`.
 That commit's parent/source baseline is
 `05ef9dd2c9bcf5bc68bdea946ee3d1900d155ebe`.
@@ -290,7 +290,7 @@ summarized here, not uploaded as independently verified raw artifacts.
 Paste into the next chat:
 
 > Continue the Jetson Orin NX native benchmark in
-> Harishprabhu30/drone-localisation, branch benchmark/jetson-orin-nx-traj01-gpu.
+> Harishprabhu30/drone-localisation, branch benchmark/jetson-native-blind-baseline.
 > Read docs/benchmarks/jetson_orin_nx_20261005/README.md at the handoff commit
 > before acting. The next task is a fresh full traj01_90deg_stable120m blind
 > minimum_confident_v2 run on Jetson with supported GPU execution and stage/full
