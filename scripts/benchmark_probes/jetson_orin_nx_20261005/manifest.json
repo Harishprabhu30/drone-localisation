@@ -1,0 +1,80 @@
+{
+  "stage": "CONVERSATION_PROBE_ARCHIVE",
+  "date": "2026-10-05",
+  "source_baseline_commit": "3dd33d0415cbeef75781bc37663d227cb4548c18",
+  "archived_scripts_unchanged": true,
+  "verification": "Python syntax compilation only; no datasets available for rerun",
+  "historical_execution_evidence": "User supplied terminal reports summarized in handoff README",
+  "files": [
+    {
+      "path": "archive/dino_cuda_full_query_probe.py",
+      "sha256": "df1d3a1b4447e1653005e81d40a96ee9c61c9cfe579ff4bb36b2b69ec57046b2",
+      "bytes": 5513
+    },
+    {
+      "path": "archive/fix_orb_30_export.py",
+      "sha256": "085f82afe353686963ebcb2530bcefdbad691fcb28f4e5b1a6f372cb47b96b2f",
+      "bytes": 2183
+    },
+    {
+      "path": "archive/gpu_probe_four_frames.py",
+      "sha256": "28018c39ddb7eb220178f86de8d2871e293df8e97d83f9fed75e8cda22d020ba",
+      "bytes": 3645
+    },
+    {
+      "path": "archive/orb_30_bootstrap_feature_control.py",
+      "sha256": "d1972f1828782d15ab27d7b1d4a62bc5f0291bbb7933da0d1cf4593c140d122c",
+      "bytes": 6518
+    },
+    {
+      "path": "archive/orb_30_query_feature_control.py",
+      "sha256": "7737b0af94e3cbbe76d92a44506485330718239a099009180a0318f444c33c7e",
+      "bytes": 8315
+    },
+    {
+      "path": "archive/orb_feature_swap_probe.py",
+      "sha256": "d45c47271113586aa7cacf2664e81567d034eb6e330bd13ee03eec895b1cb204",
+      "bytes": 4053
+    },
+    {
+      "path": "archive/orb_fixed_pair_probe.py",
+      "sha256": "2727d2a0b71d40c3fe4292f1486d649380f3749d445f3a2fa1b556f1d8e3cf8e",
+      "bytes": 2967
+    },
+    {
+      "path": "archive/orb_stage_boundary_probe.py",
+      "sha256": "d531a285e4014d86af24af350c1bc5b0d9972b2165a259ce7784c63fa2808abb",
+      "bytes": 3708
+    },
+    {
+      "path": "archive/traj01_q390_acceptance_audit.py",
+      "sha256": "e3d264e3d13ea4f0f809da67bb27314917896abf6f3d4accf9c7dd03d7976bd2",
+      "bytes": 6244
+    },
+    {
+      "path": "archive/traj01_r5_1_postfreeze_probe.py",
+      "sha256": "3e7b6e3319cd5aa299d4545d305d5b493d5decd2fba3631f7e0bbfcfa05b6ab6",
+      "bytes": 7374
+    },
+    {
+      "path": "archive/traj01_v2_failure_localization.py",
+      "sha256": "67bb4b1f811efb8725760e9d8372052f5aaf6d6472b3ce7beb8d52aa5152b8e2",
+      "bytes": 7758
+    },
+    {
+      "path": "archive/traj01_v2_leader_consistency_replay.py",
+      "sha256": "a26768566b10457fef2ee04b6d3ef0c6336ce0f8313ccddd1786a332183a6e73",
+      "bytes": 10278
+    },
+    {
+      "path": "archive/traj01_v2_leader_consistency_replay_q134.py",
+      "sha256": "a26768566b10457fef2ee04b6d3ef0c6336ce0f8313ccddd1786a332183a6e73",
+      "bytes": 10278
+    },
+    {
+      "path": "archive/traj01_v2_transform_continuity_replay.py",
+      "sha256": "a7451852971e8af27efa5b51c77f5ef05fdf51f7474e0efe24fb3be9ddb16f2b",
+      "bytes": 11784
+    }
+  ]
+}

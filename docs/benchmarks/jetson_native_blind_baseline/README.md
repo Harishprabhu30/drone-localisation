@@ -1,3 +1,14 @@
+## Status update — 2026-10-05
+
+The preparation note below is historical. The recorded-flight native Jetson CPU
+run has completed and reported no provisional lock. DINO-only CUDA parity has
+also been measured. The full traj01 v2 GPU pipeline on Jetson is pending.
+
+Read the [current handoff](../jetson_orin_nx_20261005/README.md) for evidence,
+limitations, archived probes, and the next native Jetson benchmark task.
+
+---
+
 # Native Jetson blind-pipeline baseline
 
 Status: PREPARATION — Jetson execution and benchmarking pending.
@@ -75,3 +86,4 @@ Record cold/warm timing, repeated-run latency, CPU/GPU use, shared memory,
 temperature, power mode and storage conditions.
 Synchronize accelerator measurements where required.
 Return to Docker only after the native results and bottleneck are documented.
+
