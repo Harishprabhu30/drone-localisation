@@ -231,15 +231,15 @@ def descriptor_protocol(
             f"protocol in tag: {tag}"
         )
 
-    if tag.endswith(
-        "_cpu"
-    ):
-        device = "cpu"
-    else:
-        raise RuntimeError(
+    require(
+        tag.endswith(
+            "_cpu"
+        ),
+        (
             "Current promoted demo expects "
-            "the frozen CPU descriptor tag."
-        )
+            "the frozen CPU map descriptor tag."
+        ),
+    )
 
     return {
         "image_size":
@@ -250,9 +250,6 @@ def descriptor_protocol(
 
         "pooling":
             pooling,
-
-        "device":
-            device,
     }
 
 
@@ -545,6 +542,28 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--dino-device",
+        choices=["cpu", "cuda"],
+        default="cpu",
+        help=(
+            "Execution device for per-flight DINO query "
+            "encoding. The frozen map descriptor asset "
+            "remains independently identified by the YAML "
+            "descriptor tag."
+        ),
+    )
+
+    parser.add_argument(
+        "--xfeat-device",
+        choices=["cpu", "cuda"],
+        default="cpu",
+        help=(
+            "Execution device for the promoted XFeat "
+            "relative frontend."
+        ),
+    )
+
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help=(
@@ -745,6 +764,11 @@ def main() -> None:
         tag
     )
 
+    dino_query_tag = (
+        tag[:-4]
+        + f"_{args.dino_device}"
+    )
+
     tile_cfg = (
         map_cfg[
             "tile_variants"
@@ -909,6 +933,22 @@ def main() -> None:
         run_root
     )
 
+    runtime_cfg[
+        "runtime_execution"
+    ] = {
+        "dino_query_device":
+            args.dino_device,
+
+        "dino_query_descriptor_tag":
+            dino_query_tag,
+
+        "map_descriptor_tag":
+            tag,
+
+        "xfeat_device":
+            args.xfeat_device,
+    }
+
     # If --video overrides the base YAML, record that
     # resolved source in the per-run configuration snapshot.
     # The source YAML itself is never modified.
@@ -957,7 +997,7 @@ def main() -> None:
             / "descriptors"
             / (
                 "s8_11c_dinov2_queries_v_1fps_"
-                f"{tag}.npz"
+                f"{dino_query_tag}.npz"
             )
         ),
 
@@ -1184,6 +1224,30 @@ def main() -> None:
             f"{key:28s}:",
             value,
         )
+
+    print()
+    print("Runtime execution devices")
+    print("-" * 100)
+
+    print(
+        "map descriptor tag          :",
+        tag,
+    )
+
+    print(
+        "DINO query device           :",
+        args.dino_device,
+    )
+
+    print(
+        "DINO query descriptor tag   :",
+        dino_query_tag,
+    )
+
+    print(
+        "XFeat device                :",
+        args.xfeat_device,
+    )
 
     print()
     print("Frozen execution order")
@@ -1634,11 +1698,7 @@ def main() -> None:
                 "--sequence",
                 sequence_name,
                 "--device",
-                str(
-                    protocol[
-                        "device"
-                    ]
-                ),
+                args.xfeat_device,
                 "--blind-only",
             ],
         ),
@@ -1670,6 +1730,10 @@ def main() -> None:
                 str(
                     map_cache_root
                 ),
+                "--map-cache-tag",
+                tag,
+                "--device",
+                args.dino_device,
                 "--batch-size",
                 "1",
                 "--image-size",
