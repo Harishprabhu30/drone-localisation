@@ -2064,6 +2064,12 @@ def main() -> None:
                 ),
                 "--tag",
                 tag,
+                "--query-cache",
+                str(
+                    artifacts[
+                        "dino_query_cache"
+                    ]
+                ),
                 "--variant",
                 variant,
             ],
@@ -2096,6 +2102,12 @@ def main() -> None:
                 variant,
                 "--tag",
                 tag,
+                "--query-cache",
+                str(
+                    artifacts[
+                        "dino_query_cache"
+                    ]
+                ),
             ],
         ),
 
@@ -2172,6 +2184,12 @@ def main() -> None:
                 ),
                 "--tag",
                 tag,
+                "--query-cache",
+                str(
+                    artifacts[
+                        "dino_query_cache"
+                    ]
+                ),
                 "--variant",
                 variant,
             ],

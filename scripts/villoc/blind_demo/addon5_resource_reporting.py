@@ -468,6 +468,7 @@ def run_native_blind_resource_registry(
     map_root: Path,
     variant: str,
     tag: str,
+    query_cache_path: Path | None,
     metrics_dir: Path,
 ) -> None:
 
@@ -491,14 +492,21 @@ def run_native_blind_resource_registry(
         / "blind_query_manifest.csv"
     )
 
-    query_cache = (
-        run_root
-        / "descriptors"
-        / (
-            "s8_11c_dinov2_queries_v_1fps_"
-            f"{tag}.npz"
+    if query_cache_path is None:
+        query_cache = (
+            run_root
+            / "descriptors"
+            / (
+                "s8_11c_dinov2_queries_v_1fps_"
+                f"{tag}.npz"
+            )
         )
-    )
+    else:
+        query_cache = (
+            query_cache_path
+            .expanduser()
+            .resolve()
+        )
 
     map_cache = (
         map_root
@@ -1703,6 +1711,17 @@ def main() -> None:
         ),
     )
 
+    parser.add_argument(
+        "--query-cache",
+        type=Path,
+        default=None,
+        help=(
+            "Optional explicit current-flight DINO "
+            "query descriptor cache. This is independent "
+            "of the reusable map descriptor tag."
+        ),
+    )
+
     args = parser.parse_args()
 
     root = args.root.resolve()
@@ -1747,6 +1766,7 @@ def main() -> None:
             map_root=map_root,
             variant=variant,
             tag=tag,
+            query_cache_path=args.query_cache,
             metrics_dir=metrics_dir,
         )
         return

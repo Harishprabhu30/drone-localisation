@@ -354,6 +354,7 @@ def run_native_blind_registry(
     map_root: Path,
     variant: str,
     tag: str,
+    query_cache_path: Path | None,
     metrics_dir: Path,
     figures_dir: Path,
 ) -> None:
@@ -421,14 +422,21 @@ def run_native_blind_registry(
           "s8r4_xfeat_relative_frontend_report.json"
     )
 
-    query_cache_path = (
-        run_root
-        / "descriptors"
-        / (
-            "s8_11c_dinov2_queries_v_1fps_"
-            f"{tag}.npz"
+    if query_cache_path is None:
+        query_cache_path = (
+            run_root
+            / "descriptors"
+            / (
+                "s8_11c_dinov2_queries_v_1fps_"
+                f"{tag}.npz"
+            )
         )
-    )
+    else:
+        query_cache_path = (
+            query_cache_path
+            .expanduser()
+            .resolve()
+        )
 
     map_cache_path = (
         map_root
@@ -744,7 +752,7 @@ def run_native_blind_registry(
                 "current-flight descriptor cache build"
             ),
             notes=(
-                "CPU DINOv2 query-image encoding."
+                "DINOv2 query-image encoding; execution device is recorded in the query-cache metadata."
             ),
         )
     )
@@ -1649,6 +1657,17 @@ def main() -> None:
         default="512_s256",
     )
 
+    parser.add_argument(
+        "--query-cache",
+        type=Path,
+        default=None,
+        help=(
+            "Optional explicit current-flight DINO "
+            "query descriptor cache. This is independent "
+            "of the reusable map descriptor tag."
+        ),
+    )
+
     args = parser.parse_args()
 
     root = args.root.resolve()
@@ -1697,6 +1716,7 @@ def main() -> None:
             map_root=map_root,
             variant=variant,
             tag=tag,
+            query_cache_path=args.query_cache,
             metrics_dir=metrics_dir,
             figures_dir=figures_dir,
         )
