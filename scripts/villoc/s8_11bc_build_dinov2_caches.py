@@ -268,10 +268,21 @@ def load_model(protocol: Protocol):
 
     import torch
 
-    if protocol.device != "cpu":
+    if protocol.device not in {"cpu", "cuda"}:
         raise ValueError(
-            "This S8.11 frozen baseline is CPU-only because CUDA/MPS were unavailable in S8.11A.0."
+            f"Unsupported DINO execution device: {protocol.device}"
         )
+
+    if protocol.device == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "--device cuda requested but CUDA is unavailable."
+            )
+
+        # Keep the promoted FP32 descriptor protocol deterministic/parity-oriented.
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
+        torch.backends.cudnn.benchmark = False
 
     model = torch.hub.load(
         str(TORCH_HUB_REPO),
@@ -488,6 +499,24 @@ def main() -> None:
         ),
     )
     parser.add_argument("--batch-size", type=int, default=1)
+    parser.add_argument(
+        "--device",
+        choices=["cpu", "cuda"],
+        default="cpu",
+        help=(
+            "Execution device for descriptors built in this invocation. "
+            "Default preserves the historical CPU baseline."
+        ),
+    )
+    parser.add_argument(
+        "--map-cache-tag",
+        default=None,
+        help=(
+            "Optional explicit descriptor tag for reused map caches. "
+            "This allows CUDA query encoding to reuse the frozen CPU map cache "
+            "without relabelling or rebuilding that map asset."
+        ),
+    )
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--crop-mode", choices=["center_square", "resize_square"], default="center_square")
     parser.add_argument("--pooling", choices=["avgpatch", "cls"], default="avgpatch")
@@ -538,6 +567,7 @@ def main() -> None:
     np.random.seed(7)
 
     protocol = Protocol(
+        device=args.device,
         batch_size=args.batch_size,
         image_size=args.image_size,
         crop_mode=args.crop_mode,
@@ -578,7 +608,13 @@ def main() -> None:
         f"_img{protocol.image_size}"
         f"_{protocol.crop_mode}"
         f"_{protocol.pooling}"
-        f"_cpu"
+        f"_{protocol.device}"
+    )
+
+    map_cache_tag = (
+        str(args.map_cache_tag)
+        if args.map_cache_tag
+        else cache_tag
     )
 
     summary: dict = {
@@ -586,6 +622,8 @@ def main() -> None:
         "status": "PASS",
         "created_at_utc": now_utc(),
         "protocol": asdict(protocol),
+        "query_cache_tag": cache_tag,
+        "map_cache_tag": map_cache_tag,
         "outputs": {},
     }
 
@@ -623,9 +661,9 @@ def main() -> None:
 
     for variant, df in tile_dfs.items():
         # cache = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}.npz"
-        cache = MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}.npz"
-        # index = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}_index.csv"
-        index = MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}_index.csv"
+        cache = MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{map_cache_tag}.npz"
+        # index = OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{map_cache_tag}_index.csv"
+        index = MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{map_cache_tag}_index.csv"
 
         if args.reuse_map_caches and cache.exists() and index.exists() and not args.force:
             print(f"[SKIP MAP CACHE - REUSE] {variant}: {cache}")
@@ -673,7 +711,7 @@ def main() -> None:
     for variant in TILE_INDEXES:
         print(
             variant + ":",
-            OUT_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{cache_tag}.npz",
+            MAP_DESC_DIR / f"s8_11b_dinov2_map_{variant}_{map_cache_tag}.npz",
         )
 
 
