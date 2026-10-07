@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 import rasterio
 import yaml
+from pyproj import CRS
 
 
 def now_utc() -> str:
@@ -22,6 +23,32 @@ def sha256_file(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             h.update(block)
     return h.hexdigest()
+
+
+def crs_equivalent(actual, expected: str) -> bool:
+    """Return True when two CRS definitions describe the same CRS.
+
+    Rasterio may expose older GeoTIFF CRS metadata as a full WKT string without
+    an EPSG authority token even when it is semantically LKS94 / Lithuania TM.
+    R1 must validate geospatial meaning, not serialized CRS text.
+    """
+    actual_crs = CRS.from_user_input(actual)
+    expected_crs = CRS.from_user_input(expected)
+
+    if actual_crs == expected_crs:
+        return True
+
+    actual_epsg = actual_crs.to_epsg()
+    expected_epsg = expected_crs.to_epsg()
+
+    if (
+        actual_epsg is not None
+        and expected_epsg is not None
+        and actual_epsg == expected_epsg
+    ):
+        return True
+
+    return actual_crs.equals(expected_crs)
 
 
 def axis_starts(length_px: int, tile_size_px: int, stride_px: int) -> list[int]:
@@ -151,10 +178,16 @@ def main() -> None:
             raise RuntimeError("Source raster has no CRS.")
 
         crs = src.crs.to_string()
-        if crs != str(control["crs_expected"]):
+        expected_crs = str(control["crs_expected"])
+
+        if not crs_equivalent(src.crs, expected_crs):
             raise RuntimeError(
-                f"CRS mismatch: actual={crs}, expected={control['crs_expected']}"
+                "CRS mismatch: geospatially non-equivalent definitions. "
+                f"actual={crs}, expected={expected_crs}"
             )
+
+        normalized_crs = CRS.from_user_input(src.crs)
+        normalized_epsg = normalized_crs.to_epsg()
 
         gsd_x = abs(float(src.transform.a))
         gsd_y = abs(float(src.transform.e))
@@ -256,7 +289,10 @@ def main() -> None:
         "source_raster": {
             "path": str(source_tif),
             "sha256": sha256_file(source_tif),
-            "crs": crs,
+            "crs_raw": crs,
+            "crs_expected": expected_crs,
+            "crs_equivalent_to_expected": True,
+            "crs_normalized_epsg": normalized_epsg,
             "width_px": raster_width,
             "height_px": raster_height,
             "gsd_x_m_per_px": gsd_x,
@@ -304,7 +340,9 @@ def main() -> None:
     print("=" * 88)
     print("status:", report["status"])
     print("source raster:", source_tif)
-    print("source CRS:", crs)
+    print("source CRS (raw):", crs)
+    print("source CRS equivalent to:", expected_crs)
+    print("source CRS normalized EPSG:", normalized_epsg)
     print("source GSD:", gsd_x, "x", gsd_y, "m/px")
     print("fixed stride:", fixed_stride, "px =", fixed_stride * gsd_x, "m")
     print()
