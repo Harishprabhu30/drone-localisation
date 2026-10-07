@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 import rasterio
 import yaml
-from pyproj import CRS
+from pyproj import CRS, Transformer
 
 
 def now_utc() -> str:
@@ -25,30 +25,152 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def crs_equivalent(actual, expected: str) -> bool:
-    """Return True when two CRS definitions describe the same CRS.
+def _float_close(a: float, b: float, atol: float = 1e-10) -> bool:
+    return abs(float(a) - float(b)) <= atol
 
-    Rasterio may expose older GeoTIFF CRS metadata as a full WKT string without
-    an EPSG authority token even when it is semantically LKS94 / Lithuania TM.
-    R1 must validate geospatial meaning, not serialized CRS text.
+
+def _projection_contract(crs: CRS) -> dict:
+    """Extract the projected-coordinate semantics needed by the R1 map grid.
+
+    Some historical GeoTIFFs retain correct projection/ellipsoid parameters but
+    lose the datum authority/name. In that case pyproj correctly refuses formal
+    CRS equality. R1 still needs to know whether the stored projected x/y values
+    use the same metric Transverse-Mercator coordinate contract.
     """
+    operation = crs.coordinate_operation
+
+    if not crs.is_projected or operation is None:
+        return {"is_projected": False}
+
+    params = {
+        param.name: {
+            "value": float(param.value),
+            "unit_conversion_factor": float(param.unit_conversion_factor),
+        }
+        for param in operation.params
+    }
+
+    axes = sorted(
+        (
+            str(axis.direction).lower(),
+            float(axis.unit_conversion_factor),
+        )
+        for axis in crs.axis_info
+    )
+
+    return {
+        "is_projected": True,
+        "method_name": str(operation.method_name),
+        "params": params,
+        "ellipsoid_semi_major_m": float(crs.ellipsoid.semi_major_metre),
+        "ellipsoid_inverse_flattening": float(
+            crs.ellipsoid.inverse_flattening
+        ),
+        "prime_meridian_longitude_deg": float(
+            crs.prime_meridian.longitude
+        ),
+        "axes": axes,
+    }
+
+
+def _projection_contract_equivalent(actual: CRS, expected: CRS) -> bool:
+    a = _projection_contract(actual)
+    e = _projection_contract(expected)
+
+    if not a.get("is_projected") or not e.get("is_projected"):
+        return False
+
+    if a["method_name"] != e["method_name"]:
+        return False
+
+    if set(a["params"]) != set(e["params"]):
+        return False
+
+    for name in a["params"]:
+        ap = a["params"][name]
+        ep = e["params"][name]
+
+        if not _float_close(ap["value"], ep["value"]):
+            return False
+
+        if not _float_close(
+            ap["unit_conversion_factor"],
+            ep["unit_conversion_factor"],
+        ):
+            return False
+
+    if not _float_close(
+        a["ellipsoid_semi_major_m"],
+        e["ellipsoid_semi_major_m"],
+        atol=1e-6,
+    ):
+        return False
+
+    if not _float_close(
+        a["ellipsoid_inverse_flattening"],
+        e["ellipsoid_inverse_flattening"],
+        atol=1e-9,
+    ):
+        return False
+
+    if not _float_close(
+        a["prime_meridian_longitude_deg"],
+        e["prime_meridian_longitude_deg"],
+        atol=1e-12,
+    ):
+        return False
+
+    # Axis serialization order may differ between historical WKT and EPSG,
+    # while both still describe one east/west metric axis and one north/south
+    # metric axis. Compare direction/unit semantics independent of order.
+    if a["axes"] != e["axes"]:
+        return False
+
+    return True
+
+
+def crs_compatibility(actual, expected: str) -> dict:
+    """Classify CRS compatibility without pretending missing metadata exists."""
     actual_crs = CRS.from_user_input(actual)
     expected_crs = CRS.from_user_input(expected)
-
-    if actual_crs == expected_crs:
-        return True
 
     actual_epsg = actual_crs.to_epsg()
     expected_epsg = expected_crs.to_epsg()
 
-    if (
+    if actual_crs == expected_crs or actual_crs.equals(expected_crs):
+        mode = "formal_crs_equivalence"
+        compatible = True
+    elif (
         actual_epsg is not None
         and expected_epsg is not None
         and actual_epsg == expected_epsg
     ):
-        return True
+        mode = "epsg_authority_equivalence"
+        compatible = True
+    elif _projection_contract_equivalent(actual_crs, expected_crs):
+        mode = "projection_contract_equivalence_with_unresolved_datum_authority"
+        compatible = True
+    else:
+        mode = "incompatible"
+        compatible = False
 
-    return actual_crs.equals(expected_crs)
+    return {
+        "compatible": compatible,
+        "mode": mode,
+        "actual_epsg": actual_epsg,
+        "expected_epsg": expected_epsg,
+        "formal_crs_equal": bool(actual_crs.equals(expected_crs)),
+        "projection_contract_equal": bool(
+            _projection_contract_equivalent(actual_crs, expected_crs)
+        ),
+        "actual_projection_contract": _projection_contract(actual_crs),
+        "expected_projection_contract": _projection_contract(expected_crs),
+    }
+
+
+def crs_equivalent(actual, expected: str) -> bool:
+    """Backward-compatible boolean wrapper used by tests/callers."""
+    return bool(crs_compatibility(actual, expected)["compatible"])
 
 
 def axis_starts(length_px: int, tile_size_px: int, stride_px: int) -> list[int]:
@@ -180,14 +302,60 @@ def main() -> None:
         crs = src.crs.to_string()
         expected_crs = str(control["crs_expected"])
 
-        if not crs_equivalent(src.crs, expected_crs):
+        crs_check = crs_compatibility(
+            src.crs,
+            expected_crs,
+        )
+
+        if not crs_check["compatible"]:
             raise RuntimeError(
-                "CRS mismatch: geospatially non-equivalent definitions. "
+                "CRS mismatch: projected-coordinate contract is not "
+                "compatible with the R1 expected CRS. "
                 f"actual={crs}, expected={expected_crs}"
             )
 
-        normalized_crs = CRS.from_user_input(src.crs)
-        normalized_epsg = normalized_crs.to_epsg()
+        # Verify that interpreting AOI projected coordinates through the
+        # historical WKT versus EPSG:3346 is identity at representative points.
+        actual_crs_obj = CRS.from_user_input(src.crs)
+        expected_crs_obj = CRS.from_user_input(expected_crs)
+        transformer = Transformer.from_crs(
+            actual_crs_obj,
+            expected_crs_obj,
+            always_xy=True,
+        )
+
+        left, bottom, right, top = src.bounds
+        crs_probe_points = [
+            (float(left), float(bottom)),
+            (float(left), float(top)),
+            (float(right), float(bottom)),
+            (float(right), float(top)),
+            (
+                float((left + right) / 2.0),
+                float((bottom + top) / 2.0),
+            ),
+        ]
+
+        transformed_points = [
+            transformer.transform(x, y)
+            for x, y in crs_probe_points
+        ]
+
+        crs_identity_max_delta_m = max(
+            max(
+                abs(float(tx) - float(x)),
+                abs(float(ty) - float(y)),
+            )
+            for (x, y), (tx, ty)
+            in zip(crs_probe_points, transformed_points)
+        )
+
+        if crs_identity_max_delta_m > 1e-6:
+            raise RuntimeError(
+                "CRS compatibility check passed structurally but projected "
+                "AOI coordinates are not identity-compatible with EPSG:3346. "
+                f"max_delta_m={crs_identity_max_delta_m}"
+            )
 
         gsd_x = abs(float(src.transform.a))
         gsd_y = abs(float(src.transform.e))
@@ -291,8 +459,17 @@ def main() -> None:
             "sha256": sha256_file(source_tif),
             "crs_raw": crs,
             "crs_expected": expected_crs,
-            "crs_equivalent_to_expected": True,
-            "crs_normalized_epsg": normalized_epsg,
+            "crs_compatible_for_r1": True,
+            "crs_validation_mode": crs_check["mode"],
+            "crs_actual_epsg": crs_check["actual_epsg"],
+            "crs_expected_epsg": crs_check["expected_epsg"],
+            "formal_crs_equal": crs_check["formal_crs_equal"],
+            "projection_contract_equal": crs_check[
+                "projection_contract_equal"
+            ],
+            "identity_probe_max_delta_m": crs_identity_max_delta_m,
+            "transformer_description": transformer.description,
+            "transformer_accuracy": transformer.accuracy,
             "width_px": raster_width,
             "height_px": raster_height,
             "gsd_x_m_per_px": gsd_x,
@@ -341,8 +518,12 @@ def main() -> None:
     print("status:", report["status"])
     print("source raster:", source_tif)
     print("source CRS (raw):", crs)
-    print("source CRS equivalent to:", expected_crs)
-    print("source CRS normalized EPSG:", normalized_epsg)
+    print("source CRS expected:", expected_crs)
+    print("CRS validation mode:", crs_check["mode"])
+    print("source CRS authority EPSG:", crs_check["actual_epsg"])
+    print("expected CRS EPSG:", crs_check["expected_epsg"])
+    print("projection contract equal:", crs_check["projection_contract_equal"])
+    print("AOI identity max delta:", crs_identity_max_delta_m, "m")
     print("source GSD:", gsd_x, "x", gsd_y, "m/px")
     print("fixed stride:", fixed_stride, "px =", fixed_stride * gsd_x, "m")
     print()
