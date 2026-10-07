@@ -1,0 +1,14 @@
+dataset:
+  name: retrieval_candidate_pool_v2_r1_map_build
+  type: research_map_only
+  output_root: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid
+
+map:
+  source: ort10lt_2024_2026
+  crs_contract: EPSG:3346
+  source_tif: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+
+rules:
+  retrieval_ranking_uses_coordinates: false
+  retrieval_ranking_uses_oracle: false
+  this_config_is_for_map_generation_and_geometry_audit_only: true
