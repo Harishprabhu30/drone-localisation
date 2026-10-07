@@ -30,6 +30,7 @@ class BatchRanking:
     map_ids: np.ndarray
     indices: np.ndarray
     scores: np.ndarray
+    retrieval_runtime_s: float
 
 
 class RetrievalBackend(Protocol):

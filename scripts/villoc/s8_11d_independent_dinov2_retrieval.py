@@ -43,6 +43,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from uavloc.retrieval import (
+    DinoV2CachedRetrievalBackend,
+    RetrievalRepresentation,
+)
+
 def load_yaml(path: Path) -> dict:
     with path.open("r") as f:
         return yaml.safe_load(f)
@@ -137,24 +142,6 @@ RECALL_KS = [1, 5, 10, 20, 50, 100]
 
 def now_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def load_npz_cache(path: Path) -> dict:
-    if not path.exists():
-        raise FileNotFoundError(path)
-
-    data = np.load(path, allow_pickle=False)
-
-    meta_raw = data["meta_json"]
-    if hasattr(meta_raw, "item"):
-        meta_raw = meta_raw.item()
-
-    return {
-        "descriptors": data["descriptors"].astype(np.float32),
-        "ids": data["ids"].astype(str),
-        "paths": data["paths"].astype(str),
-        "meta": json.loads(str(meta_raw)),
-    }
 
 
 def safe_col(df: pd.DataFrame, candidates: list[str], table_name: str) -> str:
@@ -384,26 +371,23 @@ def metric_float(x: float) -> float | None:
 
 def evaluate_variant(
     variant: str,
-    q_cache: dict,
-    m_cache: dict,
+    q_cache: RetrievalRepresentation,
+    m_cache: RetrievalRepresentation,
     query_full: pd.DataFrame,
     tile_index: pd.DataFrame,
     oracle_sets: dict[str, set[str]],
+    backend: DinoV2CachedRetrievalBackend,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     started = time.time()
 
-    q_desc = q_cache["descriptors"]
-    m_desc = m_cache["descriptors"]
+    q_desc = q_cache.descriptors
+    q_ids = q_cache.ids.astype(str)
+    tile_ids = m_cache.ids.astype(str)
 
-    q_ids = q_cache["ids"].astype(str)
-    tile_ids = m_cache["ids"].astype(str)
-
-    if q_desc.shape[0] != len(q_ids):
-        raise ValueError(f"{variant}: query descriptor rows do not match query IDs")
-    if m_desc.shape[0] != len(tile_ids):
-        raise ValueError(f"{variant}: map descriptor rows do not match tile IDs")
-    if q_desc.shape[1] != m_desc.shape[1]:
-        raise ValueError(f"{variant}: descriptor dimensions do not match")
+    backend.validate_pair(
+        q_cache,
+        m_cache,
+    )
 
     q_col = safe_col(query_full, ["query_id"], "query_manifest")
     qe_col = safe_col(query_full, ["easting"], "query_manifest")
@@ -424,20 +408,19 @@ def evaluate_variant(
 
     max_k = min(max(RECALL_KS), len(tile_ids))
 
-    # Descriptors were L2-normalized during cache creation, so dot product = cosine similarity.
-    sim = q_desc @ m_desc.T
+    ranking = backend.rank_batch(
+        q_cache,
+        m_cache,
+        max_k,
+    )
 
     candidate_rows = []
     query_rows = []
 
     for i, qid in enumerate(q_ids):
-        scores = sim[i]
-
-        # Full sort is fine here because Villoc has only 108-475 tiles per variant.
-        order = np.argsort(-scores)[:max_k]
-
+        order = ranking.indices[i]
         ranked_tile_ids = [str(tile_ids[j]) for j in order]
-        ranked_scores = [float(scores[j]) for j in order]
+        ranked_scores = [float(score) for score in ranking.scores[i]]
 
         oracle_tiles = oracle_sets.get(str(qid), set())
         oracle_rank = first_oracle_rank(ranked_tile_ids, oracle_tiles)
@@ -578,7 +561,8 @@ def main() -> None:
         raise FileNotFoundError(QUERY_CACHE)
 
     query_full = pd.read_csv(QUERY_CSV)
-    q_cache = load_npz_cache(QUERY_CACHE)
+    backend = DinoV2CachedRetrievalBackend()
+    q_cache = backend.load_representation(QUERY_CACHE)
 
     all_summaries = []
     report = {
@@ -606,7 +590,7 @@ def main() -> None:
 
         tile_index = pd.read_csv(paths["tile_index"])
         oracle_sets = load_oracle_sets(paths["oracle"])
-        m_cache = load_npz_cache(paths["map_cache"])
+        m_cache = backend.load_representation(paths["map_cache"])
 
         candidates_df, query_eval_df, summary = evaluate_variant(
             variant=variant,
@@ -615,6 +599,7 @@ def main() -> None:
             query_full=query_full,
             tile_index=tile_index,
             oracle_sets=oracle_sets,
+            backend=backend,
         )
 
         candidates_path = OUT_DIR / f"s8_11d_topk_{variant}_{TAG}.csv"

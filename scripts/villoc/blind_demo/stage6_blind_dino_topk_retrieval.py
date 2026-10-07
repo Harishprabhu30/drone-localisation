@@ -5,209 +5,10 @@ import argparse
 import json
 import time
 from pathlib import Path
-from typing import Any
-
 import numpy as np
 import pandas as pd
 
-
-PROTOCOL_KEYS = [
-    "model_name",
-    "image_size",
-    "crop_mode",
-    "pooling",
-    "normalization",
-    "l2_normalize",
-    "descriptor_dtype",
-]
-
-
-def load_cache(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-
-    data = np.load(
-        path,
-        allow_pickle=False,
-    )
-
-    required = {
-        "descriptors",
-        "ids",
-        "meta_json",
-    }
-
-    missing = (
-        required
-        - set(data.files)
-    )
-
-    if missing:
-        raise RuntimeError(
-            f"{path}: missing cache keys "
-            f"{sorted(missing)}"
-        )
-
-    meta_raw = data["meta_json"]
-
-    if hasattr(
-        meta_raw,
-        "item",
-    ):
-        meta_raw = meta_raw.item()
-
-    meta = json.loads(
-        str(meta_raw)
-    )
-
-    return {
-        "descriptors": (
-            data["descriptors"]
-            .astype(np.float32)
-        ),
-        "ids": (
-            data["ids"]
-            .astype(str)
-        ),
-        "meta": meta,
-    }
-
-
-def protocol_signature(
-    meta: dict[str, Any],
-) -> dict[str, Any]:
-
-    protocol = meta.get(
-        "protocol",
-        {},
-    )
-
-    return {
-        key: protocol.get(key)
-        for key in PROTOCOL_KEYS
-    }
-
-
-def validate_cache_pair(
-    query: dict[str, Any],
-    map_cache: dict[str, Any],
-) -> None:
-
-    q_desc = query["descriptors"]
-    m_desc = map_cache["descriptors"]
-
-    q_ids = query["ids"]
-    m_ids = map_cache["ids"]
-
-    if q_desc.ndim != 2:
-        raise RuntimeError(
-            "Query descriptors must be 2-D."
-        )
-
-    if m_desc.ndim != 2:
-        raise RuntimeError(
-            "Map descriptors must be 2-D."
-        )
-
-    if q_desc.shape[0] != len(q_ids):
-        raise RuntimeError(
-            "Query descriptor/ID row mismatch."
-        )
-
-    if m_desc.shape[0] != len(m_ids):
-        raise RuntimeError(
-            "Map descriptor/ID row mismatch."
-        )
-
-    if (
-        q_desc.shape[1]
-        != m_desc.shape[1]
-    ):
-        raise RuntimeError(
-            "Query/map descriptor dimensions "
-            "do not match."
-        )
-
-    if len(set(q_ids.tolist())) != len(q_ids):
-        raise RuntimeError(
-            "Duplicate query IDs."
-        )
-
-    if len(set(m_ids.tolist())) != len(m_ids):
-        raise RuntimeError(
-            "Duplicate map tile IDs."
-        )
-
-    if not np.isfinite(q_desc).all():
-        raise RuntimeError(
-            "Non-finite query descriptors."
-        )
-
-    if not np.isfinite(m_desc).all():
-        raise RuntimeError(
-            "Non-finite map descriptors."
-        )
-
-    q_sig = protocol_signature(
-        query["meta"]
-    )
-
-    m_sig = protocol_signature(
-        map_cache["meta"]
-    )
-
-    if q_sig != m_sig:
-        raise RuntimeError(
-            "Query/map DINO protocol mismatch.\n"
-            f"query={q_sig}\n"
-            f"map={m_sig}"
-        )
-
-    if not bool(
-        q_sig.get("l2_normalize")
-    ):
-        raise RuntimeError(
-            "Query descriptors are not marked "
-            "L2 normalized."
-        )
-
-    if not bool(
-        m_sig.get("l2_normalize")
-    ):
-        raise RuntimeError(
-            "Map descriptors are not marked "
-            "L2 normalized."
-        )
-
-    q_norm = np.linalg.norm(
-        q_desc,
-        axis=1,
-    )
-
-    m_norm = np.linalg.norm(
-        m_desc,
-        axis=1,
-    )
-
-    if not np.allclose(
-        q_norm,
-        1.0,
-        atol=1e-3,
-    ):
-        raise RuntimeError(
-            "Query descriptor norms are not "
-            "approximately 1."
-        )
-
-    if not np.allclose(
-        m_norm,
-        1.0,
-        atol=1e-3,
-    ):
-        raise RuntimeError(
-            "Map descriptor norms are not "
-            "approximately 1."
-        )
+from uavloc.retrieval import DinoV2CachedRetrievalBackend
 
 
 def main() -> None:
@@ -279,59 +80,45 @@ def main() -> None:
             "--top-k must be positive."
         )
 
-    query = load_cache(
+    backend = DinoV2CachedRetrievalBackend()
+
+    query = backend.load_representation(
         query_path
     )
 
-    map_cache = load_cache(
+    map_cache = backend.load_representation(
         map_path
     )
 
-    validate_cache_pair(
+    ranking = backend.rank_batch(
         query,
         map_cache,
+        args.top_k,
     )
 
-    q_desc = query["descriptors"]
-    m_desc = map_cache["descriptors"]
+    q_desc = query.descriptors
+    q_ids = query.ids
+    tile_ids = map_cache.ids
 
-    q_ids = query["ids"]
-    tile_ids = map_cache["ids"]
-
-    top_k = min(
-        args.top_k,
-        len(tile_ids),
+    top_k = int(
+        ranking.indices.shape[1]
     )
 
     # -------------------------------------------------
     # BLIND RETRIEVAL
     #
-    # Both caches were L2-normalized during descriptor
-    # construction. Therefore:
+    # Ranking is delegated to the A1 retrieval backend:
     #
-    #     dot product == cosine similarity
+    #     L2-normalized descriptor dot product
+    #         == cosine similarity
+    #     full descending np.argsort
+    #         -> Top-K
     #
     # No coordinates, oracle labels, SRT, GPS, or
     # evaluation data are loaded here.
     # -------------------------------------------------
 
-    retrieval_started = (
-        time.perf_counter()
-    )
-
-    similarity = (
-        q_desc
-        @ m_desc.T
-    )
-
-    order = np.argsort(
-        -similarity,
-        axis=1,
-    )[:, :top_k]
-
-    retrieval_finished = (
-        time.perf_counter()
-    )
+    order = ranking.indices
 
     candidate_rows = []
     query_rows = []
@@ -341,9 +128,8 @@ def main() -> None:
     ):
         selected = order[i]
 
-        scores = similarity[
-            i,
-            selected,
+        scores = ranking.scores[
+            i
         ]
 
         for rank, (
@@ -578,8 +364,8 @@ def main() -> None:
         },
 
         "protocol":
-            protocol_signature(
-                query["meta"]
+            backend.protocol_signature(
+                query.metadata
             ),
 
         "score_summary": {
@@ -606,8 +392,7 @@ def main() -> None:
         "runtime": {
             "matrix_retrieval_s":
                 float(
-                    retrieval_finished
-                    - retrieval_started
+                    ranking.retrieval_runtime_s
                 ),
             "total_stage_wall_s":
                 float(

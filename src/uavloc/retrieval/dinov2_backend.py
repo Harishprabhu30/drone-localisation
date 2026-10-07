@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +41,7 @@ class DinoV2CachedRetrievalBackend:
         return "dinov2_cached_cosine_v1"
 
     @staticmethod
-    def _protocol_signature(metadata: dict[str, Any]) -> dict[str, Any]:
+    def protocol_signature(metadata: dict[str, Any]) -> dict[str, Any]:
         protocol = metadata.get("protocol", {})
         return {key: protocol.get(key) for key in PROTOCOL_KEYS}
 
@@ -120,8 +121,8 @@ class DinoV2CachedRetrievalBackend:
                 f"{q_desc.shape[1]} != {m_desc.shape[1]}"
             )
 
-        q_sig = self._protocol_signature(query.metadata)
-        m_sig = self._protocol_signature(map_representation.metadata)
+        q_sig = self.protocol_signature(query.metadata)
+        m_sig = self.protocol_signature(map_representation.metadata)
         if q_sig != m_sig:
             raise RuntimeError(
                 "Query/map DINO protocol mismatch.\n"
@@ -154,8 +155,13 @@ class DinoV2CachedRetrievalBackend:
         k = min(int(top_k), len(map_representation.ids))
 
         # Deliberately identical to the frozen control implementation.
+        # Runtime covers only the matrix similarity + descending full sort,
+        # matching the historical Stage 6 retrieval timing boundary.
+        retrieval_started = time.perf_counter()
         similarity = query.descriptors @ map_representation.descriptors.T
         order = np.argsort(-similarity, axis=1)[:, :k]
+        retrieval_finished = time.perf_counter()
+
         scores = np.take_along_axis(similarity, order, axis=1)
 
         return BatchRanking(
@@ -163,6 +169,9 @@ class DinoV2CachedRetrievalBackend:
             map_ids=map_representation.ids.copy(),
             indices=order,
             scores=scores,
+            retrieval_runtime_s=float(
+                retrieval_finished - retrieval_started
+            ),
         )
 
     def backend_metadata(self) -> dict[str, Any]:
