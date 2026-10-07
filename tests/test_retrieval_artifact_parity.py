@@ -104,6 +104,28 @@ class ArtifactParityTests(unittest.TestCase):
             "FAIL_ARTIFACT_PARITY",
         )
 
+    def test_schema_change_fails(self):
+        old = artifact(
+            [
+                ["v", "1", 1, "a", 0.95],
+                ["v", "1", 2, "b", 0.90],
+            ]
+        )
+        new = old.copy()
+        new["extra"] = "unexpected"
+
+        result = compare_artifacts(
+            old,
+            new,
+            score_atol=1e-6,
+            tie_atol=1e-6,
+        )
+
+        self.assertEqual(
+            result["status"],
+            "FAIL_ARTIFACT_PARITY",
+        )
+
     def test_membership_change_fails(self):
         old = artifact(
             [

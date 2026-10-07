@@ -284,7 +284,9 @@ def compare_artifacts(
         else:
             exact.append(label)
 
-    if failed:
+    if not schema_equal:
+        status = "FAIL_ARTIFACT_PARITY"
+    elif failed:
         status = "FAIL_ARTIFACT_PARITY"
     elif tie_equivalent or score_rounding_only:
         status = "PASS_TIE_EQUIVALENT_ARTIFACT_PARITY"
