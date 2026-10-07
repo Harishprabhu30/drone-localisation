@@ -1,6 +1,16 @@
 # Handoff — retrieval candidate pool v2
 
-Status: **READY TO START IN A NEW CHAT / NEW RESEARCH BRANCH**
+Status: **A1 CLOSED / PASS — R1 READY / STARTING**
+
+A1 closeout:
+
+```text
+docs/closeouts/retrieval_candidate_pool_v2_a1/README.md
+```
+
+A1 proved exact canonical 403-query DINO ranking parity through the retrieval
+backend and tie-equivalent historical blind-artifact parity under the documented
+numerical comparator. The retrieval abstraction is now the required path for R1.
 
 Intended branch:
 
@@ -86,6 +96,8 @@ Gate: the control implementation must reproduce the frozen candidate ordering or
 
 ### R1 — ground-footprint map pyramid
 
+Status: **STARTING after A1 closeout.**
+
 Keep the DINO backbone and query preprocessing frozen.
 
 Test map windows approximately:
@@ -100,6 +112,30 @@ Test map windows approximately:
 All levels are encoded at the same network input size so that the experiment isolates represented physical context.
 
 The main question is not "which source raster GSD is best?" The ORT10LT source GSD stays fixed. The experiment changes **ground footprint represented per network input**.
+
+#### R1 primary ablation — fixed center spacing
+
+Use a fixed source-raster stride of 256 px (approximately 51.2 m) for the primary
+footprint study:
+
+```text
+384_s256
+512_s256   [frozen control]
+768_s256
+1024_s256  [existing fixed-stride large-footprint endpoint]
+```
+
+Reason: keeping center spacing fixed reduces candidate-density/overlap as a
+confound while changing the physical context represented by each network input.
+The overlap ratio is therefore *not* held fixed in the primary ablation.
+
+Do not compare `384_s192`, `768_s384` and `1024_s512` as if that were a pure
+footprint experiment: those variants change footprint and center spacing
+simultaneously. A constant-50%-overlap study may be run later as a secondary
+density/overlap ablation if R1 evidence warrants it.
+
+The primary R1 experiment should reuse existing `512_s256` and `1024_s256`
+assets and generate only the missing `384_s256` and `768_s256` map levels.
 
 ### R2 — cross-scale candidate fusion
 
