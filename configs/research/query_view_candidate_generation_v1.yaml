@@ -24,6 +24,8 @@ control:
   map_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
   historical_query_cache: outputs/demo_runs/traj01_blind_regression_001/descriptors/s8_11c_dinov2_queries_v_1fps_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
   blind_manifest: outputs/demo_runs/traj01_blind_regression_001/metadata/blind_query_manifest.csv
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+  r3_1_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_1/r3_1_retrieval_only_baseline_report.json
 
 qv1_0:
   expected_query_count: 403
@@ -36,17 +38,30 @@ qv1_0:
     - resize_square
 
 qv1_1:
-  planned_query_variants:
-    - center_square
-    - resize_square
+  status: ready
+  encoded_query_variants:
     - left_square
-    - center_square
     - right_square
+    - resize_square
+  reused_control_query_variant:
+    - center_square
   multicrop_fusion:
+    inputs:
+      - left_square
+      - center_square
+      - right_square
     method: reciprocal_rank_fusion
     rrf_k: 60.0
     per_crop_depth: 50
     final_top_k: 20
+    tie_break:
+      - best_individual_rank
+      - tile_id
+  expected_center_parity:
+    query_count: 403
+    top1_contains_hits: 174
+    top1_le40_hits: 101
+    top1_le80_hits: 171
 
 evaluation:
   metrics:
