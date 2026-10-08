@@ -1,0 +1,75 @@
+# Handoff — query-view candidate generation v1
+
+Status: **QV1.0 STARTED**
+
+Branch:
+
+```text
+research/query-view-candidate-generation-v1
+```
+
+Starting point:
+
+```text
+8fc7424be01ccde122c15befa701fb66652880d4
+docs/closeouts/absolute_frontend_decoupling_v1/README.md
+```
+
+## Research question
+
+> Does the historical center-square query preprocessing discard horizontal
+> visual context that is useful for map candidate generation?
+
+Keep frozen initially:
+
+```text
+map:        768_s256
+backbone:   DINOv2 ViT-S/14
+input:      518
+pooling:    avgpatch
+similarity: cosine/dot on normalized descriptors
+```
+
+No ORB, bootstrap or state logic is allowed in QV1.
+
+## QV1.0 — geometry/provenance preflight
+
+Before new DINO inference:
+
+- verify all 403 blind image paths;
+- verify frame dimensions;
+- freeze deterministic left/center/right square crop geometry;
+- prove L/C/R covers the full horizontal field;
+- prove historical center-square parity;
+- load no coordinates, GPS, reference or oracle columns.
+
+For 3840 x 2160:
+
+```text
+left:    [0,    0, 2160, 2160]
+center:  [840,  0, 3000, 2160]
+right:   [1680, 0, 3840, 2160]
+```
+
+Historical center-square retains 56.25% of the horizontal extent and discards
+43.75%.
+
+## QV1.1 — bounded representation comparison
+
+After QV1.0 passes:
+
+```text
+A. center_square
+   historical control
+
+B. resize_square
+   full-frame distortion ablation
+
+C. left / center / right square descriptors
+   independent DINO descriptors
+   neutral reciprocal-rank fusion
+```
+
+No learned crop weighting in the first experiment.
+
+Evaluation reference is attached only after ranking is frozen.

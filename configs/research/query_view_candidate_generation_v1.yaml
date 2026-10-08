@@ -1,0 +1,72 @@
+stage: QV1
+name: query_view_candidate_generation_v1
+
+lineage:
+  base_commit: 8fc7424be01ccde122c15befa701fb66652880d4
+  prior_closeout: docs/closeouts/absolute_frontend_decoupling_v1/README.md
+  stable_map_reference: 768_s256
+
+scope:
+  objective: >
+    Test whether the historical center-square query preprocessing discards
+    horizontal context that is useful for DINOv2 map candidate generation.
+  orb_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+  reference_used_for_query_representation: false
+
+control:
+  backbone: dinov2_vits14
+  image_size: 518
+  pooling: avgpatch
+  map_variant: 768_s256
+  map_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  map_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+  historical_query_cache: outputs/demo_runs/traj01_blind_regression_001/descriptors/s8_11c_dinov2_queries_v_1fps_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  blind_manifest: outputs/demo_runs/traj01_blind_regression_001/metadata/blind_query_manifest.csv
+
+qv1_0:
+  expected_query_count: 403
+  expected_width_px: 3840
+  expected_height_px: 2160
+  crop_family:
+    - center_square
+    - left_square
+    - right_square
+    - resize_square
+
+qv1_1:
+  planned_query_variants:
+    - center_square
+    - resize_square
+    - left_square
+    - center_square
+    - right_square
+  multicrop_fusion:
+    method: reciprocal_rank_fusion
+    rrf_k: 60.0
+    per_crop_depth: 50
+    final_top_k: 20
+
+evaluation:
+  metrics:
+    - containment_r1
+    - containment_r5
+    - containment_r20
+    - le40_r20
+    - le80_r20
+    - first_useful_rank
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+
+non_goals:
+  - map_footprint_changes
+  - descriptor_backbone_changes
+  - ORB_reranking
+  - ORB_projection
+  - bootstrap_changes
+  - temporal_state_changes
+  - GT_tuned_crop_weights
