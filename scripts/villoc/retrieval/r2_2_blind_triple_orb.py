@@ -644,9 +644,9 @@ def main() -> None:
 
     selected_eval_rows = []
 
-    for row in selected.itertuples(index=False):
-        qid = int(row.query_id)
-        composite = str(row.tile_id)
+    for _, row in selected.iterrows():
+        qid = int(row["query_id"])
+        composite = str(row["tile_id"])
 
         if composite not in mixed_lookup.index:
             raise RuntimeError(
@@ -681,11 +681,11 @@ def main() -> None:
                 "selected_composite_tile_id": composite,
                 "selected_variant": variant,
                 "selected_original_tile_id": original_tile_id,
-                "selected_fused_rank": int(float(row.rank)),
-                "selected_hybrid_rank": int(float(row.hybrid_rank)),
-                "selected_verifier_rank": int(float(row.verifier_rank)),
-                "selected_inliers": int(float(row.inliers)),
-                "selected_homography_ok": bool(row.homography_ok),
+                "selected_fused_rank": int(float(row["rank"])),
+                "selected_hybrid_rank": int(float(row["hybrid_rank"])),
+                "selected_verifier_rank": int(float(row["verifier_rank"])),
+                "selected_inliers": int(float(row["inliers"])),
+                "selected_homography_ok": bool(row["homography_ok"]),
                 "selected_center_error_m": error,
                 "selected_contains_query": is_containing,
                 "selected_le40": bool(error <= 40.0),
