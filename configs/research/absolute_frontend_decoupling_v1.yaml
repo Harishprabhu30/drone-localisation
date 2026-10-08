@@ -34,6 +34,8 @@ artifacts:
   reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
   r3_1_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_1/r3_1_retrieval_only_baseline_report.json
   r3_2_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_2/r3_2_consensus_selector_report.json
+  r3_3_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_3/r3_3_retrieval_confidence_audit_report.json
+  r3_3_labels: outputs/research_runs/absolute_frontend_decoupling_v1/r3_3/r3_3_postfreeze_confidence_feature_labels.csv
 
 r3_1:
   selections:
@@ -118,6 +120,14 @@ r3_3:
     - three_scale_region_count_top5
     - three_scale_region_count_top20
     - multiscale_region_count_top20
+
+r3_4:
+  mode: causal_temporal_retrieval_audit
+  selector_changes_allowed: false
+  history_windows: [3, 5]
+  radii_m: [51.2, 102.4]
+  rank_weight_k: 60.0
+  named_diagnostics: [57, 99, 228, 390]
 
 non_goals:
   - learned_selector

@@ -1,6 +1,6 @@
 # Handoff — absolute frontend decoupling v1
 
-Status: **R3.1 CLOSED / R3.2 CLOSED — R3.3 STARTED**
+Status: **R3.1/R3.2/R3.3 CLOSED — R3.4 STARTED**
 
 Branch:
 
@@ -273,3 +273,85 @@ If no static feature separates those cases credibly, the next step should be
 causal temporal retrieval consistency rather than more static score tuning.
 
 Do not reopen ORB/bootstrap/state research inside R3.
+
+
+## R3.3 result — static confidence is informative but not decisive
+
+Status:
+
+```text
+PASS_R3_RETRIEVAL_CONFIDENCE_AUDIT
+```
+
+Measured discordant direct-selection cases:
+
+```text
+containment:
+  anchor-only good   63
+  fused-only good    16
+
+<=80 m:
+  anchor-only good   65
+  fused-only good    19
+```
+
+Best static diagnostic separation is informative but not sufficient to promote
+a selector:
+
+```text
+containment:
+  anchor_fused_rrf_score   AUC* ~0.795
+  member-rank statistics  AUC* ~0.746
+  768 Top1/Top2 margin     AUC* ~0.723
+
+<=80 m:
+  anchor_fused_rrf_score   AUC* ~0.791
+  anchor fused rank        AUC* ~0.729
+  fused RRF/member ranks   AUC* ~0.72
+```
+
+Named cases still require opposite decisions under similar static support:
+q99 should hold 768, while q390 should prefer the fused region. q57 shows that
+three-scale agreement can reinforce the wrong place.
+
+No threshold is promoted from R3.3.
+
+## R3.4 — causal temporal retrieval audit
+
+Status: **STARTING**
+
+R3.4 is diagnostic only.
+
+Question:
+
+> Does a candidate physical region have a stronger causal track through recent
+> retrieval candidate sets than its static rank/score alone suggests?
+
+For the 768 anchor and fused Top-1, compute only from previous queries:
+
+- nearby-region hit count in the previous 3 and 5 queries;
+- rank-weighted support;
+- nearest historical-region distance;
+- matched historical ranks;
+- displacement from the previous anchor/fused Top-1.
+
+Fixed physical radii:
+
+```text
+51.2 m
+102.4 m
+```
+
+The blind temporal feature table is frozen before R3.3 labels are attached.
+
+No selector threshold is fitted in R3.4.
+
+Decision:
+
+- if causal temporal features clearly improve separation and are mechanistically
+  interpretable, freeze a simple causal policy next;
+- otherwise stop selector tuning on this trajectory and return to
+  candidate-generation / representation research.
+
+This keeps the original research objective intact while following measured
+bottlenecks.
