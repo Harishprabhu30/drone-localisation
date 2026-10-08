@@ -1,0 +1,57 @@
+stage: R3
+name: absolute_frontend_decoupling_v1
+
+lineage:
+  base_commit: 413ec336a7d7038c17adad6fd9fc6b81b36df653
+  r2_closeout: docs/closeouts/retrieval_candidate_pool_v2_r2/README.md
+  stable_reference: 768_s256
+  experimental_frontend: triple_512_768_1024_rrf
+
+scope:
+  objective: >
+    Measure and strengthen absolute candidate selection before geometric
+    reranking and state estimation, while preserving separate interfaces for
+    retrieval selection, geometric projection/refinement, and state acceptance.
+  state_estimation_enabled: false
+  orb_reranking_enabled: false
+  orb_projection_enabled: false
+  reference_used_for_selection: false
+
+artifacts:
+  stable_768_topk: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/retrieval/s8_11d/s8_11d_topk_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.csv
+  stable_768_tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+  stable_768_orb_eval_source: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/r1_4_downstream_replay_report.json
+
+  triple_fused_topk: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/retrieval/r2_2_blind_triple_fused_top20.csv
+  triple_mixed_tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/metadata/r2_2_mixed_representative_tile_index.csv
+  triple_orb_selected_eval: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/reports/r2_2_orb_selected_postfreeze_evaluation.csv
+
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+
+r3_1:
+  selections:
+    - name: 768_dino_top1
+      source: stable_768_topk
+      rank_column: rank
+      rank_value: 1
+    - name: triple_fused_rank1_representative
+      source: triple_fused_topk
+      rank_column: rank
+      rank_value: 1
+  thresholds_m:
+    - 40.0
+    - 80.0
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+
+non_goals:
+  - learned_selector
+  - ORB_reranker_changes
+  - ORB_projection_changes
+  - bootstrap_changes
+  - temporal_state_changes
+  - query_crop_changes
+  - descriptor_backend_changes
