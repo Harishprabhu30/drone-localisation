@@ -1,6 +1,6 @@
 # Handoff — retrieval candidate pool v2
 
-Status: **A1 CLOSED / PASS — R1 READY / STARTING**
+Status: **A1 CLOSED / R1 CLOSED — R2 READY TO START**
 
 A1 closeout:
 
@@ -137,6 +137,51 @@ density/overlap ablation if R1 evidence warrants it.
 The primary R1 experiment should reuse existing `512_s256` and `1024_s256`
 assets and generate only the missing `384_s256` and `768_s256` map levels.
 
+### R1 closeout result
+
+R1 is closed at:
+
+```text
+docs/closeouts/retrieval_candidate_pool_v2_r1/README.md
+```
+
+Promoted research interpretation:
+
+```text
+768_s256   primary single-scale research reference
+512_s256   precision / historical-control expert
+1024_s256  rescue / context expert
+384_s256   diversity/control only unless unique-rescue evidence justifies budget
+```
+
+Important R1 downstream finding:
+
+```text
+q390 on 512_s256:
+  frozen final policy accepted a locally low-innovation hypothesis
+  that jumped to a globally wrong transform family
+  scale ~0.1789 -> 0.1027
+  rotation ~-32.9 deg -> +141.1 deg
+  error ~29 m -> ~363 m at the same effective query
+```
+
+Do not patch the state machine inside R2. Candidate fusion and state-safety
+research must remain attributable.
+
+Important q57 finding:
+
+```text
+1024_s256 blind Top-20 contains useful GT-covering candidates,
+including one at ~13.7 m center error, but unchanged ORB/hybrid reranking
+selects a ~549 m false candidate instead.
+```
+
+Therefore R2 must measure separately:
+
+```text
+availability -> fused selection -> ORB selection -> state acceptance
+```
+
 ### R2 — cross-scale candidate fusion
 
 Do not send Top-20 from every scale to ORB.
@@ -144,12 +189,32 @@ Do not send Top-20 from every scale to ORB.
 Use:
 
 ```text
-per-scale DINO ranks
+512_s256 DINO ranks
+768_s256 DINO ranks
+1024_s256 DINO ranks
       -> rank fusion (start with RRF)
       -> spatial duplicate suppression
       -> one merged Top-20
       -> unchanged ORB Top-20 budget
 ```
+
+Do not include `384_s256` in the first R2 production-budget fusion. It remains
+available as a diversity/unique-rescue control.
+
+Start R2 with neutral, inspectable fusion rather than learned/tuned weights.
+The first required controls should separate:
+
+```text
+512 + 768
+512 + 768 + 1024
+```
+
+and report the incremental unique-region contribution of 1024.
+
+R2 retrieval evaluation must keep q57 and q390 as explicit diagnostics. q57
+tests whether the coarse rescue candidate survives fusion/ORB; q390 tests
+whether a changed candidate stream avoids the late catastrophic update without
+modifying state policy.
 
 Candidate records must carry physical provenance:
 
