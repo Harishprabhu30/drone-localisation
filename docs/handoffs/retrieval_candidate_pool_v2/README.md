@@ -1,6 +1,6 @@
 # Handoff — retrieval candidate pool v2
 
-Status: **A1 CLOSED / R1 CLOSED — R2 READY TO START**
+Status: **A1 CLOSED / R1 CLOSED / R2 CLOSED — NEXT FRONTEND-STRENGTH STAGE BRANCHED**
 
 A1 closeout:
 
@@ -228,6 +228,73 @@ Candidate records must carry physical provenance:
 - fused rank.
 
 Spatial deduplication should prevent multiple overlapping representations of the same physical region from consuming the Top-20 budget.
+
+### R2 closeout result
+
+R2 is closed at:
+
+```text
+docs/closeouts/retrieval_candidate_pool_v2_r2/README.md
+```
+
+Final R2 interpretation:
+
+```text
+candidate-pool fusion:
+  PASS
+
+downstream promotion of triple fused stream through frozen ORB/bootstrap:
+  FAIL
+
+stable operational/research reference:
+  768_s256
+
+retained experimental frontend:
+  512_s256 + 768_s256 + 1024_s256 physical-region RRF
+```
+
+The triple fusion is not discarded. It improves region-level candidate
+availability and exposes complementary coarse-context rescues, but the current
+downstream stack is not safe enough to promote it as an end-to-end replacement.
+
+R2.5 localized the main catastrophic mixed-stream failure at q99:
+
+```text
+current good observation:
+  768_s256::sat_000309
+  contains GT
+  ~21.5 m center error
+  verifier rank 1
+  hybrid rank 1
+  minimum innovation ~2.02 m
+
+accepted leader hypothesis:
+  24244
+  support queries 1,39,60,99
+  mixed 512/768 support
+  q99 support uses a different 512 rank-4 tile
+  gate tile is NOT in the accepted leader
+  resulting rotation ~-100.8 deg
+  trajectory jumps ~3.8 m -> ~480.4 m
+```
+
+This demonstrates a gate/leader coupling limitation in the frozen
+`minimum_confident_v2` state machinery under the richer mixed-scale stream.
+It does not invalidate the candidate-pool gain itself.
+
+Next-stage branch:
+
+```text
+research/absolute-frontend-decoupling-v1
+```
+
+Next-stage objective:
+
+> Measure and strengthen absolute candidate selection before geometric
+> reranking/state estimation, while retaining 768_s256 as the stable control
+> and the R2 triple as the richer experimental candidate source.
+
+ORB reranking and state estimation must remain separately measurable.
 
 ### R3 — query-view/crop study
 
