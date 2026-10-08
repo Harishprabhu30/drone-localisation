@@ -132,6 +132,9 @@ def minimum_confident_v2(
     source_run_root: Path,
     run_root: Path,
     config,
+    candidate_csv: Path | None = None,
+    relative_csv: Path | None = None,
+    manifest_csv: Path | None = None,
 ):
 
     bootstrap_cfg = config.get(
@@ -210,9 +213,13 @@ def minimum_confident_v2(
 
 
     manifest = (
-        source_run_root
-        / "metadata/"
-          "blind_query_manifest.csv"
+        manifest_csv.resolve()
+        if manifest_csv is not None
+        else (
+            source_run_root
+            / "metadata/"
+              "blind_query_manifest.csv"
+        )
     )
 
 
@@ -244,27 +251,47 @@ def minimum_confident_v2(
     # Frozen v2 localization backend.
     # --------------------------------------------------------
 
+    implementation_command = [
+        sys.executable,
+
+        implementation,
+
+        "--repo-root",
+        repo_root,
+
+        "--run-root",
+        source_run_root,
+
+        "--architecture-contract",
+        architecture,
+
+        "--expected-contract-sha256",
+        architecture_sha_expected,
+
+        "--out-root",
+        backend_root,
+    ]
+
+    if candidate_csv is not None:
+        implementation_command.extend([
+            "--candidate-csv",
+            candidate_csv.resolve(),
+        ])
+
+    if relative_csv is not None:
+        implementation_command.extend([
+            "--relative-csv",
+            relative_csv.resolve(),
+        ])
+
+    if manifest_csv is not None:
+        implementation_command.extend([
+            "--manifest-csv",
+            manifest_csv.resolve(),
+        ])
+
     run(
-        [
-            sys.executable,
-
-            implementation,
-
-            "--repo-root",
-            repo_root,
-
-            "--run-root",
-            source_run_root,
-
-            "--architecture-contract",
-            architecture,
-
-            "--expected-contract-sha256",
-            architecture_sha_expected,
-
-            "--out-root",
-            backend_root,
-        ]
+        implementation_command
     )
 
 
@@ -649,6 +676,33 @@ def main():
         type=Path,
     )
 
+    parser.add_argument(
+        "--candidate-csv",
+        type=Path,
+        help=(
+            "Optional explicit blind ORB candidate table for controlled "
+            "replays. Defaults preserve the historical run-root path."
+        ),
+    )
+
+    parser.add_argument(
+        "--relative-csv",
+        type=Path,
+        help=(
+            "Optional explicit blind relative trajectory for controlled "
+            "replays. Defaults preserve the historical run-root path."
+        ),
+    )
+
+    parser.add_argument(
+        "--manifest-csv",
+        type=Path,
+        help=(
+            "Optional explicit blind query manifest for controlled replays. "
+            "Defaults preserve the historical run-root path."
+        ),
+    )
+
     args = parser.parse_args()
 
     t0 = time.perf_counter()
@@ -742,6 +796,9 @@ def main():
             source_run_root=source_run_root,
             run_root=run_root,
             config=config,
+            candidate_csv=args.candidate_csv,
+            relative_csv=args.relative_csv,
+            manifest_csv=args.manifest_csv,
         )
 
     else:
