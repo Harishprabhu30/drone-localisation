@@ -1,6 +1,6 @@
 # Handoff — absolute frontend decoupling v1
 
-Status: **R3.1/R3.2/R3.3 CLOSED — R3.4 STARTED**
+Status: **R3.1/R3.2/R3.3/R3.4 CLOSED — BRANCH CLOSED**
 
 Branch:
 
@@ -355,3 +355,29 @@ Decision:
 
 This keeps the original research objective intact while following measured
 bottlenecks.
+
+
+## Final closeout
+
+The full closeout is:
+
+```text
+docs/closeouts/absolute_frontend_decoupling_v1/README.md
+```
+
+R3.4 did not improve on the best static R3.3 diagnostic and demonstrated that
+short-horizon persistence can reinforce the wrong geographic alias.
+
+Do not continue selector-threshold tuning on this representation.
+
+Next branch:
+
+```text
+research/query-view-candidate-generation-v1
+```
+
+Next axis:
+
+```text
+query representation / crop coverage
+```
