@@ -1,6 +1,6 @@
 # Handoff — absolute frontend decoupling v1
 
-Status: **R3.0 STARTED**
+Status: **R3.1 CLOSED / R3.2 STARTED**
 
 Branch:
 
@@ -65,43 +65,125 @@ a restriction on future research, but it must not be modified in place.
 
 ## R3.0 — contract
 
-R3.0 freezes the first frontend-decoupling experiment:
+R3.0 freezes the frontend-decoupling principle:
 
 - strict-blind candidate artifacts only before selection;
 - no ORB reranking;
 - no ORB projection;
 - no bootstrap/state;
 - reference attached only after candidate choice is frozen;
-- compare direct 768 DINO Top-1 with direct triple fused rank-1 representative;
-- keep current ORB-selected results beside them as downstream comparators only.
+- keep 768_s256 as the stable selection reference;
+- keep the R2 triple as the richer experimental candidate source.
 
 ## R3.1 — retrieval-only selection baseline
 
-Question:
+Status:
 
-> Without ORB reranking or state logic, how good is the direct rank-1 absolute
-> candidate produced by the stable 768 frontend versus the triple fused
-> frontend?
+```text
+PASS_R3_RETRIEVAL_ONLY_BASELINE
+```
 
-Required metrics:
+Measured direct rank-1 selection:
 
-- containment Top-1;
-- center error <=40 m;
-- center error <=80 m;
-- center-error median/p95;
-- named diagnostics q57, q99, q228, q390;
-- direct comparison with existing ORB-selected results, without using those
-  results to choose the retrieval candidate.
+```text
+768 DINO Top-1:
+  contains       174 / 403
+  <=40 m         101 / 403
+  <=80 m         171 / 403
+  median error   256.837 m
+  p95 error      863.389 m
 
-No new selector is introduced in R3.1.
+triple fused rank-1 representative:
+  contains       127 / 403
+  <=40 m          80 / 403
+  <=80 m         125 / 403
+  median error   461.397 m
+  p95 error      862.965 m
+```
 
-## Decision after R3.1
+Interpretation:
 
-If direct triple rank-1 is already competitive or complementary, proceed to
-blind retrieval-level confidence/consensus selection.
+The triple's R2 value does **not** come from its raw fused rank-1
+representative. The stable 768 DINO Top-1 is substantially stronger as a direct
+selector.
 
-If direct triple rank-1 is weak while useful members are often available deeper
-in the fused region/Top-K, then R3.2 should focus on a retrieval-native
-selection rule rather than asking ORB to rescue the list.
+Named examples reinforce the complementarity:
+
+```text
+q99:
+  768 Top-1     ~21.5 m / containing
+  triple Top-1 ~523.3 m / false
+
+q228:
+  768 Top-1     ~56.8 m / containing
+  triple Top-1  ~21.2 m / containing
+
+q390:
+  768 Top-1    ~463.6 m / false
+  triple Top-1 ~83.6 m / containing
+```
+
+Therefore R3 must use the triple as a **consensus/rescue source**, not replace
+768 blindly with fused rank-1.
+
+## R3.2 — retrieval-native consensus / rescue selector
+
+Status: **STARTING**
+
+No learned weights and no GT-tuned thresholds are allowed in the first selector
+family.
+
+The main policy is:
+
+```text
+768 DINO Top-1
+      |
+      +-- find its physical-region support inside triple fused Top-20
+      |
+      +-- find strongest cross-scale region by:
+            support-scale count
+            then fused RRF
+            then fused rank
+      |
+      +-- switch only if another region has STRICTLY MORE
+          cross-scale support than the 768 anchor
+      |
+      +-- when a selected region contains a 768 member,
+          use that 768 member as the concrete tile;
+          otherwise use the region representative
+```
+
+This is `768_strict_support_rescue`.
+
+A more conservative control, `768_three_scale_rescue`, switches only when a
+three-scale region exists and the 768 anchor itself is not three-scale
+supported.
+
+Two diagnostics isolate the role of region/member choice:
+
+```text
+triple_support_first_representative
+triple_support_first_768_preferred
+```
+
+All policies are frozen before post-selection reference evaluation.
+
+Required outputs:
+
+- direct candidate accuracy for every policy;
+- switch count away from 768;
+- post-freeze switch gains/losses;
+- containment and <=40/<=80 changes;
+- q57, q99, q228, q390;
+- no ORB/state execution.
+
+## Decision after R3.2
+
+Promote a retrieval-native selector only if it improves or preserves 768's
+direct-selection behavior without relying on GT, ORB or state logic.
+
+If consensus switching is too aggressive, keep 768 as the selection baseline
+and study confidence/temporal evidence next rather than tune thresholds on this
+trajectory.
 
 Do not reopen bootstrap/state research inside R3.

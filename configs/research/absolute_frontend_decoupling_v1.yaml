@@ -23,10 +23,16 @@ artifacts:
   stable_768_orb_eval_source: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/r1_4_downstream_replay_report.json
 
   triple_fused_topk: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/retrieval/r2_2_blind_triple_fused_top20.csv
+  triple_region_provenance: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/metadata/r2_2_region_member_provenance.csv
   triple_mixed_tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/metadata/r2_2_mixed_representative_tile_index.csv
   triple_orb_selected_eval: outputs/research_runs/retrieval_candidate_pool_v2/r2_cross_scale_fusion/r2_2_blind_orb/reports/r2_2_orb_selected_postfreeze_evaluation.csv
 
+  tile_index_512: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+  tile_index_768: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+  tile_index_1024: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv
+
   reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+  r3_1_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_1/r3_1_retrieval_only_baseline_report.json
 
 r3_1:
   selections:
@@ -47,8 +53,45 @@ r3_1:
     - 228
     - 390
 
+r3_2:
+  policy_family_frozen_before_evaluation: true
+  member_selection:
+    preferred_variant: 768_s256
+    fallback: fused_region_representative
+  policies:
+    - name: 768_dino_top1
+      type: baseline
+    - name: triple_support_first_representative
+      type: support_first
+      member_policy: representative
+    - name: triple_support_first_768_preferred
+      type: support_first
+      member_policy: prefer_768
+    - name: 768_strict_support_rescue
+      type: anchored_rescue
+      rescue_condition: strictly_more_support_scales_than_768_anchor
+      member_policy: prefer_768
+    - name: 768_three_scale_rescue
+      type: anchored_rescue
+      rescue_condition: three_scale_region_and_768_anchor_not_three_scale
+      member_policy: prefer_768
+  region_priority:
+    - support_scale_count_desc
+    - fused_rrf_score_desc
+    - fused_rank_asc
+  missing_anchor_support_count: 1
+  thresholds_m:
+    - 40.0
+    - 80.0
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+
 non_goals:
   - learned_selector
+  - GT_tuned_thresholds
   - ORB_reranker_changes
   - ORB_projection_changes
   - bootstrap_changes
