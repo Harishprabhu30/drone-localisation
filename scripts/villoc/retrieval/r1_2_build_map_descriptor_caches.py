@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import sys
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,8 +62,10 @@ def load_builder_module(path: Path) -> ModuleType:
     if not path.exists():
         raise FileNotFoundError(path)
 
+    module_name = "villoc_s8_11bc_builder"
+
     spec = importlib.util.spec_from_file_location(
-        "villoc_s8_11bc_builder",
+        module_name,
         path,
     )
     if spec is None or spec.loader is None:
@@ -71,7 +74,23 @@ def load_builder_module(path: Path) -> ModuleType:
         )
 
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+
+    # dataclasses resolves annotation/type metadata through
+    # sys.modules[cls.__module__] while the class decorator runs.
+    # A module created manually with module_from_spec() is not inserted into
+    # sys.modules automatically, so register it before exec_module().
+    previous = sys.modules.get(module_name)
+    sys.modules[module_name] = module
+
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        if previous is None:
+            sys.modules.pop(module_name, None)
+        else:
+            sys.modules[module_name] = previous
+        raise
+
     return module
 
 

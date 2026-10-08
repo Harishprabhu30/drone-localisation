@@ -10,6 +10,7 @@ import pandas as pd
 from scripts.villoc.retrieval.r1_2_build_map_descriptor_caches import (
     cache_index_path,
     inspect_cache_state,
+    load_builder_module,
     select_r12_levels,
     validate_cache_against_index,
 )
@@ -17,6 +18,34 @@ from uavloc.retrieval import RetrievalRepresentation
 
 
 class R1MapDescriptorCacheTests(unittest.TestCase):
+    def test_real_s8_11bc_builder_can_be_loaded(self):
+        path = Path(
+            "scripts/villoc/s8_11bc_build_dinov2_caches.py"
+        ).resolve()
+
+        module = load_builder_module(path)
+
+        protocol = module.Protocol(
+            device="cpu",
+            batch_size=1,
+            image_size=518,
+            crop_mode="center_square",
+            pooling="avgpatch",
+        )
+
+        self.assertEqual(
+            protocol.model_name,
+            "dinov2_vits14",
+        )
+        self.assertEqual(
+            protocol.image_size,
+            518,
+        )
+        self.assertEqual(
+            protocol.pooling,
+            "avgpatch",
+        )
+
     def test_selects_only_primary_missing_levels_in_order(self):
         cfg = {
             "experiment": {
