@@ -13,12 +13,22 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from scripts.villoc.retrieval.r3_3_confidence_feature_audit import (
-    binary_auc,
-    composite_tile_id,
-    load_fused_regions,
-    prepare_composite_index,
-)
+try:
+    from scripts.villoc.retrieval.r3_3_confidence_feature_audit import (
+        binary_auc,
+        composite_tile_id,
+        load_fused_regions,
+        prepare_composite_index,
+    )
+except ModuleNotFoundError:
+    # Direct script execution places this directory on sys.path, while
+    # PYTHONPATH may contain only repo/src. Fall back to the sibling module.
+    from r3_3_confidence_feature_audit import (
+        binary_auc,
+        composite_tile_id,
+        load_fused_regions,
+        prepare_composite_index,
+    )
 
 ROOT = Path.cwd().resolve()
 DEFAULT_CONFIG = Path("configs/research/absolute_frontend_decoupling_v1.yaml")
