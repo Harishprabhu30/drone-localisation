@@ -681,7 +681,7 @@ def main() -> None:
                 "selected_composite_tile_id": composite,
                 "selected_variant": variant,
                 "selected_original_tile_id": original_tile_id,
-                "selected_fused_rank": int(float(row["rank"])),
+                "selected_fused_rank": int(float(row.rank)),
                 "selected_hybrid_rank": int(float(row.hybrid_rank)),
                 "selected_verifier_rank": int(float(row.verifier_rank)),
                 "selected_inliers": int(float(row.inliers)),
