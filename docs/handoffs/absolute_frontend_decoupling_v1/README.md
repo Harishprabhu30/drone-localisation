@@ -1,6 +1,6 @@
 # Handoff — absolute frontend decoupling v1
 
-Status: **R3.1 CLOSED / R3.2 STARTED**
+Status: **R3.1 CLOSED / R3.2 CLOSED — R3.3 STARTED**
 
 Branch:
 
@@ -177,13 +177,99 @@ Required outputs:
 - q57, q99, q228, q390;
 - no ORB/state execution.
 
-## Decision after R3.2
+## R3.2 result — support count is not sufficient confidence
 
-Promote a retrieval-native selector only if it improves or preserves 768's
-direct-selection behavior without relying on GT, ORB or state logic.
+Status:
 
-If consensus switching is too aggressive, keep 768 as the selection baseline
-and study confidence/temporal evidence next rather than tune thresholds on this
-trajectory.
+```text
+PASS_R3_RETRIEVAL_NATIVE_CONSENSUS_SELECTOR
+```
 
-Do not reopen bootstrap/state research inside R3.
+Measured:
+
+```text
+768_dino_top1:
+  contains 174 / 403
+  <=40     101 / 403
+  <=80     171 / 403
+
+triple_support_first_representative:
+  contains 127 / 403
+  <=40      80 / 403
+  <=80     125 / 403
+  switches 269
+
+triple_support_first_768_preferred:
+  contains 137 / 403
+  <=40      68 / 403
+  <=80     132 / 403
+  switches 161
+
+768_strict_support_rescue:
+  contains 145 / 403
+  <=40      83 / 403
+  <=80     142 / 403
+  switches 38
+  improved switches 4
+  worsened switches 34
+
+768_three_scale_rescue:
+  identical to strict-support rescue
+```
+
+Therefore cross-scale support count is not a valid standalone confidence signal.
+
+Named cases explain the ambiguity:
+
+```text
+q99:
+  correct 768 anchor region has three-scale support, fused rank 7
+  wrong fused rank-1 region also has three-scale support
+  -> support count cannot say "hold"
+
+q390:
+  wrong 768 anchor region has three-scale support, fused rank 5
+  useful fused rank-1 region also has three-scale support
+  -> support count cannot say "rescue"
+
+q57:
+  wrong region itself has three-scale support
+  -> correlated multi-scale aliasing can reinforce a false location
+```
+
+R3.2 therefore does not promote any new selector.
+
+## R3.3 — retrieval confidence-feature audit
+
+Status: **STARTING**
+
+R3.3 is diagnostic only. It does not choose a new candidate.
+
+Blind features are frozen first from retrieval artifacts:
+
+- 768 DINO Top-1 score and Top-1/Top-2 margin;
+- 768 anchor fused rank/support/RRF score;
+- fused rank-1 support and RRF margin;
+- fused rank-1 per-scale member ranks;
+- distance between the 768 anchor and fused rank-1 physical regions;
+- count of three-scale and multi-scale regions in the fused Top-K.
+
+Only after the feature table is frozen, reference is attached to label:
+
+```text
+anchor-only good
+fused-only good
+both good
+both bad
+```
+
+for containment and <=80 m.
+
+The purpose is to determine whether any **static blind retrieval confidence
+signal** can distinguish q99-type "hold 768" cases from q390-type "rescue"
+cases. No thresholds or selector policy are tuned in R3.3.
+
+If no static feature separates those cases credibly, the next step should be
+causal temporal retrieval consistency rather than more static score tuning.
+
+Do not reopen ORB/bootstrap/state research inside R3.

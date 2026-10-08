@@ -33,6 +33,7 @@ artifacts:
 
   reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
   r3_1_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_1/r3_1_retrieval_only_baseline_report.json
+  r3_2_report: outputs/research_runs/absolute_frontend_decoupling_v1/r3_2/r3_2_consensus_selector_report.json
 
 r3_1:
   selections:
@@ -88,6 +89,35 @@ r3_2:
     - 99
     - 228
     - 390
+
+r3_3:
+  mode: postfreeze_confidence_feature_audit
+  selector_changes_allowed: false
+  labels:
+    - containment
+    - le80
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+  numeric_features:
+    - dino768_top1_score
+    - dino768_top1_margin
+    - anchor_fused_rank
+    - anchor_support_scale_count
+    - anchor_fused_rrf_score
+    - fused_top1_support_scale_count
+    - fused_top1_rrf_score
+    - fused_top1_rrf_margin
+    - fused_top1_member_rank_mean
+    - fused_top1_member_rank_max
+    - fused_top1_member_rank_std
+    - fused_top1_768_member_rank
+    - anchor_to_fused_top1_center_distance_m
+    - three_scale_region_count_top5
+    - three_scale_region_count_top20
+    - multiscale_region_count_top20
 
 non_goals:
   - learned_selector
