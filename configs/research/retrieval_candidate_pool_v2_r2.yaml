@@ -1,0 +1,83 @@
+stage: R2
+name: retrieval_candidate_pool_v2_cross_scale_fusion
+
+control:
+  r1_closeout_commit: 8e349c5e0dde458f31d654c7afb92f6e0fe269b8
+  r1_protocol: configs/research/retrieval_candidate_pool_v2_r1.yaml
+  query_cache: outputs/villoc/traj01_90deg_stable120m/descriptors/s8_11c_dinov2_queries_v_1fps_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  query_count_expected: 403
+  r1_query_evaluation_csv: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/retrieval/r1_3/r1_3_query_level_evaluation.csv
+  r1_variant_summary_csv: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/retrieval/r1_3/r1_3_variant_summary.csv
+
+experts:
+  512_s256:
+    role: precision_control
+    tile_size_px: 512
+    stride_px: 256
+    ground_footprint_m: 102.4
+    index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+    map_cache: outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  768_s256:
+    role: primary_context
+    tile_size_px: 768
+    stride_px: 256
+    ground_footprint_m: 153.6
+    index_csv: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+    map_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  1024_s256:
+    role: rescue_context
+    tile_size_px: 1024
+    stride_px: 256
+    ground_footprint_m: 204.8
+    index_csv: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_1024_s256.csv
+    map_cache: outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_1024_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+
+fusion:
+  method: physical_region_rrf_v1
+  rrf_k: 60.0
+  per_scale_depth: 50
+  final_top_k: 20
+  scale_order:
+    - 512_s256
+    - 768_s256
+    - 1024_s256
+  physical_region:
+    cross_scale_only: true
+    max_center_distance_m: 51.2
+    minimum_bbox_iou: 0.20
+    max_members_per_scale: 1
+    seed_is_fixed: true
+  representative_policy: strongest_individual_rrf_then_fixed_scale_order
+
+experiments:
+  pair_512_768:
+    experts:
+      - 512_s256
+      - 768_s256
+  triple_512_768_1024:
+    experts:
+      - 512_s256
+      - 768_s256
+      - 1024_s256
+
+evaluation:
+  coordinates_allowed_only_after_fusion: true
+  named_diagnostics:
+    - q57
+    - q228
+    - q390
+  center_thresholds_m:
+    - 40.0
+    - 80.0
+  spatial_nms_radii_m:
+    - 51.2
+    - 102.4
+
+non_goals:
+  - 384_s256_in_first_fusion
+  - learned_fusion_weights
+  - ORB_policy_changes
+  - bootstrap_changes
+  - temporal_authority_changes
+  - q390_state_guard
+  - query_representation_changes
