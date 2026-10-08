@@ -1,6 +1,6 @@
 # Handoff — query-view candidate generation v1
 
-Status: **QV1.0 CLOSED / QV1.1 STARTED**
+Status: **QV1.0/QV1.1 CLOSED — QV1.2 STARTED**
 
 Branch:
 
@@ -163,3 +163,101 @@ Top1 <=80       171 / 403
 ```
 
 If center parity fails, do not interpret new crop results.
+
+
+## QV1.1 result — center wins standalone, views are complementary
+
+Status:
+
+```text
+PASS_QV1_QUERY_VIEW_RETRIEVAL_COMPARISON
+```
+
+Historical center parity passed.
+
+Measured:
+
+```text
+center_square:
+  Top1 contain 174 / 403
+  Top1 <=40    101 / 403
+  Top1 <=80    171 / 403
+  R20 contain 355 / 403
+  R20 <=40    284 / 403
+  R20 <=80    341 / 403
+
+left_square:
+  Top1 contain  81 / 403
+  R20 contain 338 / 403
+
+right_square:
+  Top1 contain 125 / 403
+  R20 contain 334 / 403
+
+resize_square:
+  Top1 contain 125 / 403
+  R20 contain 357 / 403
+
+L/C/R neutral RRF:
+  Top1 contain 144 / 403
+  R20 contain 343 / 403
+```
+
+Conclusion:
+
+- center-square remains the best standalone query representation;
+- naive equal-weight L/C/R RRF is worse than center;
+- alternate views contain complementary candidates that center can miss.
+
+Examples:
+
+```text
+q57:
+  center misses containment within Top20
+  right crop finds a containing/<=80 candidate at rank 11
+
+q99:
+  center Top1 is correct (~21.5 m)
+  other views are poor
+  naive LCR fusion damages the correct center result
+
+q390:
+  center Top1 is wrong (~463.6 m)
+  right Top1 is containing and ~63.8 m
+  resize Top1 is containing and ~80.3 m
+```
+
+Therefore the crop axis is not closed, but direct multi-view fusion is not
+promoted.
+
+## QV1.2 — candidate complementarity / rescue audit
+
+Status: **STARTING**
+
+QV1.2 is post-freeze diagnostic only. It adds no selector and runs no new DINO.
+
+Question:
+
+> How much candidate availability do the alternate query views add beyond the
+> center-square control?
+
+Measure for Top20:
+
+- center miss -> left rescue;
+- center miss -> right rescue;
+- center miss -> resize rescue;
+- any L/C/R availability ceiling;
+- any center/left/right/resize availability ceiling;
+- Top1 rescue opportunities;
+- distinct candidate union size and pairwise Top20 overlap/Jaccard.
+
+Important interpretation rule:
+
+```text
+multi-view union metrics use a larger effective candidate budget
+and are an availability ceiling, NOT a deployable fixed-budget result
+```
+
+If extra views provide meaningful unique rescues, preserve their descriptors as
+candidate-generation assets for later work. If gains are negligible, close the
+query-view axis.

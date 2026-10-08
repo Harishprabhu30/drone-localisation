@@ -63,6 +63,24 @@ qv1_1:
     top1_le40_hits: 101
     top1_le80_hits: 171
 
+qv1_2:
+  mode: postfreeze_query_view_complementarity_audit
+  ranking_depth: 20
+  independent_views:
+    - center_square
+    - left_square
+    - right_square
+    - resize_square
+  crop_only_views:
+    - center_square
+    - left_square
+    - right_square
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+
 evaluation:
   metrics:
     - containment_r1
