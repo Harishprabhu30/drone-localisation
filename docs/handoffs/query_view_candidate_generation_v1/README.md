@@ -1,6 +1,6 @@
 # Handoff — query-view candidate generation v1
 
-Status: **QV1.0/QV1.1 CLOSED — QV1.2 STARTED**
+Status: **QV1.0/QV1.1/QV1.2 CLOSED — QV1.3 STARTED**
 
 Branch:
 
@@ -261,3 +261,113 @@ and are an availability ceiling, NOT a deployable fixed-budget result
 If extra views provide meaningful unique rescues, preserve their descriptors as
 candidate-generation assets for later work. If gains are negligible, close the
 query-view axis.
+
+
+## QV1.2 result — alternate views are valuable candidate generators
+
+Status:
+
+```text
+PASS_QV1_QUERY_VIEW_COMPLEMENTARITY_AUDIT
+```
+
+Candidate-availability ceiling at Top20:
+
+```text
+center only:
+  contain 355 / 403
+  <=40    284 / 403
+  <=80    341 / 403
+
+L/C/R any-view:
+  contain 381 / 403
+  <=40    331 / 403
+  <=80    378 / 403
+
+all independent views:
+  contain 386 / 403
+  <=40    335 / 403
+  <=80    384 / 403
+```
+
+Average distinct candidate count when taking unions:
+
+```text
+L/C/R:      ~38.7
+all views:  ~41.5
+```
+
+Unique Top20 rescues beyond center include:
+
+```text
+right crop:
+  contain 21
+  <=40    42
+  <=80    33
+
+left crop:
+  contain 18
+  <=40    15
+  <=80    29
+
+resize:
+  contain 16
+  <=40     8
+  <=80    18
+```
+
+Therefore alternate query views are retained as candidate-generation assets.
+
+The union metrics are not deployable results because they exceed the fixed
+Top20 budget.
+
+## QV1.3 — fixed-budget multi-view candidate pool
+
+Status: **STARTING**
+
+Question:
+
+> Can the multi-view complementarity be compressed back into one fair Top20
+> candidate pool while preserving the strongest center-square evidence?
+
+Frozen conservative contract:
+
+```text
+final budget:               20
+protected center candidates: 10
+alternate source depth:      20
+spatial exclusion radius:    51.2 m
+```
+
+Policies:
+
+```text
+center_top20
+  historical control
+
+center10_lcr_diverse20
+  keep center ranks 1..10
+  fill remaining slots with spatially distinct left/right candidates
+
+center10_allview_diverse20
+  keep center ranks 1..10
+  fill remaining slots with spatially distinct left/right/resize candidates
+```
+
+Alternate candidates are added blind in deterministic round-robin source order.
+A candidate is considered spatially redundant if its tile center lies within
+one map stride (51.2 m) of an already selected tile.
+
+If the diversity pass cannot fill 20 slots, deterministic refill is used so
+every query still has exactly 20 candidates.
+
+This is still candidate-pool generation:
+
+```text
+NO ORB
+NO bootstrap
+NO state
+NO GT before pool freeze
+```
+
+Top1 remains the historical center Top1 by construction.

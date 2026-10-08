@@ -81,6 +81,30 @@ qv1_2:
     - 228
     - 390
 
+qv1_3:
+  mode: fixed_budget_multiview_candidate_pool
+  final_budget: 20
+  protected_center_depth: 10
+  alternate_source_depth: 20
+  spatial_exclusion_radius_m: 51.2
+  policies:
+    - center_top20
+    - center10_lcr_diverse20
+    - center10_allview_diverse20
+  source_priority:
+    lcr:
+      - left_square
+      - right_square
+    allview:
+      - left_square
+      - right_square
+      - resize_square
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+
 evaluation:
   metrics:
     - containment_r1
