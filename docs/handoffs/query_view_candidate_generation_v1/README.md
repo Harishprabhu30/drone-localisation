@@ -1,6 +1,6 @@
 # Handoff — query-view candidate generation v1
 
-Status: **QV1.0–QV1.4 CLOSED — QV1.5 STARTED**
+Status: **QV1.0–QV1.5 CLOSED — BRANCH FROZEN**
 
 Branch:
 
@@ -508,3 +508,39 @@ Categories:
 
 This decides whether QV1.4 is already a strong region-candidate generator for later
 geometric refinement, or whether a local member-preservation mechanism is still needed.
+
+
+## QV1.5 result and closeout
+
+QV1.5 status:
+
+```text
+PASS_QV1_PRECISION_REGION_ATTRIBUTION
+```
+
+For `center_unique_allview_fill20`:
+
+```text
+containment rescue/loss  +29 / -0
+<=80 rescue/loss         +40 / -1
+<=40 rescue/loss         +36 / -43
+
+all 43 <=40 losses:
+  precision_only_region_safe = 43
+  true_region_regression     = 0
+```
+
+QV1 is now frozen to avoid further research-design overfitting on the same
+403-query flight.
+
+Closeout:
+
+```text
+docs/closeouts/query_view_candidate_generation_v1/README.md
+```
+
+Next:
+
+```text
+research/trajectory-adapter-v1
+```
