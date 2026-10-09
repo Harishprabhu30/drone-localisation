@@ -54,6 +54,8 @@ rg1_0:
 
 rg1_1:
   mode: all_candidate_geometry_evidence_audit
+  preflight_report: outputs/research_runs/region_candidate_geometry_v1/rg1_0/rg1_0_geometry_contract_preflight_report.json
+  output_root: outputs/research_runs/region_candidate_geometry_v1/rg1_1
   process_all_candidates: true
   selection_enabled: false
   hybrid_rank_prior_enabled: false

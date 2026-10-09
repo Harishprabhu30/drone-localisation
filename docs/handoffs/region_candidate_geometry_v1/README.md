@@ -1,6 +1,6 @@
 # Region-candidate geometry v1 — handoff
 
-Status: **RG1.0 IMPLEMENTED — VALIDATION READY**
+Status: **RG1.0 CLOSED / RG1.1 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -150,3 +150,112 @@ Post-freeze only, evaluate whether:
 
 The blind-stress trajectory remains withheld from algorithm tuning until the
 development geometry audit is frozen.
+
+
+## RG1.0 result
+
+Status:
+
+```text
+PASS_RG1_GEOMETRY_CONTRACT_PREFLIGHT
+```
+
+Measured:
+
+```text
+trajectory:          villoc_traj01_90deg_stable120m
+queries:             403
+candidate rows:      8060
+candidate budget:    20
+unique selected tiles: 310
+
+source counts:
+  center_square  5401
+  right_square   1328
+  left_square     937
+  resize_square   394
+
+center Top1 preserved: true
+query images resolved: 403
+tile images resolved:  310
+reference loaded:      false
+selection enabled:     false
+```
+
+## RG1.1 — all-candidate geometry evidence audit
+
+RG1.1 processes every one of the 8060 frozen candidate pairs.
+
+Blind phase:
+
+```text
+query image -> exact historical ORB frontend
+candidate tile -> exact historical ORB frontend
+query->tile homography
+processed query-center projection
+tile-pixel -> EPSG:3346 conversion
+freeze/hash
+```
+
+Blind outputs include:
+
+```text
+good matches
+inliers
+inlier ratio
+query inlier coverage
+tile inlier coverage
+homography validity
+reprojection RMSE
+projected tile pixel
+projected EPSG:3346 point
+projected-inside-tile flag
+```
+
+There is deliberately no:
+
+```text
+geometry rank
+geometry-selected tile
+hybrid score
+DINO rank prior
+bootstrap
+state
+temporal fusion
+```
+
+Only after the blind geometry table is written and hashed is the prepared
+development reference attachment read.
+
+Post-freeze diagnostics measure:
+
+- geometry-feature AUC* for containment, <=80 m and <=40 m candidate classes;
+- valid projection rates for useful versus false candidates;
+- projected-point error versus tile-center error;
+- projection improvement rate;
+- behavior by candidate source view;
+- q57/q99/q228/q390 diagnostics as examples only.
+
+### RG1.1 command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/villoc/geometry/rg1_1_all_candidate_geometry_audit.py
+```
+
+Expected:
+
+```text
+PASS_RG1_1_ALL_CANDIDATE_GEOMETRY_AUDIT
+```
+
+This is a heavier run: 8060 ORB matching/homography candidate pairs are
+processed, but feature extraction is cached across 403 query images and 310
+unique tile images.
+
+Do not design RG1.2 from named cases alone. The aggregate discrimination and
+projection diagnostics are the gate.
