@@ -1,0 +1,55 @@
+schema: uavloc.trajectory.v1
+
+trajectory:
+  id: example_near_nadir_flight
+  dataset: villoc
+  sequence: example_001
+  role: development
+  view_class: near_nadir
+
+source:
+  type: video
+  video:
+    path: data/raw/villoc/example/example.mp4
+    fps_expected: 29.97
+
+sampling:
+  mode: uniform_time
+  rate_hz: 1.0
+
+signals:
+  relative_altitude_m:
+    source: assumed
+    value: 120.0
+    provenance: flight_plan_assumption
+
+  gimbal_pitch_deg:
+    source: assumed
+    value: -90.0
+    provenance: flight_plan_assumption
+
+  body_orientation:
+    source: unavailable
+
+  imu:
+    source: unavailable
+
+map:
+  id: villoc_90deg_aoi300m
+  crs: EPSG:3346
+  primary_variant: 768_s256
+  variants:
+    768_s256:
+      tile_index: outputs/example/map_768_s256_index.csv
+      descriptor_cache: outputs/example/map_768_s256_dino.npz
+
+reference:
+  mode: postfreeze_optional
+  provider: villoc_srt
+  path: data/raw/villoc/example/example.srt
+  alignment:
+    method: nearest_timestamp
+
+research_policy:
+  inspect_individual_failures: true
+  allow_method_changes_after_run: true

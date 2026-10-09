@@ -1,0 +1,31 @@
+from .trajectory_adapter import (
+    ALLOWED_REFERENCE_MODES,
+    ALLOWED_ROLES,
+    ALLOWED_SIGNAL_SOURCES,
+    CANONICAL_BLIND_COLUMNS,
+    FORBIDDEN_BLIND_REFERENCE_COLUMNS,
+    SCHEMA_ID,
+    ReferenceSpec,
+    SignalSpec,
+    TrajectorySpec,
+    TrajectorySpecError,
+    load_trajectory_spec,
+    validate_declared_paths,
+    validate_trajectory_dict,
+)
+
+__all__ = [
+    "ALLOWED_REFERENCE_MODES",
+    "ALLOWED_ROLES",
+    "ALLOWED_SIGNAL_SOURCES",
+    "CANONICAL_BLIND_COLUMNS",
+    "FORBIDDEN_BLIND_REFERENCE_COLUMNS",
+    "SCHEMA_ID",
+    "ReferenceSpec",
+    "SignalSpec",
+    "TrajectorySpec",
+    "TrajectorySpecError",
+    "load_trajectory_spec",
+    "validate_declared_paths",
+    "validate_trajectory_dict",
+]
