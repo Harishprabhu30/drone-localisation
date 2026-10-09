@@ -97,3 +97,62 @@ non_goals:
   - temporal_fusion
   - learned_geometry_frontend
   - parameter_tuning_on_blind_stress_trajectory
+
+
+rg1_2:
+  mode: local_geometry_gate_calibration_audit
+  rg1_1_report: outputs/research_runs/region_candidate_geometry_v1/rg1_1/rg1_1_all_candidate_geometry_audit_report.json
+  rg1_1_blind_evidence: outputs/research_runs/region_candidate_geometry_v1/rg1_1/blind_geometry/rg1_1_all_candidate_geometry_evidence.csv
+  rg1_1_postfreeze_eval: outputs/research_runs/region_candidate_geometry_v1/rg1_1/postfreeze_evaluation/rg1_1_all_candidate_geometry_postfreeze_eval.csv
+  output_root: outputs/research_runs/region_candidate_geometry_v1/rg1_2
+
+  gate_features_allowed:
+    - inliers
+    - inlier_ratio
+    - projected_inside_tile
+
+  inlier_thresholds:
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 10
+    - 12
+    - 15
+    - 20
+    - 25
+    - 30
+    - 40
+
+  inlier_ratio_thresholds:
+    - 0.0
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    - 0.6
+
+  families:
+    - inliers_only
+    - inliers_plus_ratio
+    - inliers_plus_inside
+    - inliers_plus_ratio_inside
+
+  labels:
+    - contains_query
+    - le80
+    - le40
+
+  promotion:
+    enabled: false
+    reason: development-trajectory calibration only; no independent labeled validation trajectory available
+
+  non_goals:
+    - choose_global_candidate_winner
+    - rerank_top20
+    - fit_learned_classifier
+    - tune_on_blind_stress
+    - modify_qv1_pool
+    - bootstrap
+    - state

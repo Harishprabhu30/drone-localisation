@@ -1,6 +1,6 @@
 # Region-candidate geometry v1 — handoff
 
-Status: **RG1.0 CLOSED / RG1.1 IMPLEMENTED — VALIDATION READY**
+Status: **RG1.0/RG1.1 CLOSED / RG1.2 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -259,3 +259,138 @@ unique tile images.
 
 Do not design RG1.2 from named cases alone. The aggregate discrimination and
 projection diagnostics are the gate.
+
+
+## RG1.1 result
+
+Status:
+
+```text
+PASS_RG1_1_ALL_CANDIDATE_GEOMETRY_AUDIT
+```
+
+Measured across all 8060 frozen candidate pairs:
+
+```text
+homography success          8060 / 8060
+median inliers              6
+median inlier ratio         0.20
+```
+
+Discrimination:
+
+```text
+contains:
+  inliers       AUC* 0.8558
+  good matches  AUC* 0.8235
+  inlier ratio  AUC* 0.7569
+
+<=80:
+  inliers       AUC* 0.8611
+  good matches  AUC* 0.8278
+  inlier ratio  AUC* 0.7665
+
+<=40:
+  inliers       AUC* 0.8565
+  inlier ratio  AUC* 0.8037
+  good matches  AUC* 0.8035
+```
+
+The historical binary homography flag is not useful as confidence here because
+every candidate pair passes its current >=4-inlier definition.
+
+For valid containing candidates:
+
+```text
+count                         1098
+tile-center error median      52.7231 m
+projected-point error median   6.4977 m
+projection improvement rate    0.7951
+```
+
+Interpretation:
+
+ORB evidence is materially discriminative once candidate generation is stronger,
+and the query-center homography projection has strong within-region refinement
+value on true containing candidates.
+
+This still does not justify selecting the globally strongest ORB candidate.
+
+## RG1.2 — local geometry gate calibration audit
+
+RG1.2 reuses the frozen RG1.1 evidence and does no new feature matching.
+
+It sweeps simple blind-safe gate families using only:
+
+```text
+inlier count
+inlier ratio
+projected-inside-tile
+```
+
+Families:
+
+```text
+inliers only
+inliers + ratio
+inliers + inside
+inliers + ratio + inside
+```
+
+For each gate, measure:
+
+```text
+accepted candidate fraction
+accepted candidates/query
+candidate precision
+candidate recall
+positive-query retention
+wrong-only accepted queries
+conditional projected-error median
+conditional projection-improvement rate
+```
+
+for:
+
+```text
+containment
+<=80 m
+<=40 m
+```
+
+A Pareto frontier is reported over:
+
+```text
+higher candidate precision
+higher positive-query retention
+lower accepted candidate fraction
+```
+
+No gate is promoted by RG1.2.
+
+Reason:
+
+```text
+the same development trajectory is being used for calibration,
+and no second labeled validation trajectory is available
+```
+
+### RG1.2 command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/villoc/geometry/rg1_2_local_geometry_gate_calibration.py
+```
+
+Expected:
+
+```text
+PASS_RG1_2_LOCAL_GEOMETRY_GATE_CALIBRATION_AUDIT
+```
+
+Send the printed Pareto frontiers. They determine whether a simple geometry
+gate is worth freezing provisionally for no-GT stress testing.
