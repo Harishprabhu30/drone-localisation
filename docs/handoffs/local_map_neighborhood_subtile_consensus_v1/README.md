@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **PLANNED / START IN NEXT CHAT**
+Status: **RG2.0 CODE PREPARED / LOCAL DATA PREFLIGHT PENDING**
 
 Proposed branch:
 
@@ -423,3 +423,74 @@ The first gate should be a deterministic topology/preflight report.
 If RG2.0 reveals that the map index/bounds are inconsistent or that the
 neighborhood cannot be defined unambiguously, stop and repair the map contract
 before running projection consensus experiments.
+
+---
+
+## 11. RG2.0 implementation checkpoint (2026-10-09)
+
+Source base (verified GitHub head): `59afb2d410b88ad417a6ac90ac0b7d8cb36e3d0a`.
+Branch: `research/local-map-neighborhood-subtile-consensus-v1`.
+
+New files:
+
+- `configs/research/local_map_neighborhood_subtile_consensus_v1.yaml`
+- `scripts/villoc/geometry/rg2_0_topology.py`
+- `scripts/villoc/geometry/rg2_0_topology_preflight.py`
+- `tests/test_rg2_0_topology.py`
+
+The generated `768_s256` tile-index CSV is *not* versioned in GitHub.
+RG2.0 therefore requires the local map asset already referenced by Trajectory
+Adapter v1's frozen trajectory YAML. It does **not** reconstruct that index,
+inspect file-name ordering, or invent measured topology results.
+
+Run from repository root, after switching to the new branch:
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH="$PWD/src"
+python -m unittest tests.test_rg2_0_topology -v
+python scripts/villoc/geometry/rg2_0_topology_preflight.py \
+  --config configs/research/local_map_neighborhood_subtile_consensus_v1.yaml
+```
+
+Expected terminal status:
+
+```text
+PASS_RG2_0_MAP_TOPOLOGY_PREFLIGHT
+```
+
+Deterministic locally-generated outputs:
+
+```text
+outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/
+  rg2_0_tile_geometry.csv
+  rg2_0_tile_relationships.csv
+  rg2_0_topology_preflight_report.json
+  rg2_0_topology_preflight_report.md
+```
+
+The relationship table is directed and symmetrical; each tile pair has
+EPSG:3346 relative center offsets, physical intersection area, overlap
+fractions, IoU, and independent `overlaps` / `nearby` flags. `nearby`
+is a *topological diagnostic* defined by center distance <= one nominal
+diagonal 51.2 m stride. `overlaps` means positive shared map area, using
+the strict 0.01 m geometry tolerance. Tile bounds, not filename order, define
+all adjacency; AOI-edge flags derive from extrema of the actual tile bounds.
+No query source, descriptor cache, verifier, or reference file is read.
+
+The report includes sorted/harmonized CSVs, SHA256 provenance for map index,
+trajectory spec, config and topology outputs, undirected neighbor counts,
+degree histograms and AOI-edge counts. Output has no run timestamp so identical
+inputs and code produce deterministic contents.
+
+**RG2.0 is not yet a measured pass** until the user executes its preflight
+against the real generated map CSV. Stop on a missing or inconsistent map
+index and resolve the provenance rather than silently loosening tolerances.
+
+**Stop gate:** inspect unit-test result, tile and edge counts, neighbor degree
+histograms, AOI-edge counts, and the deterministic report. Do not start RG2.1
+or make bootstrap/state changes until that evidence is reviewed.
+
+Important limitation: overlap identity is a map-window property, *not* an
+assertion that several observations are independent or geographically correct.
+Distant retrieval aliases observed by RG1.5 remain a separate upstream problem.

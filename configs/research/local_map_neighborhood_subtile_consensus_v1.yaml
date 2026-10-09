@@ -1,0 +1,33 @@
+stage: RG2.0
+name: local_map_neighborhood_subtile_consensus_v1
+parent_rg1_commit: 59afb2d410b88ad417a6ac90ac0b7d8cb36e3d0a
+
+# Map metadata is discovered from frozen Trajectory Adapter v1 specification.
+# The reference path declared by that spec is never opened.
+trajectory_spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+map_variant: 768_s256
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0
+
+geometry_contract:
+  tile_size_px: 768
+  stride_px: 256
+  pixel_size_m: 0.2
+  geometry_tolerance_m: 0.01
+  # "near" means within one nominal diagonal grid stride by centers.
+  # "overlaps" independently means positive shared bounds area.
+  near_definition: center_distance_le_sqrt2_stride
+  overlap_definition: positive_area_from_epsg3346_bounds
+  aoi_edge_definition: extremal_tile_bounds
+
+ground_truth_allowed: false
+candidate_generation_enabled: false
+bootstrap_enabled: false
+
+frozen_upstream:
+  qv_policy: center_unique_allview_fill20
+  qv_budget: 20
+  center_top1_preserved: true
+  dino_unchanged: true
+  orb_unchanged: true
+  trajectory_adapter_unchanged: true
+  map_stride_sweep: false
