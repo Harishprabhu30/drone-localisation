@@ -156,3 +156,68 @@ rg1_2:
     - modify_qv1_pool
     - bootstrap
     - state
+
+
+rg1_3:
+  mode: retrieval_anchor_geometry_trust_refinement_audit
+  rg1_1_report: outputs/research_runs/region_candidate_geometry_v1/rg1_1/rg1_1_all_candidate_geometry_audit_report.json
+  rg1_1_postfreeze_eval: outputs/research_runs/region_candidate_geometry_v1/rg1_1/postfreeze_evaluation/rg1_1_all_candidate_geometry_postfreeze_eval.csv
+  rg1_2_report: outputs/research_runs/region_candidate_geometry_v1/rg1_2/rg1_2_local_geometry_gate_calibration_report.json
+  output_root: outputs/research_runs/region_candidate_geometry_v1/rg1_3
+
+  anchor:
+    pool_rank: 1
+    expected_source_view: center_square
+    expected_source_rank: 1
+    switching_allowed: false
+
+  gate_features_allowed:
+    - inliers
+    - inlier_ratio
+    - projected_inside_tile
+
+  inlier_thresholds:
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 10
+    - 12
+    - 15
+    - 20
+    - 25
+    - 30
+    - 40
+
+  inlier_ratio_thresholds:
+    - 0.0
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    - 0.6
+
+  families:
+    - inliers_only
+    - inliers_plus_ratio
+    - inliers_plus_inside
+    - inliers_plus_ratio_inside
+
+  labels:
+    - contains_query
+    - le80
+    - le40
+
+  promotion:
+    enabled: false
+    reason: development-only selective-trust calibration; requires independent labeled validation before promotion
+
+  non_goals:
+    - switch_to_alternate_candidate
+    - rerank_top20
+    - global_geometry_selector
+    - learned_confidence_model
+    - bootstrap
+    - state
+    - temporal_fusion

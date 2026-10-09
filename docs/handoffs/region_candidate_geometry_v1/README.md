@@ -1,6 +1,6 @@
 # Region-candidate geometry v1 — handoff
 
-Status: **RG1.0/RG1.1 CLOSED / RG1.2 IMPLEMENTED — VALIDATION READY**
+Status: **RG1.0/RG1.1/RG1.2 CLOSED / RG1.3 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -394,3 +394,101 @@ PASS_RG1_2_LOCAL_GEOMETRY_GATE_CALIBRATION_AUDIT
 
 Send the printed Pareto frontiers. They determine whether a simple geometry
 gate is worth freezing provisionally for no-GT stress testing.
+
+
+## RG1.2 result
+
+Status:
+
+```text
+PASS_RG1_2_LOCAL_GEOMETRY_GATE_CALIBRATION_AUDIT
+```
+
+The all-candidate gate does not justify promotion.
+
+Representative <=80 tradeoffs:
+
+```text
+gate                              precision  query retention  candidates/query
+inliers >= 6                     0.1729     0.9553           13
+inliers >= 6 + inside            0.1832     0.9500           12
+inliers >= 5 + ratio >= 0.20     0.1909     0.8895           10
+inliers >= 6 + ratio >= 0.20     0.2521     0.8579            7
++ inside                         0.2714     0.8526            7
+```
+
+Stricter gates reduce candidate volume, but the surviving set is still too
+impure to act as a reliable hard Top20-pruning stage, and wrong-only accepted
+queries increase.
+
+Conclusion:
+
+```text
+DO NOT promote an RG1.2 all-candidate geometry gate.
+```
+
+The evidence instead supports testing geometry as selective confidence and
+continuous refinement for an already-chosen retrieval anchor.
+
+## RG1.3 — retrieval-anchor geometry trust/refinement audit
+
+RG1.3 uses only the frozen candidate-pool rank-1 row:
+
+```text
+pool_rank 1
+source_view center_square
+source_rank 1
+403 queries
+```
+
+Geometry may:
+
+```text
+accept anchor for continuous projection
+or
+abstain
+```
+
+Geometry may NOT:
+
+```text
+switch to another Top20 candidate
+rerank the pool
+invoke bootstrap/state/temporal logic
+```
+
+This directly tests the architectural role:
+
+```text
+retrieval chooses region
+geometry asks whether that region is trustworthy
+geometry refines to a continuous map point when trusted
+```
+
+RG1.3 sweeps the same blind-safe inlier/ratio/inside evidence families and
+reports selective precision, recall, coverage and projected-error quality for
+containment, <=80 m and <=40 m.
+
+No threshold is promoted in RG1.3 because it is still development-trajectory
+calibration.
+
+### RG1.3 command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/villoc/geometry/rg1_3_retrieval_anchor_trust_refinement.py
+```
+
+Expected:
+
+```text
+PASS_RG1_3_RETRIEVAL_ANCHOR_TRUST_REFINEMENT_AUDIT
+```
+
+Send the three selective-trust Pareto frontiers. The key question is whether
+geometry can substantially improve anchor precision at useful coverage while
+retaining the strong ~metre-scale projection behavior seen in RG1.1.
