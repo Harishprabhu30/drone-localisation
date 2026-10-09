@@ -188,3 +188,143 @@ This changes import structure only. The historical oracle semantics remain
 \`eval_ref_lon/lat -> EPSG:3346\`; RG2.1-A hashes and candidate sets are
 unchanged. The failed execution occurred during module import, before reference
 loading or RG2.1-B output generation.
+
+
+## RG2.1-B local result and closeout (2026-10-09)
+
+**Status: PASSED / SCIENTIFIC QUESTION ANSWERED FOR DEVELOPMENT AVAILABILITY.**
+
+User-reported local execution:
+
+\`\`\`text
+PASS_RG2_1B_POSTFREEZE_AVAILABILITY_ORACLE_AUDIT
+Historical QV1.4 parity: PASS
+Blind stress loaded: False
+Same-budget superiority claim: False
+\`\`\`
+
+Query comparison SHA256:
+
+\`\`\`text
+b3d295592ce159f8ca2819b79844a2658baf696f046a59f443d75aebd3872d47
+\`\`\`
+
+### Absolute availability
+
+403 development queries:
+
+\`\`\`text
+set           mean budget  median  range   contain       <=40          <=80
+anchor          1.000       1      1..1    174/403       101/403       171/403
+immediate       8.444       9      6..10   180/403       178/403       180/403
+full_overlap   23.114      25     15..30   187/403       180/403       188/403
+frozen_top20   20.000      20     20..20   384/403       277/403       380/403
+\`\`\`
+
+Rates:
+
+\`\`\`text
+anchor        contain 43.18%   <=40 25.06%   <=80 42.43%
+immediate     contain 44.67%   <=40 44.17%   <=80 44.67%
+full_overlap  contain 46.40%   <=40 44.67%   <=80 46.65%
+frozen_top20  contain 95.29%   <=40 68.73%   <=80 94.29%
+\`\`\`
+
+### Incremental value of local expansion
+
+Relative to anchor:
+
+\`\`\`text
+immediate:
+  +6 containment hits
+  +77 <=40 hits
+  +9 <=80 hits
+
+full_overlap:
+  +13 containment hits
+  +79 <=40 hits
+  +17 <=80 hits
+\`\`\`
+
+Relative to immediate, expanding to all positive-area overlap windows adds:
+
+\`\`\`text
++7 containment hits
++2 <=40 hits
++8 <=80 hits
+\`\`\`
+
+while increasing mean candidate count from 8.444 to 23.114.
+
+### Paired full-overlap vs frozen Top20
+
+\`\`\`text
+contain:
+  both      187
+  full only   0
+  Top20 only 197
+  neither    19
+
+<=40:
+  both      158
+  full only  22
+  Top20 only 119
+  neither   104
+
+<=80:
+  both      188
+  full only   0
+  Top20 only 192
+  neither    23
+\`\`\`
+
+### Interpretation
+
+1. A local neighborhood around the frozen retrieval anchor does **not** solve
+   global candidate availability. For containment and <=80, every full-overlap
+   hit is already represented in frozen Top20, while Top20 contributes 197 and
+   192 additional hits respectively.
+
+2. The immediate neighborhood captures nearly all useful local expansion at
+   much lower cost than the full-overlap set. Full-overlap raises mean budget
+   from 8.444 to 23.114 but adds only 7 containment, 2 <=40 and 8 <=80 hits
+   beyond immediate.
+
+3. The unusual <=40 result is real and should be preserved: full-overlap has
+   22 queries where a tile center is within 40 m even though frozen Top20 has no
+   <=40 tile. This does **not** contradict the containment result, because
+   center-distance and bounds-containment are different oracle labels.
+
+4. The principal value of RG2 local neighborhoods is therefore **not retrieval
+   rescue**. The remaining motivation is the one RG2 was designed for:
+   tile-boundary invariance and multi-window continuous projection consensus
+   once retrieval is already in the right locality.
+
+5. Candidate budget matters. Full-overlap is not a same-budget competitor to
+   Top20 and should not replace it as the global retrieval set.
+
+### Decision
+
+RG2.1-B is closed. Do not add another availability sweep at this point.
+
+Proceed next to **RG2.2**, keeping the architectural separation:
+
+\`\`\`text
+global retrieval:
+  frozen QV1.4 Top20 / anchor supplies region hypothesis
+
+local neighborhood:
+  expand around the frozen anchor using reference-free RG2.0 topology
+
+geometry:
+  independently project the query center from each local tile
+
+later consensus:
+  combine agreeing global-coordinate projections
+
+reference:
+  unavailable during generation/freeze
+\`\`\`
+
+The 22 full-overlap-only <=40 cases may be retained as a later diagnostic
+subset, but must not be used to tune RG2.2 before its blind outputs are frozen.

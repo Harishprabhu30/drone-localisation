@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **RG2.0 + RG2.1-A PASSED / RG2.1-B CODE PREPARED, LOCAL ORACLE AUDIT PENDING**
+Status: **RG2.0 + RG2.1-A + RG2.1-B PASSED / RG2.2 NEXT**
 
 Proposed branch:
 
@@ -536,3 +536,17 @@ Implementation:
 
 Stop after the local test/audit result and inspect the paired rescue counts,
 budgets, historical parity and output hashes before starting RG2.2.
+
+
+### RG2.1-B closeout headline
+
+Development post-freeze availability audit passed with historical QV1.4 parity.
+Full-overlap local expansion (mean 23.114 windows/query) reached only 187/403
+containment and 188/403 <=80, versus frozen Top20 384/403 and 380/403.
+Immediate expansion (mean 8.444) captured nearly all local benefit. Full
+overlap did show 22 <=40-only rescues absent from Top20, confirming that local
+tile-center proximity and containment are distinct labels.
+
+Decision: local neighborhoods are **not a substitute for global retrieval**.
+Proceed to RG2.2 for reference-free multi-tile sub-tile projection generation,
+where their role is tile-boundary invariance and continuous local refinement.
