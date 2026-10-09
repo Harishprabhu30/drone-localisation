@@ -9,11 +9,20 @@ from pathlib import Path
 
 import pandas as pd
 
-from scripts.trajectory_adapter.ta2_adapt_traj01 import (
-    assert_blind_safe_columns,
-    canonicalize_legacy_manifest,
-    parity_report,
-)
+try:
+    from scripts.trajectory_adapter.ta2_adapt_traj01 import (
+        assert_blind_safe_columns,
+        canonicalize_legacy_manifest,
+        parity_report,
+    )
+except ModuleNotFoundError:
+    # Direct execution puts scripts/trajectory_adapter on sys.path while
+    # PYTHONPATH may contain only repo/src. Fall back to the sibling module.
+    from ta2_adapt_traj01 import (
+        assert_blind_safe_columns,
+        canonicalize_legacy_manifest,
+        parity_report,
+    )
 from uavloc.data.trajectory_adapter import (
     load_trajectory_spec,
 )
