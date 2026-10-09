@@ -498,3 +498,75 @@ reference evaluation: False
 
 The blind run will require DINO inference for missing left/right/resize/full
 query-view caches, so it is expected to be materially heavier than TA2/TA3.
+
+
+## TA4 blind-stress result
+
+Status:
+
+```text
+PASS_TA4_FROZEN_QV_BLIND_STRESS
+```
+
+Observed on:
+
+```text
+villoc_blind_recorded_flight_final_001
+123 queries
+768_s256
+fixed Top20
+```
+
+Blind behavior:
+
+```text
+mean center spatial core:       11.98
+mean alternate candidates:       6.93
+median consecutive pool Jaccard: 0.6667
+median center-Top1 map jump:      0.0 m
+reference evaluation:             false
+```
+
+This is not an accuracy result.
+
+The pool-construction composition is close to the development-trajectory QV1.4
+construction observed earlier (~12.51 center-unique and ~6.60 alternates), so
+the frozen method does not immediately enter a radically different
+construction regime on the blind flight.
+
+No method tuning is authorized from this observation.
+
+## TA4 cross-trajectory comparison gate
+
+Use:
+
+```bash
+python scripts/trajectory_adapter/ta4_compare_trajectory_behavior.py
+```
+
+The comparison requires:
+
+```text
+development TA4:
+  PASS_TA4_FROZEN_QV_WITH_REFERENCE
+  exact QV1.4 pool parity
+  exact frozen accuracy-summary parity
+
+blind TA4:
+  PASS_TA4_FROZEN_QV_BLIND_STRESS
+  no post-freeze reference evaluation
+  no accuracy claim
+```
+
+It then compares blind-safe behavioral metrics only:
+
+```text
+center spatial-core size
+alternate contribution
+consecutive final-pool Jaccard
+center-Top1 map-space jump
+center-vs-left/right/resize Top20 Jaccard
+source composition
+```
+
+Do not close TA4 until this gate passes.
