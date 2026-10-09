@@ -1,6 +1,6 @@
 # Region-candidate geometry v1 — handoff
 
-Status: **RG1.0/RG1.1/RG1.2 CLOSED / RG1.3 IMPLEMENTED — VALIDATION READY**
+Status: **RG1.0/RG1.1/RG1.2/RG1.3 CLOSED / RG1.4 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -492,3 +492,125 @@ PASS_RG1_3_RETRIEVAL_ANCHOR_TRUST_REFINEMENT_AUDIT
 Send the three selective-trust Pareto frontiers. The key question is whether
 geometry can substantially improve anchor precision at useful coverage while
 retaining the strong ~metre-scale projection behavior seen in RG1.1.
+
+
+## RG1.3 result
+
+Status:
+
+```text
+PASS_RG1_3_RETRIEVAL_ANCHOR_TRUST_REFINEMENT_AUDIT
+```
+
+The retrieval anchor is the frozen center-square Top1.
+
+Baseline always-trust:
+
+```text
+contain 174 / 403 = 0.4318
+<=80    171 / 403 = 0.4243
+<=40    101 / 403 = 0.2506
+```
+
+Simple inlier evidence materially improves selective trust.
+
+Representative gate:
+
+```text
+inliers >= 6
+
+contain:
+  precision 0.5608
+  recall    0.9540
+  coverage  0.7345
+
+<=80:
+  precision 0.5507
+  recall    0.9532
+  coverage  0.7345
+
+<=40:
+  precision 0.3311
+  recall    0.9703
+  coverage  0.7345
+```
+
+Accepted useful anchors retain strong sub-tile refinement, with projected
+medians around 4.5--4.6 m in the shown frontier.
+
+Interpretation:
+
+```text
+geometry is materially more convincing as:
+  trust / abstain on the retrieval anchor
+  + continuous refinement
+
+than as:
+  hard pruning of the full Top20
+  or global candidate selection
+```
+
+## RG1.4 — provisional gate freeze + blind-stress transfer
+
+RG1.4 freezes a simple development-derived rule before touching the blind
+trajectory.
+
+Predeclared freeze rule:
+
+```text
+family:
+  inliers_only
+
+constraints:
+  contains recall >= 0.90
+  <=80 recall       >= 0.90
+  <=40 recall       >= 0.90
+
+selection:
+  choose the highest inlier threshold satisfying all three
+```
+
+The threshold is selected exclusively from the RG1.3 development table and
+written to a freeze artifact before blind-stress geometry is evaluated.
+
+The 123-query blind flight is then evaluated with:
+
+```text
+same frozen retrieval anchor
+same ORB geometry contract
+same frozen inlier threshold
+no threshold retuning
+no GT
+no accuracy metrics
+no candidate switching
+```
+
+Blind-stress outputs are behavioral only:
+
+```text
+acceptance fraction
+inlier distributions
+inside-tile projection rate
+reprojection RMSE
+accepted projected-point jump statistics
+```
+
+### RG1.4 command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/villoc/geometry/rg1_4_provisional_gate_blind_stress_transfer.py
+```
+
+Expected:
+
+```text
+PASS_RG1_4_PROVISIONAL_GATE_BLIND_STRESS_TRANSFER
+```
+
+Do not interpret blind acceptance as accuracy. RG1.4 only asks whether the
+development-frozen trust mechanism behaves coherently on the second flight.

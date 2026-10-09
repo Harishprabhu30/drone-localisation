@@ -221,3 +221,41 @@ rg1_3:
     - bootstrap
     - state
     - temporal_fusion
+
+
+rg1_4:
+  mode: provisional_anchor_trust_gate_blind_stress_transfer
+
+  development:
+    rg1_3_table: outputs/research_runs/region_candidate_geometry_v1/rg1_3/rg1_3_anchor_trust_refinement_table.csv
+    rg1_3_report: outputs/research_runs/region_candidate_geometry_v1/rg1_3/rg1_3_retrieval_anchor_trust_refinement_report.json
+
+  freeze_rule:
+    family: inliers_only
+    minimum_recall:
+      contains_query: 0.90
+      le80: 0.90
+      le40: 0.90
+    selection: highest_inlier_threshold_satisfying_all_recall_constraints
+
+  blind_stress:
+    trajectory_spec: configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+    canonical_manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    frozen_candidate_pool: outputs/research_runs/trajectory_adapter_v1/ta4/villoc_blind_recorded_flight_final_001/blind_pool/ta4_frozen_qv_pool.csv
+    expected_queries: 123
+    map_variant: 768_s256
+
+  output_root: outputs/research_runs/region_candidate_geometry_v1/rg1_4
+
+  promotion:
+    enabled: false
+    reason: blind stress has no GT; transfer supports behavior only, not accuracy validation
+
+  non_goals:
+    - retune_threshold_on_blind_stress
+    - compute_blind_accuracy
+    - switch_candidate
+    - rerank_top20
+    - bootstrap
+    - state
+    - temporal_fusion
