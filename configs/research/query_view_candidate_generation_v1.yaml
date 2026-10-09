@@ -105,6 +105,33 @@ qv1_3:
     - 228
     - 390
 
+qv1_4:
+  mode: redundancy_aware_fixed_budget_multiview_pool
+  final_budget: 20
+  center_source_depth: 20
+  alternate_source_depth: 20
+  spatial_redundancy_radius_m: 51.2
+  policies:
+    - center_top20
+    - center_unique_lcr_fill20
+    - center_unique_allview_fill20
+  alternate_views:
+    lcr:
+      - left_square
+      - right_square
+    allview:
+      - left_square
+      - right_square
+      - resize_square
+  refill_priority:
+    - dropped_center_candidates
+    - alternate_candidates
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
+
 evaluation:
   metrics:
     - containment_r1
