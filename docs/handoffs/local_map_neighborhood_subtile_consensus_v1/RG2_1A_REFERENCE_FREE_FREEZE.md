@@ -77,3 +77,26 @@ have passed inspection. The next stage is RG2.1-B development-only,
 post-freeze availability labels comparing anchor vs immediate vs full-overlap
 vs original Top20. The blind-stress trajectory has no reference and must
 receive no accuracy claims.
+
+## Schema guard corrective patch (2026-10-09)
+
+Initial local execution stopped before writing the freeze:
+
+```text
+ValueError: Reference/evaluation columns forbidden:
+['sampling_alignment_error_ms']
+```
+
+Cause: the blind-column guard matched `error_m` as a substring of
+`sampling_alignment_error_ms`. This is a benign timestamp-alignment
+diagnostic, not positional ground truth. Narrow correction: `error_m` is
+rejected as an **exact column name**, while reference/GT/oracle positional
+tokens and exact forbidden evaluation columns remain prohibited. Added tests
+for the permitted alignment column and for forbidden `error_m`,
+`ground_truth_error`, `reference_x_m`, `oracle_tile_identity`,
+and `gps_lat`.
+
+The source code and test-suite changed; frozen stage config, RG2.0 map topology
+and input manifest are unchanged. Re-run the complete unit suite and RG2.1-A
+freeze. Do not delete/change any pre-existing frozen outputs to bypass the
+immutability check.

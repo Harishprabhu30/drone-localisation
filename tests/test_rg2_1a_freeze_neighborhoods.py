@@ -138,6 +138,40 @@ class RG21ATests(unittest.TestCase):
                     "query_id", "pool_rank", "tile_id", "source_view",
                     "source_rank", "selection_reason"}, blind=True)
 
+    def test_sampling_alignment_error_ms_allowed(self):
+        # Timestamp resampling metadata is not post-freeze position error.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "manifest.csv"
+            with path.open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(stream, fieldnames=[
+                    "query_id", "reference_available",
+                    "sampling_alignment_error_ms",
+                ])
+                writer.writeheader()
+                writer.writerow({
+                    "query_id": "1", "reference_available": "false",
+                    "sampling_alignment_error_ms": "8.0",
+                })
+            rows = guarded_csv(path, {"query_id", "reference_available"}, blind=True)
+            self.assertEqual(rows[0]["sampling_alignment_error_ms"], "8.0")
+
+    def test_exact_error_m_still_forbidden(self):
+        for prohibited in ("error_m", "ground_truth_error",
+                           "reference_x_m", "oracle_tile_identity", "gps_lat"):
+            with self.subTest(field=prohibited), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "manifest.csv"
+                with path.open("w", newline="", encoding="utf-8") as stream:
+                    writer = csv.DictWriter(stream, fieldnames=[
+                        "query_id", "reference_available", prohibited,
+                    ])
+                    writer.writeheader()
+                    writer.writerow({
+                        "query_id": "1", "reference_available": "false",
+                        prohibited: "0.0",
+                    })
+                with self.assertRaisesRegex(ValueError, "Reference/evaluation"):
+                    guarded_csv(path, {"query_id", "reference_available"}, blind=True)
+
     def test_freeze_never_overwrites_different_bytes(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "freeze.csv"

@@ -38,9 +38,18 @@ MANIFEST_COLUMNS = {"query_id", "reference_available"}
 FORBIDDEN_TOKENS = (
     "ground_truth", "oracle", "gt_", "_gt", "reference_",
     "ref_lat", "ref_lon", "ref_east", "ref_north", "srt_",
-    "gps_", "eval_ref", "error_m", "chosen_error",
+    "gps_", "eval_ref", "chosen_error",
     "projected_error", "tile_center_error",
 )
+# Follow Trajectory Adapter's reference column contract: error_m is an
+# EXACT evaluation field, not a substring of timestamp-alignment error_ms.
+# Positional/GT fields remain rejected even if they lack a prefix.
+FORBIDDEN_EXACT_COLUMNS = {
+    "lat", "lon", "latitude", "longitude",
+    "reference_x_m", "reference_y_m",
+    "reference_cumulative_distance_m", "ground_truth_error",
+    "error_m", "oracle_tile_identity", "hit_le_40m",
+}
 ALLOWED_REFERENCE_FLAG = "reference_available"
 ALLOWED_SOURCES = {
     "center_square", "left_square", "right_square", "resize_square",
@@ -77,7 +86,10 @@ def guarded_csv(path: Path, required: set[str], *, blind: bool) -> list[dict]:
             leaked = sorted(
                 field for field in fields
                 if field.strip().lower() != ALLOWED_REFERENCE_FLAG
-                and any(t in field.strip().lower() for t in FORBIDDEN_TOKENS)
+                and (
+                    field.strip().lower() in FORBIDDEN_EXACT_COLUMNS
+                    or any(t in field.strip().lower() for t in FORBIDDEN_TOKENS)
+                )
             )
             if leaked:
                 raise ValueError(f"Reference/evaluation columns forbidden: {leaked}")
