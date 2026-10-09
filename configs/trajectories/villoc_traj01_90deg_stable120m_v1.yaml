@@ -1,0 +1,71 @@
+schema: uavloc.trajectory.v1
+
+trajectory:
+  id: villoc_traj01_90deg_stable120m
+  dataset: villoc
+  sequence: traj01_90deg_stable120m
+  role: development
+  view_class: near_nadir
+
+source:
+  type: video
+  video:
+    path: data/raw/villoc/traj01_90deg_stable120m/villoc_traj01_90deg_stable120m_V_merged.MP4
+    fps_expected: 29.97
+    resolution_expected:
+      - 3840
+      - 2160
+
+sampling:
+  mode: uniform_time
+  rate_hz: 1.0
+
+signals:
+  relative_altitude_m:
+    source: assumed
+    value: 120.0
+    provenance: blind_research_contract
+
+  gimbal_pitch_deg:
+    source: assumed
+    value: -90.0
+    provenance: blind_research_contract
+
+  body_orientation:
+    source: unavailable
+
+  imu:
+    source: unavailable
+
+map:
+  id: villoc_90deg_aoi300m
+  crs: EPSG:3346
+  primary_variant: 768_s256
+  variants:
+    768_s256:
+      tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+      descriptor_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+
+reference:
+  mode: postfreeze_optional
+  provider: villoc_srt
+  path: data/raw/villoc/traj01_90deg_stable120m/villoc_traj01_90deg_stable120m_V_merged.SRT
+  alignment:
+    method: nearest_timestamp
+
+compatibility:
+  legacy_blind_manifest: outputs/demo_runs/traj01_blind_regression_001/metadata/blind_query_manifest.csv
+  expected_query_count: 403
+  expected_query_id_start: 1
+  expected_query_id_end: 403
+  expected_frame_index_start: 0
+  expected_frame_index_end: 402
+  expected_timestamp_start_s: 0.0
+  expected_timestamp_end_s: 402.0
+  expected_width_px: 3840
+  expected_height_px: 2160
+  expected_view_assumption: near_nadir
+
+research_policy:
+  inspect_individual_failures: true
+  allow_method_changes_after_run: true

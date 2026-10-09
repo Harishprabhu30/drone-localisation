@@ -1,6 +1,6 @@
 # Trajectory Adapter v1 — TA1 handoff
 
-Status: **TA1 IMPLEMENTED — VALIDATION READY**
+Status: **TA1 CLOSED / TA2 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -192,3 +192,96 @@ traj01_90deg_stable120m adapter
   -> exact query-count/time/image-path parity checks
   -> optional post-freeze SRT/reference capability
 ```
+
+
+## TA1 result
+
+Status:
+
+```text
+PASS_TA1_TRAJECTORY_CONTRACT
+```
+
+The example contract validates successfully, including:
+
+- assumed altitude and gimbal-pitch signals;
+- unavailable IMU/body-orientation signals;
+- optional post-freeze reference capability;
+- canonical blind-column contract;
+- forbidden reference-column contract.
+
+## TA2 — current labeled development trajectory adapter
+
+TA2 adds:
+
+```text
+configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+scripts/trajectory_adapter/ta2_adapt_traj01.py
+tests/test_ta2_traj01_adapter.py
+```
+
+TA2 intentionally reuses the already-established 403-query blind manifest as
+the parity source. It does not re-extract the video.
+
+The trajectory spec still declares:
+
+```text
+raw video
+1 Hz sampling policy
+assumed relative altitude = 120 m
+assumed gimbal pitch = -90 deg
+768_s256 map contract
+optional post-freeze SRT provider
+```
+
+TA2 reads no SRT/reference data.
+
+It produces:
+
+```text
+blind_package/
+  canonical_blind_manifest.csv
+  trajectory_runtime_contract.json
+  capabilities.json
+  provenance.json
+
+reports/
+  ta2_traj01_adapter_report.json
+```
+
+Parity gate:
+
+```text
+403 queries
+query IDs 1..403
+frame indices 0..402
+timestamps 0..402 s
+3840 x 2160
+exact legacy image-path parity
+exact query-ID/frame/timestamp parity
+reference_available=false in every canonical row
+no forbidden GT/reference columns
+```
+
+The SRT path is declared in the trajectory YAML but is not read and is not
+exposed in the blind package.
+
+### TA2 validation command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/trajectory_adapter/ta2_adapt_traj01.py
+```
+
+Expected:
+
+```text
+PASS_TA2_TRAJ01_CANONICAL_ADAPTER
+```
+
+If TA2 passes, proceed to TA3: adapt the recorded blind demonstration trajectory
+with `reference.mode=unavailable`.
