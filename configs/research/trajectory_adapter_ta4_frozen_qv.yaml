@@ -1,0 +1,36 @@
+stage: TA4
+name: frozen_qv_trajectory_independent_runner_v1
+
+frozen_method:
+  lineage_commit: 9ac43bb0986d3d947e0ef3b608a28b23870a4117
+  method: qv1_4_center_unique_allview_fill20
+  map_variant: 768_s256
+  model_name: dinov2_vits14
+  image_size: 518
+  pooling: avgpatch
+  query_views:
+    - center_square
+    - left_square
+    - right_square
+    - resize_square
+  ranking_depth: 20
+  final_budget: 20
+  center_source_depth: 20
+  alternate_source_depth: 20
+  spatial_redundancy_radius_m: 51.2
+  policy: center_unique_allview_fill20
+
+blind_behavior:
+  consecutive_pool_jaccard: true
+  center_vs_view_top20_jaccard: true
+  top1_map_jump_m: true
+  source_composition: true
+  construction_composition: true
+
+reference_policy:
+  evaluate_only_after_blind_freeze: true
+  prepared_attachment_key: prepared_attachment
+
+development_parity:
+  require_exact_pool_parity_when_declared: true
+  require_expected_summary_when_declared: true

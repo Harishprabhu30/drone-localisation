@@ -52,6 +52,7 @@ reference:
   path: data/raw/villoc/traj01_90deg_stable120m/villoc_traj01_90deg_stable120m_V_merged.SRT
   alignment:
     method: nearest_timestamp
+  prepared_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
 
 compatibility:
   legacy_blind_manifest: outputs/demo_runs/traj01_blind_regression_001/metadata/blind_query_manifest.csv
@@ -69,3 +70,19 @@ compatibility:
 research_policy:
   inspect_individual_failures: true
   allow_method_changes_after_run: true
+
+adapter:
+  canonical_package: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package
+
+research_assets:
+  query_descriptor_caches:
+    center_square: outputs/demo_runs/traj01_blind_regression_001/descriptors/s8_11c_dinov2_queries_v_1fps_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+    left_square: outputs/research_runs/query_view_candidate_generation_v1/qv1_1/descriptors/qv1_1_queries_left_square_dinov2_vits14_img518_avgpatch_cpu.npz
+    right_square: outputs/research_runs/query_view_candidate_generation_v1/qv1_1/descriptors/qv1_1_queries_right_square_dinov2_vits14_img518_avgpatch_cpu.npz
+    resize_square: outputs/research_runs/query_view_candidate_generation_v1/qv1_1/descriptors/qv1_1_queries_resize_square_dinov2_vits14_img518_avgpatch_cpu.npz
+  parity_qv1_4_pool: outputs/research_runs/query_view_candidate_generation_v1/qv1_4/blind_pools/qv1_4_center_unique_allview_fill20.csv
+  expected_qv1_4_summary:
+    contain_r20_hits: 384
+    le40_r20_hits: 277
+    le80_r20_hits: 380
+    top1_contains_hits: 174

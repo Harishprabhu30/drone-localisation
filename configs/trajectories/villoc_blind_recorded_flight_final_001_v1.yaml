@@ -45,6 +45,9 @@ map:
     512_s256:
       tile_index: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
       descriptor_cache: outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+    768_s256:
+      tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+      descriptor_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
 
 reference:
   mode: unavailable
@@ -65,3 +68,6 @@ compatibility:
 research_policy:
   inspect_individual_failures: true
   allow_method_changes_after_run: false
+
+adapter:
+  canonical_package: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package

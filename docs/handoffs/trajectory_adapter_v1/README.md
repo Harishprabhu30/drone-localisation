@@ -1,6 +1,6 @@
 # Trajectory Adapter v1 — TA1 handoff
 
-Status: **TA1/TA2 CLOSED / TA3 IMPLEMENTED — VALIDATION READY**
+Status: **TA1/TA2/TA3 CLOSED / TA4 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -388,3 +388,113 @@ If TA3 passes, TA4 will prove the next abstraction boundary: one
 trajectory-independent frozen research harness consuming both TA2 and TA3
 canonical packages, with accuracy metrics enabled only when post-freeze
 reference exists.
+
+
+## TA3 result
+
+Status:
+
+```text
+PASS_TA3_BLIND_DEMO_CANONICAL_ADAPTER
+```
+
+Measured:
+
+```text
+trajectory:          villoc_blind_recorded_flight_final_001
+role:                blind_stress
+queries:             123
+query IDs:           1..123
+frame indices:       0..122
+timestamps:          0..122 s
+image-path parity:   true
+timestamp parity:    true
+reference declared:  false
+reference read:      false
+GT required:         false
+```
+
+TA3 proves that the canonical trajectory package does not depend on SRT/GT.
+
+## TA4 — trajectory-independent frozen QV runner
+
+TA4 is the first research harness that consumes the trajectory adapter rather
+than hard-coded traj01/demo paths.
+
+Frozen algorithm:
+
+```text
+QV1.4 center_unique_allview_fill20
+map variant: 768_s256
+query views: center / left / right / resize
+DINOv2 ViT-S/14 img518 avgpatch
+ranking depth: 20
+final candidate budget: 20
+center spatial-redundancy radius: 51.2 m
+no ORB / bootstrap / state
+```
+
+For the development trajectory, TA4 reuses the frozen QV1 query descriptor
+caches and requires exact pool parity with the previous QV1.4 result.
+
+Expected development accuracy after blind pool freeze:
+
+```text
+contain R20 384 / 403
+<=40 R20   277 / 403
+<=80 R20   380 / 403
+Top1 contain 174 / 403
+```
+
+For the blind demo, TA4 generates any missing query-view descriptors and runs
+the same frozen candidate generator against the same 768_s256 map variant.
+
+No absolute-accuracy evaluation is allowed for the blind demo.
+
+Blind diagnostics include:
+
+```text
+center-vs-view Top20 Jaccard
+final-pool source composition
+center spatial-core size
+alternate candidates added
+consecutive final-pool Jaccard
+center-Top1 map-space jump statistics
+```
+
+The blind-demo trajectory retains its historical 512_s256 primary map
+declaration, but TA4 explicitly requests the additional 768_s256 variant so
+that the frozen QV method is identical across both trajectories.
+
+### TA4 development parity run
+
+```bash
+python scripts/trajectory_adapter/ta4_run_frozen_qv.py \
+  --trajectory configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+```
+
+Expected:
+
+```text
+PASS_TA4_FROZEN_QV_WITH_REFERENCE
+exact frozen QV1.4 pool parity: True
+```
+
+### TA4 blind-stress run
+
+```bash
+python scripts/trajectory_adapter/ta4_run_frozen_qv.py \
+  --trajectory configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml \
+  --device cpu \
+  --batch-size 1
+```
+
+Expected:
+
+```text
+PASS_TA4_FROZEN_QV_BLIND_STRESS
+reference evaluation: False
+```
+
+The blind run will require DINO inference for missing left/right/resize/full
+query-view caches, so it is expected to be materially heavier than TA2/TA3.
