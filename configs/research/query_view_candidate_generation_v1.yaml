@@ -131,6 +131,18 @@ qv1_4:
     - 99
     - 228
     - 390
+qv1_5:
+  mode: precision_region_tradeoff_attribution
+  policies:
+    - center10_allview_diverse20
+    - center_unique_allview_fill20
+  qv1_3_root: outputs/research_runs/query_view_candidate_generation_v1/qv1_3
+  qv1_4_root: outputs/research_runs/query_view_candidate_generation_v1/qv1_4
+  named_diagnostics:
+    - 57
+    - 99
+    - 228
+    - 390
 
 evaluation:
   metrics:

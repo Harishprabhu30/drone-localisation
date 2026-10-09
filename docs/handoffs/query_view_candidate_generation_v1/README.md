@@ -1,6 +1,6 @@
 # Handoff — query-view candidate generation v1
 
-Status: **QV1.0/QV1.1/QV1.2/QV1.3 CLOSED — QV1.4 STARTED**
+Status: **QV1.0–QV1.4 CLOSED — QV1.5 STARTED**
 
 Branch:
 
@@ -471,3 +471,40 @@ per-query rescue / loss counts versus center_top20
 ```
 
 No ORB, bootstrap or state logic is involved.
+
+## QV1.4 result — region coverage improves, <=40 precision trades off
+
+Status: PASS_QV1_REDUNDANCY_AWARE_MULTIVIEW_POOL
+
+Measured center_unique_allview_fill20 versus center_top20:
+
+- containment: 384/403 vs 355/403; rescue/loss +29/-0
+- <=80 m: 380/403 vs 341/403; rescue/loss +40/-1
+- <=40 m: 277/403 vs 284/403; rescue/loss +36/-43
+- Top1 containment remains 174/403.
+
+Interpretation: the redundancy-aware pool is extremely strong at preserving and expanding
+the correct physical region, but the 51.2 m redundancy rule is too coarse to preserve
+every tile-center <=40 candidate.
+
+Named cases: q57 is rescued, q99 remains protected, q228 keeps <=40 in the all-view
+pool, and q390 regains its deep-center <=40 evidence.
+
+## QV1.5 — precision-versus-region attribution
+
+Status: STARTING
+
+QV1.5 is diagnostic only. It builds no new pool and runs no new descriptors.
+
+For every center-good <=40 query lost by QV1.3 or QV1.4, classify whether the new
+pool still preserves containment and/or <=80 evidence, and measure the nearest selected
+tile to the lost precise center tile.
+
+Categories:
+
+- precision_only_region_safe: <=40 lost, but containment and <=80 remain.
+- precision_only_le80_safe: <=40 lost, <=80 remains but containment does not.
+- true_region_regression: <=40 and <=80 are both lost.
+
+This decides whether QV1.4 is already a strong region-candidate generator for later
+geometric refinement, or whether a local member-preservation mechanism is still needed.
