@@ -1,0 +1,72 @@
+stage: RG2.1-B
+name: postfreeze_local_region_availability_oracle_audit
+map_variant: 768_s256
+map_crs: EPSG:3346
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1b
+
+rg2_0:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  tile_geometry: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_tile_geometry.csv
+  expected_relationships_sha256: 1a9456cea5c951af30c63d5f1adaca3d82c3b8f1a275a841bf2d0a7d5fd71272
+
+rg2_1a:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/rg2_1a_freeze_report.json
+  development:
+    local_neighborhoods: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_local_neighborhoods.csv
+    query_summaries: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_query_summaries.csv
+    frozen_qv_top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+    expected_local_neighborhoods_sha256: ee708fc261b2833f663fb51a4fc0fd88c926a1a1234ae4d841a93269e8faa100
+    expected_query_summaries_sha256: 15459ad6a5814a08264e15522627165975769d075a98ca5b731375d3c6436b6c
+    expected_frozen_qv_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+
+development:
+  trajectory_spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  expected_queries: 403
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+
+sets:
+  - anchor
+  - immediate
+  - full_overlap
+  - frozen_top20
+
+labels:
+  containment:
+    mode: reference_point_inside_tile_bounds_inclusive
+  le40:
+    mode: tile_center_euclidean_distance_m
+    threshold_m: 40.0
+  le80:
+    mode: tile_center_euclidean_distance_m
+    threshold_m: 80.0
+
+historical_parity:
+  frozen_top20:
+    query_count: 403
+    contain_hits: 384
+    le40_hits: 277
+    le80_hits: 380
+  anchor:
+    contain_hits: 174
+    le40_hits: 101
+    le80_hits: 171
+
+scientific_boundary:
+  development_reference_allowed: true
+  reference_after_freeze_only: true
+  blind_stress_loaded: false
+  blind_stress_reference_allowed: false
+  candidate_sets_mutable: false
+  qv_top20_reranking_allowed: false
+  orb_enabled: false
+  projection_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+  learned_model_enabled: false
+
+interpretation:
+  same_budget_claim_allowed: false
+  report_candidate_budget: true
+  report_paired_set_outcomes: true
+  report_marginal_rescues: true
+  report_overlap_redundancy_caveat: true

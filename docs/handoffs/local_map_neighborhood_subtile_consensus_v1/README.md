@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **RG2.0 LOCAL PREFLIGHT PASSED / RG2.1-A CODE PREPARED, LOCAL FREEZE PENDING**
+Status: **RG2.0 + RG2.1-A PASSED / RG2.1-B CODE PREPARED, LOCAL ORACLE AUDIT PENDING**
 
 Proposed branch:
 
@@ -500,3 +500,39 @@ or make bootstrap/state changes until that evidence is reviewed.
 Important limitation: overlap identity is a map-window property, *not* an
 assertion that several observations are independent or geographically correct.
 Distant retrieval aliases observed by RG1.5 remain a separate upstream problem.
+
+
+---
+
+## 12. RG2.1-B implementation checkpoint
+
+RG2.1-A is closed on the recorded local freeze evidence in
+\`RG2_1A_REFERENCE_FREE_FREEZE.md\`.
+
+RG2.1-B is a **development-only post-freeze availability oracle audit**.
+It verifies the frozen RG2.1-A development CSVs against their recorded SHA256s
+before the reference file is opened. It then reuses the project's established
+reference semantics:
+
+- containment: reference EPSG:3346 point lies inside tile bounds, inclusive;
+- <=40 m / <=80 m: Euclidean distance from reference point to tile center.
+
+The four query-level sets are frozen Top1 anchor, immediate neighborhood,
+full-overlap neighborhood and unchanged QV1.4 Top20. The original Top20 must
+reproduce historical parity (contain 384/403, <=40 277/403, <=80 380/403;
+Top1 contain 174/403, <=40 101/403, <=80 171/403) or the stage stops.
+
+The full-overlap set has a variable candidate budget and often exceeds 20, so
+RG2.1-B reports budget distributions and paired outcomes. It cannot claim
+same-budget superiority over Top20. Post-freeze labeled CSVs contain reference
+information and are evaluation-only artifacts; do not feed them into RG2.2.
+
+Implementation:
+
+- \`configs/research/local_map_neighborhood_rg2_1b.yaml\`
+- \`scripts/villoc/geometry/rg2_1b_postfreeze_availability_oracle.py\`
+- \`tests/test_rg2_1b_postfreeze_availability_oracle.py\`
+- \`RG2_1B_POSTFREEZE_AVAILABILITY_ORACLE.md\`
+
+Stop after the local test/audit result and inspect the paired rescue counts,
+budgets, historical parity and output hashes before starting RG2.2.
