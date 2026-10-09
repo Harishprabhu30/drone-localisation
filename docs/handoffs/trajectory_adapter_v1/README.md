@@ -1,6 +1,6 @@
 # Trajectory Adapter v1 — TA1 handoff
 
-Status: **TA1 CLOSED / TA2 IMPLEMENTED — VALIDATION READY**
+Status: **TA1/TA2 CLOSED / TA3 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -285,3 +285,106 @@ PASS_TA2_TRAJ01_CANONICAL_ADAPTER
 
 If TA2 passes, proceed to TA3: adapt the recorded blind demonstration trajectory
 with `reference.mode=unavailable`.
+
+
+## TA2 result
+
+Status:
+
+```text
+PASS_TA2_TRAJ01_CANONICAL_ADAPTER
+```
+
+Measured parity:
+
+```text
+trajectory:       villoc_traj01_90deg_stable120m
+role:             development
+queries:          403
+query IDs:        1..403
+frame indices:    0..402
+timestamps:       0..402 s
+image-path parity true
+timestamp parity  true
+reference declared true
+reference read     false
+```
+
+The first real dataset therefore satisfies the canonical adapter contract.
+
+## TA3 — recorded blind demonstration adapter
+
+TA3 adds:
+
+```text
+configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+scripts/trajectory_adapter/ta3_adapt_blind_demo.py
+tests/test_ta3_blind_demo_adapter.py
+```
+
+Trajectory role:
+
+```text
+blind_stress
+```
+
+Reference contract:
+
+```text
+reference.mode: unavailable
+```
+
+The frozen successful demo manifest is reused:
+
+```text
+outputs/demo_runs/blind_recorded_flight_final_001/metadata/blind_query_manifest.csv
+```
+
+Expected parity:
+
+```text
+123 queries
+query IDs 1..123
+frame indices 0..122
+timestamps 0..122 s
+3840 x 2160
+assumed relative altitude 122 m
+assumed gimbal pitch -90 deg
+reference_available=false
+```
+
+No SRT/GPS/reference path exists in the TA3 trajectory spec, and TA3 requires
+no ground truth.
+
+The research policy for this trajectory freezes method changes after the run:
+
+```yaml
+research_policy:
+  inspect_individual_failures: true
+  allow_method_changes_after_run: false
+```
+
+This lets the flight serve as behavioral/stress evidence without pretending it
+provides absolute-accuracy validation.
+
+### TA3 validation command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/trajectory_adapter/ta3_adapt_blind_demo.py
+```
+
+Expected:
+
+```text
+PASS_TA3_BLIND_DEMO_CANONICAL_ADAPTER
+```
+
+If TA3 passes, TA4 will prove the next abstraction boundary: one
+trajectory-independent frozen research harness consuming both TA2 and TA3
+canonical packages, with accuracy metrics enabled only when post-freeze
+reference exists.

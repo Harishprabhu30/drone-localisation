@@ -1,0 +1,67 @@
+schema: uavloc.trajectory.v1
+
+trajectory:
+  id: villoc_blind_recorded_flight_final_001
+  dataset: villoc
+  sequence: blind_recorded_flight_trimmed_nadir
+  role: blind_stress
+  view_class: near_nadir
+
+source:
+  type: video
+  video:
+    path: data/raw/villoc/demonstration/DJI_20260807171627_0003_V_trimmed.MP4
+    fps_expected: 29.97
+    resolution_expected:
+      - 3840
+      - 2160
+
+sampling:
+  mode: uniform_time
+  rate_hz: 1.0
+
+signals:
+  relative_altitude_m:
+    source: assumed
+    value: 122.0
+    provenance: blind_demo_prelocalization_assumption
+
+  gimbal_pitch_deg:
+    source: assumed
+    value: -90.0
+    provenance: blind_demo_prelocalization_assumption
+
+  body_orientation:
+    source: unavailable
+
+  imu:
+    source: unavailable
+
+map:
+  id: villoc_90deg_aoi300m
+  crs: EPSG:3346
+  primary_variant: 512_s256
+  variants:
+    512_s256:
+      tile_index: outputs/villoc/90_deg/metadata/s8_9_satellite_tile_index_512_s256.csv
+      descriptor_cache: outputs/villoc/90_deg/descriptors/s8_11b_dinov2_map_512_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+
+reference:
+  mode: unavailable
+
+compatibility:
+  legacy_blind_manifest: outputs/demo_runs/blind_recorded_flight_final_001/metadata/blind_query_manifest.csv
+  expected_query_count: 123
+  expected_query_id_start: 1
+  expected_query_id_end: 123
+  expected_frame_index_start: 0
+  expected_frame_index_end: 122
+  expected_timestamp_start_s: 0.0
+  expected_timestamp_end_s: 122.0
+  expected_width_px: 3840
+  expected_height_px: 2160
+  expected_view_assumption: near_nadir
+
+research_policy:
+  inspect_individual_failures: true
+  allow_method_changes_after_run: false
