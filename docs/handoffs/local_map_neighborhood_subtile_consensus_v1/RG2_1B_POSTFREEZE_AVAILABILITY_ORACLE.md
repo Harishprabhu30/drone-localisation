@@ -156,3 +156,35 @@ Return the complete terminal output, especially:
 - query comparison SHA256.
 
 Do not implement RG2.2 until these results are interpreted.
+
+
+## Stable import-path fix (2026-10-09)
+
+Initial direct execution failed before the audit began:
+
+\`\`\`text
+ModuleNotFoundError: No module named 'scripts'
+\`\`\`
+
+Cause: RG2.1-B imported \`load_reference_xy\` from another executable file under
+\`scripts/\`. When Python executes a nested script directly, its containing
+directory becomes the import root; repository-root \`scripts\` is therefore not
+a stable import target. \`PYTHONPATH=$PWD/src\` correctly exposes \`uavloc\`,
+but it does not expose repo-root \`scripts\`.
+
+Stable correction:
+
+- reusable reference loading moved to
+  \`src/uavloc/evaluation/reference.py\`;
+- RG2.1-B now bootstraps \`<repo>/src\` from its own \`__file__\` before
+  importing \`uavloc\`;
+- no RG2.1-B import from \`scripts.*\` remains;
+- test coverage includes the shared loader and a subprocess
+  \`--help\` smoke test with \`PYTHONPATH\` removed;
+- repository convention documented in
+  \`docs/development/python_import_contract.md\`.
+
+This changes import structure only. The historical oracle semantics remain
+\`eval_ref_lon/lat -> EPSG:3346\`; RG2.1-A hashes and candidate sets are
+unchanged. The failed execution occurred during module import, before reference
+loading or RG2.1-B output generation.

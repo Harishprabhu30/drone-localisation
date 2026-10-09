@@ -11,18 +11,24 @@ import argparse
 import hashlib
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any
+
+# Standalone scripts must be runnable directly from any working directory.
+# Bootstrap the repository's src/ package path before importing uavloc.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 import pandas as pd
 import yaml
 
-from scripts.villoc.retrieval.qv1_3_fixed_budget_multiview_pool import (
-    load_reference_xy,
-)
+from uavloc.evaluation.reference import load_reference_xy
 
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = REPO_ROOT
 DEFAULT_CONFIG = ROOT / "configs/research/local_map_neighborhood_rg2_1b.yaml"
 
 

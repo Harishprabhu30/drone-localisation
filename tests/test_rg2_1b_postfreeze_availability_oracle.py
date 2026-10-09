@@ -2,11 +2,21 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
 import pandas as pd
+
+from uavloc.evaluation.reference import load_reference_xy
 
 from scripts.villoc.geometry.rg2_1b_postfreeze_availability_oracle import (
     attach_reference,
@@ -181,6 +191,49 @@ class RG21BTests(unittest.TestCase):
         candidates = pd.DataFrame([{"query_id": 4, "tile_id": "A"}])
         with self.assertRaisesRegex(RuntimeError, "Reference missing"):
             attach_reference(candidates, tile=tile_geometry(), reference=reference())
+
+    def test_shared_reference_loader_projects_and_rejects_duplicates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "reference.csv"
+            pd.DataFrame([{
+                "query_id": 1,
+                "eval_ref_lon": 25.26,
+                "eval_ref_lat": 54.74,
+            }]).to_csv(path, index=False)
+            frame = load_reference_xy(path)
+            self.assertEqual(frame.index.tolist(), [1])
+            self.assertTrue(pd.notna(frame.loc[1, "gt_x"]))
+            self.assertTrue(pd.notna(frame.loc[1, "gt_y"]))
+
+            pd.DataFrame([
+                {"query_id": 1, "eval_ref_lon": 25.26, "eval_ref_lat": 54.74},
+                {"query_id": 1, "eval_ref_lon": 25.27, "eval_ref_lat": 54.75},
+            ]).to_csv(path, index=False)
+            with self.assertRaisesRegex(ValueError, "duplicate query IDs"):
+                load_reference_xy(path)
+
+    def test_script_help_runs_without_pythonpath(self):
+        script = (
+            REPO_ROOT
+            / "scripts/villoc/geometry/rg2_1b_postfreeze_availability_oracle.py"
+        )
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run(
+            [sys.executable, str(script), "--help"],
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(
+            result.returncode,
+            0,
+            msg=f"stdout:\\n{result.stdout}\\nstderr:\\n{result.stderr}",
+        )
+        self.assertIn("post-freeze local-region availability", result.stdout)
 
     def test_strict_frozen_set_validator_requires_20_and_anchor_top1(self):
         local = pd.DataFrame([{
