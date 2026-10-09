@@ -1,6 +1,6 @@
 # Region-candidate geometry v1 — handoff
 
-Status: **RG1.0/RG1.1/RG1.2/RG1.3/RG1.4 CLOSED / RG1.5 IMPLEMENTED — VALIDATION READY**
+Status: **RG1.0–RG1.5 CLOSED — BRANCH COMPLETE**
 
 Branch:
 
@@ -718,3 +718,85 @@ PASS_RG1_5_CROSS_TRAJECTORY_TEMPORAL_BEHAVIOR_AUDIT
 ```
 
 Send the full printed development/blind comparison.
+
+
+## RG1.5 result and final RG1 interpretation
+
+Status:
+
+```text
+PASS_RG1_5_CROSS_TRAJECTORY_TEMPORAL_BEHAVIOR_AUDIT
+```
+
+Frozen gate:
+
+```text
+inliers >= 6
+```
+
+Development:
+
+```text
+accepted fraction                         0.734491
+accepted gap median                       1.0 s
+accepted run median                       2 queries
+all accepted projected-jump median       25.1883 m
+contiguous accepted pairs               251
+contiguous projected-jump median         13.2451 m
+contiguous projected-speed median        13.2451 m/s
+contiguous same-tile fraction             0.764940
+changed-tile center-jump median          184.6042 m
+changed-tile projected-jump median       190.8585 m
+```
+
+Blind stress:
+
+```text
+accepted fraction                         0.626016
+accepted gap median                       1.0 s
+accepted run median                       2 queries
+all accepted projected-jump median       72.4855 m
+contiguous accepted pairs                53
+contiguous projected-jump median         62.8039 m
+contiguous projected-speed median        62.8039 m/s
+contiguous same-tile fraction             0.754717
+changed-tile center-jump median          323.8172 m
+changed-tile projected-jump median       330.6987 m
+```
+
+Current map stride:
+
+```text
+51.2 m
+diagonal stride 72.4077 m
+```
+
+The blind all-accepted jump median is numerically close to the diagonal stride,
+but RG1.5 shows that this is not enough to explain the failure mode:
+
+- same-tile fractions are similar across development and blind stress;
+- blind contiguous projected jumps are much larger than development;
+- changed-tile jumps are far larger than one local map stride;
+- therefore distant retrieval-anchor transitions/global aliases remain a major
+  failure mode and cannot be fixed by sub-tile projection alone.
+
+Final RG1 conclusion:
+
+```text
+QV1.4:
+  strong fixed-budget region candidate generator
+
+ORB geometry:
+  useful candidate evidence
+  poor hard Top20 pruning mechanism
+  useful retrieval-anchor trust / abstain signal
+  strong continuous sub-tile refinement when the anchor is useful
+
+geometry alone:
+  does not solve distant retrieval-region aliases
+```
+
+RG1 stops here. Do not add more gate tuning on this branch.
+
+The next research axis is local map-neighborhood / sub-tile consensus, with map
+stride frozen initially.
