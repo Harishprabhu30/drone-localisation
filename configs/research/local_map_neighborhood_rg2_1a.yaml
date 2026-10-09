@@ -1,0 +1,45 @@
+stage: RG2.1-A
+name: reference_free_neighborhood_freeze
+map_variant: 768_s256
+map_crs: EPSG:3346
+rg2_0_config: configs/research/local_map_neighborhood_subtile_consensus_v1.yaml
+rg2_0_report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+rg2_0_output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0
+expected_rg2_0_relationships_sha256: 1a9456cea5c951af30c63d5f1adaca3d82c3b8f1a275a841bf2d0a7d5fd71272
+expected_map_tiles: 432
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a
+
+frozen_qv_policy: center_unique_allview_fill20
+expected_candidate_budget: 20
+anchor:
+  pool_rank: 1
+  source_view: center_square
+  source_rank: 1
+
+neighborhoods:
+  immediate: rg2_0_nearby
+  full_overlap: rg2_0_overlaps
+  include_anchor: true
+  expansion_budget: none
+  qv_top20_is_comparator_only: true
+
+reference_allowed: false
+reference_attachment_enabled: false
+orb_enabled: false
+bootstrap_enabled: false
+state_enabled: false
+parameter_tuning_enabled: false
+
+trajectories:
+  development:
+    spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+    frozen_pool: outputs/research_runs/trajectory_adapter_v1/ta4/villoc_traj01_90deg_stable120m/blind_pool/ta4_frozen_qv_pool.csv
+    role: development
+    expected_queries: 403
+  blind_stress:
+    spec: configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    frozen_pool: outputs/research_runs/trajectory_adapter_v1/ta4/villoc_blind_recorded_flight_final_001/blind_pool/ta4_frozen_qv_pool.csv
+    role: blind_stress
+    expected_queries: 123

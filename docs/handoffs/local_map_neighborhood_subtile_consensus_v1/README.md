@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **RG2.0 CODE PREPARED / LOCAL DATA PREFLIGHT PENDING**
+Status: **RG2.0 LOCAL PREFLIGHT PASSED / RG2.1-A CODE PREPARED, LOCAL FREEZE PENDING**
 
 Proposed branch:
 
@@ -483,8 +483,14 @@ trajectory spec, config and topology outputs, undirected neighbor counts,
 degree histograms and AOI-edge counts. Output has no run timestamp so identical
 inputs and code produce deterministic contents.
 
-**RG2.0 is not yet a measured pass** until the user executes its preflight
-against the real generated map CSV. Stop on a missing or inconsistent map
+**RG2.0 local verification (2026-10-09): PASS.** User reported 7/7
+unit tests, 432 tiles (18 columns × 24 rows), 4772 undirected
+overlap pairs and 1624 undirected near pairs. Boundary center gaps:
+east-west final 33.2 m, north-south first 3.6 m (otherwise 51.2 m).
+Topology SHA256: `1a9456cea5c951af30c63d5f1adaca3d82c3b8f1a275a841bf2d0a7d5fd71272`.
+
+No upstream repo map asset was modified. RG2.0 is closed on this evidence.
+See `RG2_1A_REFERENCE_FREE_FREEZE.md` for the next blocked step. Stop on a missing or inconsistent map
 index and resolve the provenance rather than silently loosening tolerances.
 
 **Stop gate:** inspect unit-test result, tile and edge counts, neighbor degree
