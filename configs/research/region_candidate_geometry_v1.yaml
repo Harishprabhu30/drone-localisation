@@ -259,3 +259,48 @@ rg1_4:
     - bootstrap
     - state
     - temporal_fusion
+
+
+rg1_5:
+  mode: cross_trajectory_anchor_projection_temporal_behavior_audit
+
+  frozen_gate:
+    artifact: outputs/research_runs/region_candidate_geometry_v1/rg1_4/rg1_4_frozen_gate.json
+    expected_family: inliers_only
+    expected_inlier_threshold: 6
+
+  development:
+    canonical_manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+    geometry_evidence: outputs/research_runs/region_candidate_geometry_v1/rg1_1/blind_geometry/rg1_1_all_candidate_geometry_evidence.csv
+    expected_queries: 403
+
+  blind_stress:
+    canonical_manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    geometry_evidence: outputs/research_runs/region_candidate_geometry_v1/rg1_4/rg1_4_blind_anchor_geometry_evidence.csv
+    expected_queries: 123
+
+  map:
+    tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+    expected_stride_m: 51.2
+
+  temporal:
+    contiguous_gap_multiplier: 1.5
+    analyze_same_tile_vs_changed_tile: true
+    analyze_tile_center_jump: true
+    analyze_projected_jump: true
+    analyze_projected_speed: true
+
+  output_root: outputs/research_runs/region_candidate_geometry_v1/rg1_5
+
+  promotion:
+    enabled: false
+    reason: diagnostic transfer audit only; no GT on blind trajectory
+
+  non_goals:
+    - retune_gate
+    - select_candidate
+    - rerank_top20
+    - use_reference
+    - bootstrap
+    - state
+    - temporal_fusion

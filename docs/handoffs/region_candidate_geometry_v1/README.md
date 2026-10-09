@@ -1,6 +1,6 @@
 # Region-candidate geometry v1 — handoff
 
-Status: **RG1.0/RG1.1/RG1.2/RG1.3 CLOSED / RG1.4 IMPLEMENTED — VALIDATION READY**
+Status: **RG1.0/RG1.1/RG1.2/RG1.3/RG1.4 CLOSED / RG1.5 IMPLEMENTED — VALIDATION READY**
 
 Branch:
 
@@ -614,3 +614,107 @@ PASS_RG1_4_PROVISIONAL_GATE_BLIND_STRESS_TRANSFER
 
 Do not interpret blind acceptance as accuracy. RG1.4 only asks whether the
 development-frozen trust mechanism behaves coherently on the second flight.
+
+
+## RG1.4 result
+
+Status:
+
+```text
+PASS_RG1_4_PROVISIONAL_GATE_BLIND_STRESS_TRANSFER
+```
+
+Frozen development-derived gate:
+
+```text
+inliers >= 6
+```
+
+Development behavior:
+
+```text
+accepted fraction 0.73449
+
+recall:
+  contain 0.95402
+  <=80   0.95322
+  <=40   0.97030
+```
+
+Blind-stress behavior:
+
+```text
+queries                  123
+accepted                  77
+accepted fraction          0.62602
+median inliers             6
+accepted median inliers    6
+accepted inside-tile rate  0.90909
+accepted projected jump
+  median                  72.4855 m
+```
+
+No blind reference or accuracy metric was used.
+
+Interpretation:
+
+The frozen gate does not show an obvious acceptance collapse, but the 72.5 m
+median successive accepted projection jump requires diagnosis before the
+geometry stage is closed.
+
+This number is numerically close to a diagonal transition on a 51.2 m tile
+grid, but that is only a hypothesis until same-tile/changed-tile and
+contiguous-time behavior are measured.
+
+## RG1.5 — cross-trajectory temporal behavior audit
+
+RG1.5 changes no algorithm and reads no reference.
+
+It reapplies the same frozen `inliers >= 6` rule to blind geometry evidence
+from both trajectories and compares:
+
+```text
+accepted fraction
+accepted-frame time/query gaps
+accepted run lengths
+all successive accepted projected jumps
+contiguous 1 Hz accepted projected jumps
+projected jump / elapsed time
+same-tile vs changed-tile transitions
+tile-center jump
+continuous projected-point jump
+```
+
+"Contiguous" is defined from the trajectory sampling interval using a fixed
+1.5x gap multiplier, not tuned separately per trajectory.
+
+This stage exists specifically to determine whether the RG1.4 72.5 m statistic
+is caused mainly by:
+
+```text
+abstention gaps
+retrieval-anchor tile transitions
+continuous projection instability
+or some combination
+```
+
+No gate threshold may be changed from RG1.5 results.
+
+### RG1.5 command
+
+```bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python -m unittest discover -s tests -v
+
+python scripts/villoc/geometry/rg1_5_cross_trajectory_temporal_behavior.py
+```
+
+Expected:
+
+```text
+PASS_RG1_5_CROSS_TRAJECTORY_TEMPORAL_BEHAVIOR_AUDIT
+```
+
+Send the full printed development/blind comparison.
