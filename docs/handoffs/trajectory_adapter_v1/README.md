@@ -1,6 +1,6 @@
 # Trajectory Adapter v1 — TA1 handoff
 
-Status: **TA1/TA2/TA3 CLOSED / TA4 IMPLEMENTED — VALIDATION READY**
+Status: **TA1/TA2/TA3/TA4 CLOSED — MILESTONE COMPLETE**
 
 Branch:
 
@@ -570,3 +570,79 @@ source composition
 ```
 
 Do not close TA4 until this gate passes.
+
+
+## TA4 final result
+
+Development trajectory:
+
+```text
+PASS_TA4_FROZEN_QV_WITH_REFERENCE
+
+villoc_traj01_90deg_stable120m
+403 queries
+768_s256
+fixed Top20
+
+mean center unique:        12.5087
+mean alternates added:      6.5980
+median pool Jaccard:        0.7391
+median center Top1 jump:    0.0 m
+
+exact QV1.4 pool parity:    true
+
+post-freeze accuracy:
+  contain R20      384 / 403
+  <=40 R20         277 / 403
+  <=80 R20         380 / 403
+  Top1 contain     174 / 403
+```
+
+Blind-stress trajectory:
+
+```text
+PASS_TA4_FROZEN_QV_BLIND_STRESS
+
+villoc_blind_recorded_flight_final_001
+123 queries
+768_s256
+fixed Top20
+
+mean center unique:        11.9756
+mean alternates added:      6.9350
+median pool Jaccard:        0.6667
+median center Top1 jump:    0.0 m
+
+reference evaluation:       false
+accuracy claim:             forbidden
+```
+
+Cross-trajectory behavior gate:
+
+```text
+PASS_TA4_CROSS_TRAJECTORY_BEHAVIOR_COMPARISON
+
+mean center unique delta:   -0.5331
+mean alternates delta:      +0.3369
+pool-Jaccard median delta:  -0.0725
+Top1-jump median delta:      0.0 m
+
+center-vs-view Top20 Jaccard median deltas:
+  left     -0.0529
+  right    +0.0000
+  resize   +0.0615
+```
+
+Interpretation:
+
+The blind-stress flight does not prove geographic accuracy, but the same frozen
+candidate generator operates in a broadly similar structural regime instead of
+collapsing on the second trajectory.
+
+No method tuning was performed from the blind-stress result.
+
+The full closeout is:
+
+```text
+docs/closeouts/trajectory_adapter_v1/README.md
+```
