@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **RG2.0 + RG2.1-A + RG2.1-B PASSED / RG2.2 CODE PREPARED, LOCAL FREEZE PENDING**
+Status: **RG2.0 + RG2.1-A + RG2.1-B + RG2.2 PASSED / RG2.3 NEXT**
 
 Proposed branch:
 
@@ -576,3 +576,8 @@ No reference, SRT/GPS, oracle labels, candidate reranking, consensus, bootstrap 
 Implementation files: configs/research/local_map_neighborhood_rg2_2.yaml; src/uavloc/geometry/orb_subtile.py; scripts/villoc/geometry/rg2_2_freeze_multi_tile_projections.py; tests/test_rg2_2_freeze_multi_tile_projections.py; RG2_2_REFERENCE_FREE_MULTI_TILE_PROJECTIONS.md.
 
 Stop after the local freeze. RG2.3 must consume only frozen/hash-verified RG2.2 development evidence when attaching reference; blind-stress evidence remains without accuracy labels.
+
+
+### RG2.2 closeout headline
+
+Reference-free multi-tile projection freeze passed for 9315 development and 2955 blind-stress pairs. Every pair produced a homography and finite EPSG:3346 projection; inside-tile projection rates were 90.25% and 92.59%. The minimum H-validity rule is therefore non-discriminative here. RG2.3 should evaluate agreement/spread/robust consensus, not homography availability.

@@ -107,3 +107,18 @@ Expected freeze status:
 Return the full console result, especially for both trajectories: pair/query counts, unique tile count, homography-ok pair count, finite-projection pair count, inside-tile projection count, queries with any full-overlap homography, queries with immediate-neighborhood homography, queries with anchor homography, homography-count histogram, and both SHA256 outputs.
 
 Do not attach development reference or implement projection consensus until this freeze has been inspected. RG2.3 will consume this evidence post-freeze.
+
+
+## RG2.2 local freeze closeout
+
+Status: **PASS / CLOSED** on user-reported local execution evidence.
+
+Development: 403 queries, 9315 pairs, 358 unique tiles. Homography OK 9315/9315; finite projections 9315/9315; inside-tile projections 8407/9315 (90.25%). Runtime 537.565 s. Pair SHA256 `c75372f9db9670f7e339f886b8dadcb850512902559aa00f9b9b3c2dae3dc98e`; summary SHA256 `9ffe8ba9a30e53cf6afaa56f419f8672280d8b305120da90d6fa1d1fd6eb4041`.
+
+Blind stress: 123 queries, 2955 pairs, 258 unique tiles. Homography OK 2955/2955; finite projections 2955/2955; inside-tile projections 2736/2955 (92.59%). Runtime 186.443 s. Pair SHA256 `d053d48dbd94184326e4b6bc42a5889536a34b66620ce033bd359cfea17a7b37`; summary SHA256 `559f61716122f27c1ed7045647cc24e220709f5713765e31abe0640b2a6f440a`.
+
+Scientific boundary remained intact: reference not loaded; consensus not executed; no accuracy claim.
+
+Interpretation: the historical minimum homography-validity condition is non-discriminative inside RG2.2 local neighborhoods because it passed every pair on both trajectories. `finite_projection` also passed every pair. Therefore RG2.3 must focus on cross-tile global-coordinate agreement, spread, clustering and robust consensus rather than homography availability. Outside-tile projections remain frozen evidence and must not be discarded before RG2.3.
+
+Decision: RG2.2 is closed. RG2.3 is the next stage and must consume only the hash-verified frozen development evidence. Blind-stress evidence remains reference-free.
