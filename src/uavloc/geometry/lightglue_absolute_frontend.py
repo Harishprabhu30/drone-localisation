@@ -124,7 +124,17 @@ class SuperPointLightGlueAbsoluteFrontend:
 
     name = "superpoint_lightglue_absolute_v1"
 
-    def __init__(self, lightglue_repo: Path, *, device_name: str = "cpu") -> None:
+    def __init__(
+        self,
+        lightglue_repo: Path,
+        *,
+        device_name: str = "cpu",
+        max_keypoints: int | None = MAX_KEYPOINTS,
+        resize_long: int = RESIZE_LONG,
+        filter_threshold: float = LIGHTGLUE_FILTER_THRESHOLD,
+        depth_confidence: float = LIGHTGLUE_DEPTH_CONFIDENCE,
+        width_confidence: float = LIGHTGLUE_WIDTH_CONFIDENCE,
+    ) -> None:
         requested_repo = Path(lightglue_repo).expanduser()
         self.repo: Path | None = None
         self.source_mode: str
@@ -200,17 +210,29 @@ class SuperPointLightGlueAbsoluteFrontend:
         else:
             self.device = self.torch.device("cpu")
 
+        if max_keypoints is not None and int(max_keypoints) <= 0:
+            raise ValueError("max_keypoints must be positive or None")
+        if int(resize_long) <= 0:
+            raise ValueError("resize_long must be positive")
+        self.max_keypoints = (
+            None if max_keypoints is None else int(max_keypoints)
+        )
+        self.resize_long = int(resize_long)
+        self.filter_threshold = float(filter_threshold)
+        self.depth_confidence = float(depth_confidence)
+        self.width_confidence = float(width_confidence)
+
         self.extractor = (
-            SuperPoint(max_num_keypoints=MAX_KEYPOINTS)
+            SuperPoint(max_num_keypoints=self.max_keypoints)
             .eval()
             .to(self.device)
         )
         self.matcher = (
             LightGlue(
                 features=FEATURE_TYPE,
-                filter_threshold=LIGHTGLUE_FILTER_THRESHOLD,
-                depth_confidence=LIGHTGLUE_DEPTH_CONFIDENCE,
-                width_confidence=LIGHTGLUE_WIDTH_CONFIDENCE,
+                filter_threshold=self.filter_threshold,
+                depth_confidence=self.depth_confidence,
+                width_confidence=self.width_confidence,
             )
             .eval()
             .to(self.device)
@@ -241,11 +263,11 @@ class SuperPointLightGlueAbsoluteFrontend:
             "verified_core_blobs": dict(self.verified_core_blobs),
             "device": str(self.device),
             "feature_type": FEATURE_TYPE,
-            "max_keypoints": MAX_KEYPOINTS,
-            "resize_long": RESIZE_LONG,
-            "lightglue_filter_threshold": LIGHTGLUE_FILTER_THRESHOLD,
-            "lightglue_depth_confidence": LIGHTGLUE_DEPTH_CONFIDENCE,
-            "lightglue_width_confidence": LIGHTGLUE_WIDTH_CONFIDENCE,
+            "max_keypoints": self.max_keypoints,
+            "resize_long": self.resize_long,
+            "lightglue_filter_threshold": self.filter_threshold,
+            "lightglue_depth_confidence": self.depth_confidence,
+            "lightglue_width_confidence": self.width_confidence,
             "ransac_threshold_px": RANSAC_THRESHOLD_PX,
             "min_homography_inliers": MIN_HOMOGRAPHY_INLIERS,
             "superpoint_weights_sha256": sha256_file(self.superpoint_weights_path),
@@ -270,7 +292,7 @@ class SuperPointLightGlueAbsoluteFrontend:
         image = self.load_image(key).to(self.device)
         self._sync()
         start = time.perf_counter()
-        features = self.extractor.extract(image, resize=RESIZE_LONG)
+        features = self.extractor.extract(image, resize=self.resize_long)
         self._sync()
         feature_ms = (time.perf_counter() - start) * 1000.0
 

@@ -1,0 +1,51 @@
+stage: LF2.0-AH
+name: superpoint_lightglue_official_max_accuracy_hard_pair_smoke
+output_root: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_0ah
+
+baseline_lf2_0a:
+  report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_0a/lf2_0a_report.json
+  expected_smoke_sha256: 2070c4265b2341efbd8ed48d811b73d6767d96f42305f4718e043b10fcaa1c80
+  expected_superpoint_weights_sha256: 52b6708629640ca883673b5d5c097c4ddad37d8048b33f09c8ca0d69db12c40e
+  expected_lightglue_weights_sha256: 6ff7040d0a497fc6639337946d7538dae07428c18f77a067a0b5a960e7cc551a
+
+lightglue:
+  repo: third_party/LightGlue
+  official_repository: https://github.com/cvg/LightGlue.git
+  pinned_commit: eb42fee2d71449efb0aa5c10549752b5d75384d8
+  device: cpu
+  feature_type: superpoint
+  max_keypoints: null
+  resize_long: 1024
+  filter_threshold: 0.1
+  depth_confidence: -1.0
+  width_confidence: -1.0
+  ransac_threshold_px: 5.0
+  min_homography_inliers: 4
+  profile: official_max_accuracy
+
+frozen_inputs:
+  development:
+    spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+    top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+    expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+    query_ids: [1, 101, 201, 301, 403]
+  blind_stress:
+    spec: configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/blind_stress/rg2_1a_frozen_qv_top20.csv
+    expected_top20_sha256: 68bbf59d3b839cfd90aef50dfca30316cf02296218dd33db236450bbe8b62bd8
+    query_ids: [1, 61, 123]
+  sample_ranks: [1, 5, 10, 20]
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  oracle_labels_allowed: false
+  full_top20_benchmark_enabled: false
+  candidate_reranking_enabled: false
+  selector_enabled: false
+  filter_threshold_tuning_enabled: false
+  learned_model_training_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
