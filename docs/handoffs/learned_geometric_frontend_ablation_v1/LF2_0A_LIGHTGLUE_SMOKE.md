@@ -45,6 +45,15 @@ Scientific boundary:
 
 Run:
 
+Install the pinned dependency first if `third_party/LightGlue` is absent:
+
+    source .drone_venv/bin/activate
+    bash scripts/setup/install_lightglue_pinned.sh
+
+Expected installer status:
+PASS_LIGHTGLUE_PINNED_INSTALL
+
+Then run the smoke:
     git pull --ff-only origin research/learned-geometric-frontend-ablation-v1
     source .drone_venv/bin/activate
 
