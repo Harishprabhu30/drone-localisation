@@ -112,6 +112,21 @@ sources:
       top10_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top10
       top20_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top20
 
+  lf1_2c_inliers:
+    report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf1_2c/lf1_2c_comparison_report.json
+    expected_status: PASS_LF1_2C_POSTFREEZE_THREE_FRONTEND_COMPARISON
+    source_stage: LF1.2-C
+    required: true
+    expected_artifact:
+      json_path: outputs.common_feature_diagnostics.sha256
+      sha256: ad819015a71263b01f7163908573dad36264ff79935aa2c861bb14b5a304f367
+    method_metric_paths:
+      top1_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top1
+      top3_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top3
+      top5_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top5
+      top10_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top10
+      top20_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top20
+
 methods:
   - method_id: qv14_retrieval_rank
     display_name: QV1.4 retrieval rank
@@ -335,3 +350,14 @@ methods:
     source: lf1_1b_valid_inliers
     method_key: xfeat
     notes: Sparse XFeat homography validity rejected too few negative pairs to help ranking.
+
+  - method_id: xfeat_star_inliers
+    display_name: XFeat* semi-dense raw inlier ranking
+    family: frontend_comparison
+    frontend: XFeat* semi-dense
+    retrieval: QV1.4 Top20
+    selector: raw inlier count
+    source: lf1_2c_inliers
+    method_key: xfeat_star
+    notes: Semi-dense XFeat* direct inlier ranking from LF1.2-C.
+
