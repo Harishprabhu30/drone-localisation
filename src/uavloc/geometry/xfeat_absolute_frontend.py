@@ -15,6 +15,15 @@ import cv2
 import numpy as np
 
 from uavloc.geometry.frontend_adapter import CandidateGeometryMeasurement, MatcherRuntime
+from uavloc.geometry.top20_geometric_evidence import (
+    _convex_hull_coverage,
+    _denominator_and_footprint,
+    _finite_summary,
+    _grid_support,
+    _jacobian_metrics,
+    _pca_minor_major_ratio,
+    _project_points,
+)
 
 
 OFFICIAL_REPOSITORY = "https://github.com/verlab/accelerated_features.git"
@@ -157,10 +166,14 @@ class XFeatAbsoluteFrontend:
             "geometry_model": "query_pixel_to_satellite_tile_homography",
         }
 
-    def _extract(self, image_path: Path) -> tuple[dict[str, Any], float]:
+    def _extract(
+        self,
+        image_path: Path,
+    ) -> tuple[dict[str, Any], float, bool]:
         key = str(Path(image_path).resolve())
         if key in self._cache:
-            return self._cache[key]
+            feature, _original_ms = self._cache[key]
+            return feature, 0.0, True
 
         gray = cv2.imread(key, cv2.IMREAD_GRAYSCALE)
         if gray is None:
@@ -192,7 +205,7 @@ class XFeatAbsoluteFrontend:
             "width": int(gray.shape[1]),
         }
         self._cache[key] = (feature, float(feature_ms))
-        return self._cache[key]
+        return feature, float(feature_ms), False
 
     def measure_pair(
         self,
@@ -202,8 +215,8 @@ class XFeatAbsoluteFrontend:
         tile_bounds: tuple[float, float, float, float],
     ) -> CandidateGeometryMeasurement:
         total_start = time.perf_counter()
-        q, q_ms = self._extract(query_path)
-        t, t_ms = self._extract(tile_path)
+        q, q_ms, q_cache_hit = self._extract(query_path)
+        t, t_ms, t_cache_hit = self._extract(tile_path)
 
         qdesc = q["descriptors"].to(self.device)
         tdesc = t["descriptors"].to(self.device)
@@ -270,12 +283,125 @@ class XFeatAbsoluteFrontend:
         evidence = {
             "query_keypoints": int(len(q["keypoints"])),
             "tile_keypoints": int(len(t["keypoints"])),
+            "query_feature_cache_hit": bool(q_cache_hit),
+            "tile_feature_cache_hit": bool(t_cache_hit),
             "matches": int(len(qpts)),
             "inliers": inliers,
             "inlier_ratio": inlier_ratio,
             "projected_tile_u_px": float(u),
             "projected_tile_v_px": float(v),
+            "query_hull_coverage": 0.0,
+            "tile_hull_coverage": 0.0,
+            "query_grid_occupancy": 0.0,
+            "tile_grid_occupancy": 0.0,
+            "query_grid_entropy": 0.0,
+            "tile_grid_entropy": 0.0,
+            "query_pca_minor_major_ratio": 0.0,
+            "tile_pca_minor_major_ratio": 0.0,
+            "matched_cosine_median": math.nan,
+            "matched_cosine_p10": math.nan,
+            "forward_error_median_px": math.nan,
+            "forward_error_p90_px": math.nan,
+            "forward_error_rmse_px": math.nan,
+            "backward_error_median_px": math.nan,
+            "backward_error_p90_px": math.nan,
+            "backward_error_rmse_px": math.nan,
+            "symmetric_error_median_px": math.nan,
+            "symmetric_error_p90_px": math.nan,
+            "symmetric_error_rmse_px": math.nan,
+            "homography_condition_number": math.nan,
+            "jacobian_det": math.nan,
+            "jacobian_s1": math.nan,
+            "jacobian_s2": math.nan,
+            "jacobian_anisotropy": math.nan,
+            "jacobian_rotation_deg": math.nan,
+            "jacobian_reflection": False,
+            "denominator_min_abs": math.nan,
+            "denominator_max_abs": math.nan,
+            "denominator_abs_ratio": math.nan,
+            "denominator_sign_consistent": False,
+            "footprint_finite": False,
+            "footprint_convex": False,
+            "footprint_area_fraction_tile": math.nan,
+            "footprint_inside_corner_fraction": 0.0,
+            "footprint_edge_ratio": math.nan,
         }
+
+        if len(qpts):
+            qn = qdesc[idx_q].detach().cpu().numpy().astype(float)
+            tn = tdesc[idx_t].detach().cpu().numpy().astype(float)
+            denom = np.linalg.norm(qn, axis=1) * np.linalg.norm(tn, axis=1)
+            cosine = np.divide(
+                np.sum(qn * tn, axis=1),
+                denom,
+                out=np.full(len(qn), np.nan, dtype=float),
+                where=denom > 1e-12,
+            )
+            finite_cos = cosine[np.isfinite(cosine)]
+            if len(finite_cos):
+                evidence["matched_cosine_median"] = float(np.median(finite_cos))
+                evidence["matched_cosine_p10"] = float(np.quantile(finite_cos, 0.10))
+
+        if inliers:
+            qi = qpts[inlier_mask].astype(float)
+            ti = tpts[inlier_mask].astype(float)
+            evidence["query_hull_coverage"] = _convex_hull_coverage(
+                qi, (int(q["height"]), int(q["width"]))
+            )
+            evidence["tile_hull_coverage"] = _convex_hull_coverage(
+                ti, (int(t["height"]), int(t["width"]))
+            )
+            _, qocc, qent = _grid_support(
+                qi, (int(q["height"]), int(q["width"]))
+            )
+            _, tocc, tent = _grid_support(
+                ti, (int(t["height"]), int(t["width"]))
+            )
+            evidence["query_grid_occupancy"] = float(qocc)
+            evidence["tile_grid_occupancy"] = float(tocc)
+            evidence["query_grid_entropy"] = float(qent)
+            evidence["tile_grid_entropy"] = float(tent)
+            evidence["query_pca_minor_major_ratio"] = _pca_minor_major_ratio(qi)
+            evidence["tile_pca_minor_major_ratio"] = _pca_minor_major_ratio(ti)
+
+        if homography_ok:
+            Hn = np.asarray(H, dtype=float)
+            qi = qpts[inlier_mask].astype(float)
+            ti = tpts[inlier_mask].astype(float)
+            forward = _project_points(Hn, qi)
+            ferr = np.linalg.norm(forward - ti, axis=1)
+            fstats = _finite_summary(ferr)
+            evidence["forward_error_median_px"] = fstats["median"]
+            evidence["forward_error_p90_px"] = fstats["p90"]
+            evidence["forward_error_rmse_px"] = fstats["rmse"]
+            try:
+                Hinv = np.linalg.inv(Hn)
+                backward = _project_points(Hinv, ti)
+                berr = np.linalg.norm(backward - qi, axis=1)
+            except (np.linalg.LinAlgError, cv2.error):
+                berr = np.full(len(qi), np.nan)
+            bstats = _finite_summary(berr)
+            evidence["backward_error_median_px"] = bstats["median"]
+            evidence["backward_error_p90_px"] = bstats["p90"]
+            evidence["backward_error_rmse_px"] = bstats["rmse"]
+            sym = np.sqrt(ferr * ferr + berr * berr)
+            sstats = _finite_summary(sym)
+            evidence["symmetric_error_median_px"] = sstats["median"]
+            evidence["symmetric_error_p90_px"] = sstats["p90"]
+            evidence["symmetric_error_rmse_px"] = sstats["rmse"]
+            try:
+                evidence["homography_condition_number"] = float(np.linalg.cond(Hn))
+            except np.linalg.LinAlgError:
+                evidence["homography_condition_number"] = math.inf
+            center_xy = (float(q["width"]) / 2.0, float(q["height"]) / 2.0)
+            evidence.update(_jacobian_metrics(Hn, center_xy))
+            evidence.update(
+                _denominator_and_footprint(
+                    Hn,
+                    (int(q["height"]), int(q["width"])),
+                    (int(t["height"]), int(t["width"])),
+                )
+            )
 
         total_ms = (time.perf_counter() - total_start) * 1000.0
         runtime = MatcherRuntime(

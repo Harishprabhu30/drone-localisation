@@ -1,0 +1,54 @@
+stage: LF1.1-A
+name: xfeat_full_top20_reference_free_freeze
+output_root: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf1_1a
+
+lf1_0:
+  report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf1_0/lf1_0_report.json
+  expected_smoke_sha256: 72e65e92417a3abfaab161b319ed70a58fdf0d6780aeef0cac7e1929640b6ca3
+  expected_weights_sha256: 0f5187fd7bedd26c7fe6acc9685444493a165a35ecc087b33c2db3627f3ea10b
+
+xfeat:
+  repo: third_party/accelerated_features
+  pinned_commit: e92685f57f8318b18725c5c8c0bd28c7fe188d9a
+  device: cpu
+  resize_long: 960
+  top_k: 1200
+  detection_threshold: 0.05
+  min_cossim: 0.82
+  ransac_threshold_px: 5.0
+  min_homography_inliers: 4
+
+trajectories:
+  development:
+    spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+    top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+    expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+    expected_queries: 403
+    expected_pairs: 8060
+  blind_stress:
+    spec: configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/blind_stress/rg2_1a_frozen_qv_top20.csv
+    expected_top20_sha256: 68bbf59d3b839cfd90aef50dfca30316cf02296218dd33db236450bbe8b62bd8
+    expected_queries: 123
+    expected_pairs: 2460
+
+generation:
+  pair_order: query_id_then_pool_rank
+  progress_every_pairs: 250
+  cache_features_across_trajectories: true
+  runtime_fields_frozen: false
+  retain_failed_pairs: true
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  oracle_labels_allowed: false
+  candidate_reranking_enabled: false
+  selector_enabled: false
+  threshold_tuning_enabled: false
+  model_training_enabled: false
+  temporal_fusion_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
