@@ -1,0 +1,54 @@
+stage: GD1.3-B
+name: postfreeze_query_relative_locality_oof_audit
+output_root: outputs/research_runs/top20_geometric_discrimination_v1/gd1_3b
+
+gd1_3a:
+  report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_3a/gd1_3a_freeze_report.json
+  development_features: outputs/research_runs/top20_geometric_discrimination_v1/gd1_3a/development/gd1_3a_query_relative_locality_features.csv
+  expected_development_sha256: 9e4778223dd3ae7498b44faf95cf9dc5e8b20decfb700c5957ea4569fcc7c840
+  expected_blind_sha256: 24bedf575a4d6624e01dbff2cdf8b6571e7ca273beb40070559fda63481810fb
+  expected_queries: 403
+  expected_rows: 8060
+
+gd1_1:
+  reference_labels_source: outputs/research_runs/top20_geometric_discrimination_v1/gd1_1/gd1_1_labeled_top20_geometric_evidence.csv
+  report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_1/gd1_1_discrimination_report.json
+
+labels:
+  - contains_query
+  - center_le40
+  - center_le80
+
+evaluation:
+  folds: 5
+  fold_scheme: contiguous_query_blocks
+  topk: [1, 3, 5, 10, 20]
+  logistic_l2: 1.0
+  logistic_max_iterations: 100
+  logistic_tolerance: 1.0e-7
+  balanced_class_weights: true
+  standardized_clip: 8.0
+  no_hyperparameter_tuning: true
+
+model_families:
+  - retrieval_rank_only
+  - inliers_only
+  - inliers_query_relative
+  - all_query_relative_geometry
+  - nearby_locality_only
+  - overlap_locality_only
+  - query_relative_plus_nearby
+  - query_relative_plus_overlap
+  - query_relative_plus_both_localities
+  - query_relative_plus_both_localities_plus_retrieval
+
+scientific_boundary:
+  development_only: true
+  blind_stress_loaded: false
+  blind_stress_reference_used: false
+  hyperparameter_tuning_enabled: false
+  frontend_changed: false
+  candidate_pool_changed: false
+  deployable_model_exported: false
+  bootstrap_enabled: false
+  state_enabled: false
