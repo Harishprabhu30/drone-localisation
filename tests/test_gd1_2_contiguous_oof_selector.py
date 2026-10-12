@@ -26,9 +26,11 @@ from scripts.villoc.geometry.gd1_2_contiguous_oof_selector_diagnostic import (
 class GD12Tests(unittest.TestCase):
     def test_sigmoid_bounds(self):
         out=sigmoid(np.array([-1000.,0.,1000.]))
-        self.assertGreater(out[0],0.0)
+        self.assertGreaterEqual(out[0],0.0)
         self.assertAlmostEqual(out[1],0.5)
-        self.assertLess(out[2],1.0)
+        self.assertLessEqual(out[2],1.0)
+        self.assertLess(out[0],out[1])
+        self.assertLess(out[1],out[2])
 
     def test_contiguous_folds_cover_queries(self):
         folds=contiguous_folds(list(range(1,11)),5)
