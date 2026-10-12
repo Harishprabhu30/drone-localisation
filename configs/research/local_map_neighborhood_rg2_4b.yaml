@@ -1,0 +1,62 @@
+stage: RG2.4-B
+name: postfreeze_locality_persistence_correctness_audit
+map_variant: 768_s256
+map_crs: EPSG:3346
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_4b
+
+rg2_4a:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_4a/rg2_4a_freeze_report.json
+  development:
+    transitions: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_4a/development/rg2_4a_locality_transitions.csv
+    runs: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_4a/development/rg2_4a_locality_runs.csv
+    expected_transitions_sha256: 4b77653ee6626789a5a1a4be81eff40e5820cbb8062aefcfa58bb3e88886e0ba
+    expected_runs_sha256: 75174aa46a60ac716283e2ef5d0a77911bfff43bb7d03417ef006ab12bec5601
+    expected_transition_rows: 8060
+    expected_run_rows: 4657
+  blind_stress:
+    expected_transitions_sha256: 3ec55cc852ef878a4dcac4efa312c344c2daa193535fd14d71f6101a5fced4d6
+    expected_runs_sha256: 6461e747925a8cdcf374b6fdf3a7de5382c94c3b989a8ce5313f8db5f38e59e2
+
+development:
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+  expected_queries: 403
+
+audit_contract:
+  run_length_thresholds:
+    - 2
+    - 3
+    - 5
+    - 10
+  correctness_thresholds_m:
+    - 40.0
+    - 80.0
+  persistent_wrong_definition:
+    minimum_run_queries: 3
+    median_error_gt_m: 80.0
+  analyze_run_features:
+    - query_count
+    - duration_s
+    - consensus_path_length_m
+    - consensus_max_pairwise_span_m
+    - start_end_displacement_m
+    - unique_anchor_tiles
+    - anchor_tile_changes
+    - distinct_supporting_tile_windows
+    - support_redundancy_ratio
+    - radial_median_median_m
+    - pairwise_p90_median_m
+    - bbox_diagonal_median_m
+  deployment_rule_selection_allowed: false
+  threshold_tuning_allowed: false
+
+scientific_boundary:
+  development_reference_allowed: true
+  reference_after_rg2_4a_freeze_only: true
+  blind_stress_loaded: false
+  blind_stress_reference_allowed: false
+  locality_ids_mutable: false
+  threshold_tuning_enabled: false
+  method_selection_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+  relative_frontend_fusion_enabled: false
