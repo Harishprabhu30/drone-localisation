@@ -1,0 +1,78 @@
+stage: RG2.4-A
+name: reference_free_locality_persistence_evidence_independence
+map_variant: 768_s256
+map_crs: EPSG:3346
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_4a
+
+rg2_3a:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3a/rg2_3a_freeze_report.json
+  development:
+    consensus: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3a/development/rg2_3a_consensus_coordinates.csv
+    expected_sha256: c4189a61d56dbedea90fa67a17184ecee05ce92ad222cfb6f83fd4edd3c1ec09
+    expected_queries: 403
+  blind_stress:
+    consensus: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3a/blind_stress/rg2_3a_consensus_coordinates.csv
+    expected_sha256: ba577e907b268ee5a323491763ab653e1d7079d0457b3e05b8e1c2868fff1e07
+    expected_queries: 123
+
+rg2_2:
+  development:
+    pair_evidence: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/development/rg2_2_multi_tile_projection_evidence.csv
+    expected_sha256: c75372f9db9670f7e339f886b8dadcb850512902559aa00f9b9b3c2dae3dc98e
+  blind_stress:
+    pair_evidence: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/blind_stress/rg2_2_multi_tile_projection_evidence.csv
+    expected_sha256: d053d48dbd94184326e4b6bc42a5889536a34b66620ce033bd359cfea17a7b37
+
+manifests:
+  development: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  blind_stress: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+
+locality_contract:
+  projection_view: all_finite
+  subsets:
+    - immediate
+    - full_overlap
+  methods:
+    - coordinate_median
+    - geometric_median
+    - medoid
+    - radius_cluster_medoid
+    - inlier_huber_centroid
+  link_thresholds_m:
+    quarter_stride: 12.8
+    half_stride: 25.6
+  threshold_provenance: R4.18 quarter/half of frozen 51.2m map stride
+  contiguous_gap_multiplier: 1.5
+  contiguous_gap_provenance: RG1.5
+  locality_rule: consecutive_consensus_points_link_if_contiguous_time_and_jump_within_threshold
+  method_selection_enabled: false
+
+run_metrics:
+  - query_count
+  - duration_s
+  - consensus_path_length_m
+  - consensus_max_pairwise_span_m
+  - start_end_displacement_m
+  - unique_anchor_tiles
+  - anchor_tile_changes
+  - distinct_supporting_tile_windows
+  - supporting_window_observations
+  - support_redundancy_ratio
+  - radial_median_median_m
+  - pairwise_p90_median_m
+  - bbox_diagonal_median_m
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  srt_gps_allowed: false
+  oracle_labels_allowed: false
+  rg2_3b_accuracy_inputs_allowed: false
+  method_selection_enabled: false
+  threshold_tuning_enabled: false
+  consensus_rerun_enabled: false
+  orb_rerun_enabled: false
+  projection_rerun_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+  relative_frontend_fusion_enabled: false
