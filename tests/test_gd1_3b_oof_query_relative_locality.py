@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from uavloc.evaluation.oof_ranking import (
 )
 from scripts.villoc.geometry.gd1_3b_oof_query_relative_locality_audit import (
     feature_families,
+    load_json_compat,
     verify_config,
 )
 
@@ -75,6 +77,19 @@ class GD13BTests(unittest.TestCase):
         self.assertIn("inliers__q_pct",fam["inliers_query_relative"])
         self.assertIn("nearby_component_size",fam["nearby_locality_only"])
         self.assertIn("overlaps_component_size",fam["overlap_locality_only"])
+
+    def test_load_json_compat_accepts_historical_literal_newline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/"report.json"
+            path.write_text('{"status":"ok"}\\n',encoding="utf-8")
+            self.assertEqual(load_json_compat(path),{"status":"ok"})
+
+    def test_load_json_compat_rejects_other_extra_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/"report.json"
+            path.write_text('{"status":"ok"} garbage',encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError,"Invalid JSON"):
+                load_json_compat(path)
 
     def test_config_boundary(self):
         cfg={

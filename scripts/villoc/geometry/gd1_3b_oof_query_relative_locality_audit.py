@@ -40,6 +40,24 @@ def sha256_file(path: Path)->str:
     return h.hexdigest()
 
 
+def load_json_compat(path: Path)->dict[str,Any]:
+    """Read JSON, tolerating only GD1.3-A's historical trailing literal \\n defect."""
+    raw=path.read_text(encoding="utf-8")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        stripped=raw.rstrip()
+        if stripped.endswith("\\n"):
+            candidate=stripped[:-2]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+        raise RuntimeError(
+            f"Invalid JSON in {path}; compatibility recovery did not apply"
+        ) from exc
+
+
 def deterministic_csv(frame: pd.DataFrame)->bytes:
     return frame.to_csv(index=False,lineterminator="\n",float_format="%.9f").encode("utf-8")
 
@@ -79,7 +97,7 @@ def load_and_verify(cfg: dict[str,Any])->pd.DataFrame:
     block=cfg["gd1_3a"]
     report_path=resolve(block["report"])
     features_path=resolve(block["development_features"])
-    report=json.loads(report_path.read_text(encoding="utf-8"))
+    report=load_json_compat(report_path)
     if report.get("status")!="PASS_GD1_3A_REFERENCE_FREE_QUERY_RELATIVE_LOCALITY_FREEZE":
         raise RuntimeError("GD1.3-A report not PASS")
     if report.get("scientific_boundary",{}).get("reference_loaded") is not False:
@@ -96,7 +114,7 @@ def load_and_verify(cfg: dict[str,Any])->pd.DataFrame:
         raise RuntimeError("GD1.3-A development count mismatch")
 
     gd11_report_path=resolve(cfg["gd1_1"]["report"])
-    gd11=json.loads(gd11_report_path.read_text(encoding="utf-8"))
+    gd11=load_json_compat(gd11_report_path)
     labels_path=resolve(cfg["gd1_1"]["reference_labels_source"])
     if gd11.get("status")!="PASS_GD1_1_POSTFREEZE_GEOMETRIC_DISCRIMINATION_AUDIT":
         raise RuntimeError("GD1.1 report not PASS")
