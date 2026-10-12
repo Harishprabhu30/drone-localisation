@@ -1,0 +1,271 @@
+schema_version: 1
+title: VILLOC Top20 Localization Method Benchmark
+output_root: outputs/research_runs/method_benchmark_ledger
+
+dataset:
+  id: villoc_traj01_90deg_stable120m
+  split: development
+  query_count: 403
+  candidate_pool: qv1_4_center_unique_allview_fill20
+  map_variant: 768_s256
+
+targets:
+  - contains_query
+  - center_le40
+  - center_le80
+
+sources:
+  gd1_2:
+    report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_2/gd1_2_oof_selector_report.json
+    expected_status: PASS_GD1_2_CONTIGUOUS_OOF_MULTIVARIATE_SELECTOR_DIAGNOSTIC
+    source_stage: GD1.2
+    required: true
+    expected_artifact:
+      json_path: outputs.oof_scores.sha256
+      sha256: f6bd590905242f017984202c2c3d850c44e3d11fe20256f6bf422b780531628c
+    method_metric_paths:
+      pair_auc_oof: results.{target}.{method}.pair_auc_oof
+      top1_hits: results.{target}.{method}.query_hits.top1
+      top3_hits: results.{target}.{method}.query_hits.top3
+      top5_hits: results.{target}.{method}.query_hits.top5
+      top10_hits: results.{target}.{method}.query_hits.top10
+      top20_hits: results.{target}.{method}.query_hits.top20
+      feature_count: results.{target}.{method}.feature_count
+
+  gd1_3b:
+    report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_3b/gd1_3b_report.json
+    expected_status: PASS_GD1_3B_OOF_QUERY_RELATIVE_LOCALITY_AUDIT
+    source_stage: GD1.3-B
+    required: true
+    expected_artifact:
+      json_path: outputs.oof_scores.sha256
+      sha256: 6948f6d463fb3116a4d176a721cad6a6b5375c60cd6bfa6898fae7c62f8951fa
+    method_metric_paths:
+      pair_auc_oof: results.{target}.{method}.pair_auc_oof
+      top1_hits: results.{target}.{method}.query_hits.top1
+      top3_hits: results.{target}.{method}.query_hits.top3
+      top5_hits: results.{target}.{method}.query_hits.top5
+      top10_hits: results.{target}.{method}.query_hits.top10
+      feature_count: results.{target}.{method}.feature_count
+
+  gd1_0:
+    report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/gd1_0_freeze_report.json
+    expected_status: PASS_GD1_0_REFERENCE_FREE_TOP20_GEOMETRIC_EVIDENCE_FREEZE
+    source_stage: GD1.0
+    required: true
+    pair_count: 8060
+    expected_artifact:
+      json_path: trajectories.development.output.sha256
+      sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+    global_metric_paths:
+      pairs: trajectories.development.candidate_pairs
+      unique_tiles: trajectories.development.unique_tiles
+      homography_ok: trajectories.development.homography_ok_pairs
+      finite_projection: trajectories.development.finite_projection_pairs
+      inside_projection: trajectories.development.inside_projection_pairs
+
+  lf1_1a:
+    report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf1_1a/lf1_1a_freeze_report.json
+    expected_status: PASS_LF1_1A_REFERENCE_FREE_XFEAT_TOP20_FREEZE
+    source_stage: LF1.1-A
+    required: true
+    pair_count: 8060
+    expected_artifact:
+      json_path: trajectories.development.output.sha256
+      sha256: 73ed73dade7820072fb16b3df029be69d280dea18489f63cd66595e600ddf3b1
+    global_metric_paths:
+      pairs: trajectories.development.pairs
+      unique_tiles: trajectories.development.unique_tiles
+      homography_ok: trajectories.development.homography_ok
+      finite_projection: trajectories.development.finite_projection
+      inside_projection: trajectories.development.inside_projection
+      queries_any_homography: trajectories.development.queries_any_homography
+      queries_all20_homographies: trajectories.development.queries_all20_homographies
+      queries_no_homography: trajectories.development.queries_no_homography
+      median_matches: trajectories.development.median_matches
+      median_inliers: trajectories.development.median_inliers
+
+methods:
+  - method_id: qv14_retrieval_rank
+    display_name: QV1.4 retrieval rank
+    family: retrieval
+    frontend: DINOv2 QV1.4
+    retrieval: center_unique_allview_fill20
+    selector: frozen pool rank
+    source: gd1_2
+    method_key: retrieval_rank_only
+    notes: Coarse retrieval baseline.
+
+  - method_id: orb_inliers
+    display_name: ORB inliers
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: inlier count
+    source: gd1_2
+    method_key: inliers_only
+    notes: Strongest simple ORB candidate-ranking baseline.
+
+  - method_id: orb_correspondence_strength
+    display_name: ORB correspondence strength
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF correspondence-strength model
+    source: gd1_2
+    method_key: correspondence_strength
+
+  - method_id: orb_spatial_support
+    display_name: ORB spatial support
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF spatial-support model
+    source: gd1_2
+    method_key: spatial_support
+
+  - method_id: orb_residual_geometry
+    display_name: ORB residual geometry
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF residual-geometry model
+    source: gd1_2
+    method_key: residual_geometry
+
+  - method_id: orb_local_feature_consistency
+    display_name: ORB local feature consistency
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF orientation/scale consistency model
+    source: gd1_2
+    method_key: local_feature_consistency
+
+  - method_id: orb_homography_shape
+    display_name: ORB homography shape
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF homography-shape model
+    source: gd1_2
+    method_key: homography_shape
+
+  - method_id: orb_projective_stability
+    display_name: ORB projective stability
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF projective-stability model
+    source: gd1_2
+    method_key: projective_stability
+
+  - method_id: orb_all_geometry
+    display_name: ORB all geometry
+    family: geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF all-geometry model
+    source: gd1_2
+    method_key: all_geometry
+
+  - method_id: orb_all_geometry_plus_retrieval
+    display_name: ORB geometry + retrieval rank
+    family: geometry_plus_retrieval
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF all geometry + frozen pool rank
+    source: gd1_2
+    method_key: all_geometry_plus_retrieval_rank
+
+  - method_id: orb_inliers_query_relative
+    display_name: ORB inliers + query-relative
+    family: query_relative_geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF inlier value/z/percentile
+    source: gd1_3b
+    method_key: inliers_query_relative
+
+  - method_id: orb_all_query_relative
+    display_name: ORB all query-relative geometry
+    family: query_relative_geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF query-relative geometry
+    source: gd1_3b
+    method_key: all_query_relative_geometry
+
+  - method_id: orb_nearby_locality
+    display_name: ORB nearby locality only
+    family: locality
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF nearby-component evidence
+    source: gd1_3b
+    method_key: nearby_locality_only
+
+  - method_id: orb_overlap_locality
+    display_name: ORB overlap locality only
+    family: locality
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF overlap-component evidence
+    source: gd1_3b
+    method_key: overlap_locality_only
+
+  - method_id: orb_query_relative_plus_nearby
+    display_name: ORB query-relative + nearby
+    family: locality_plus_geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF query-relative + nearby component
+    source: gd1_3b
+    method_key: query_relative_plus_nearby
+
+  - method_id: orb_query_relative_plus_overlap
+    display_name: ORB query-relative + overlap
+    family: locality_plus_geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF query-relative + overlap component
+    source: gd1_3b
+    method_key: query_relative_plus_overlap
+
+  - method_id: orb_query_relative_both_localities
+    display_name: ORB query-relative + both localities
+    family: locality_plus_geometry
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF query-relative + nearby + overlap
+    source: gd1_3b
+    method_key: query_relative_plus_both_localities
+
+  - method_id: orb_query_relative_both_plus_retrieval
+    display_name: ORB query-relative + localities + retrieval
+    family: locality_geometry_retrieval
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: OOF query-relative + both localities + pool rank
+    source: gd1_3b
+    method_key: query_relative_plus_both_localities_plus_retrieval
+
+  - method_id: orb_raw_frontend
+    display_name: ORB raw frontend
+    family: frontend_diagnostic
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: none
+    source: gd1_0
+    targets: []
+    notes: Reference-free frontend coverage only.
+
+  - method_id: xfeat_raw_frontend
+    display_name: XFeat raw frontend
+    family: frontend_diagnostic
+    frontend: XFeat sparse
+    retrieval: QV1.4 Top20
+    selector: none
+    source: lf1_1a
+    targets: []
+    notes: Reference-free frontend coverage only; accuracy comparison follows LF1.1-B.
