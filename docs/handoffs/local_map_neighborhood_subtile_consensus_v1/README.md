@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **RG2.0 + RG2.1-A + RG2.1-B + RG2.2 PASSED / RG2.3 NEXT**
+Status: **RG2.0 + RG2.1-A + RG2.1-B + RG2.2 PASSED / RG2.3-A CODE PREPARED, LOCAL FREEZE PENDING**
 
 Proposed branch:
 
@@ -581,3 +581,18 @@ Stop after the local freeze. RG2.3 must consume only frozen/hash-verified RG2.2 
 ### RG2.2 closeout headline
 
 Reference-free multi-tile projection freeze passed for 9315 development and 2955 blind-stress pairs. Every pair produced a homography and finite EPSG:3346 projection; inside-tile projection rates were 90.25% and 92.59%. The minimum H-validity rule is therefore non-discriminative here. RG2.3 should evaluate agreement/spread/robust consensus, not homography availability.
+
+
+---
+
+## 14. RG2.3-A implementation checkpoint
+
+RG2.3 is split internally to preserve the blind/reference boundary. RG2.3-A generates and freezes consensus coordinates without reference for both development and blind-stress. RG2.3-B will attach development reference only after A is frozen and inspected.
+
+Primary consensus input is all finite RG2.2 projections. Inside-tile-only is a predeclared diagnostic, not a post-hoc filter. Immediate and full-overlap subsets are both frozen from the same RG2.2 evidence.
+
+Methods are fixed before reference: coordinate median, geometric median, medoid, fixed-radius dominant-cluster medoid, and inlier-weighted Huber centroid. Cluster radius is 25.6 m, exactly half the frozen 51.2 m nominal map stride; it is not tuned on accuracy. Raw ORB inlier count is the blind weight for the Huber centroid; no inlier threshold is applied.
+
+Implementation: configs/research/local_map_neighborhood_rg2_3a.yaml; src/uavloc/geometry/projection_consensus.py; scripts/villoc/geometry/rg2_3a_freeze_projection_consensus.py; tests/test_rg2_3a_projection_consensus.py.
+
+Stop after the RG2.3-A local freeze. Do not run reference evaluation until its hashes and row counts are inspected.

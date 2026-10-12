@@ -1,0 +1,59 @@
+stage: RG2.3-A
+name: reference_free_projection_consensus_freeze
+map_variant: 768_s256
+map_crs: EPSG:3346
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3a
+
+rg2_2:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/rg2_2_freeze_report.json
+  development:
+    pair_evidence: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/development/rg2_2_multi_tile_projection_evidence.csv
+    query_summary: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/development/rg2_2_query_projection_summary.csv
+    expected_pair_sha256: c75372f9db9670f7e339f886b8dadcb850512902559aa00f9b9b3c2dae3dc98e
+    expected_summary_sha256: 9ffe8ba9a30e53cf6afaa56f419f8672280d8b305120da90d6fa1d1fd6eb4041
+    expected_queries: 403
+    expected_pairs: 9315
+  blind_stress:
+    pair_evidence: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/blind_stress/rg2_2_multi_tile_projection_evidence.csv
+    query_summary: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/blind_stress/rg2_2_query_projection_summary.csv
+    expected_pair_sha256: d053d48dbd94184326e4b6bc42a5889536a34b66620ce033bd359cfea17a7b37
+    expected_summary_sha256: 559f61716122f27c1ed7045647cc24e220709f5713765e31abe0640b2a6f440a
+    expected_queries: 123
+    expected_pairs: 2955
+
+consensus_contract:
+  subsets:
+    - immediate
+    - full_overlap
+  projection_views:
+    - all_finite
+    - inside_only
+  primary_projection_view: all_finite
+  inside_only_role: predeclared_diagnostic
+  methods:
+    - coordinate_median
+    - geometric_median
+    - medoid
+    - radius_cluster_medoid
+    - inlier_huber_centroid
+  cluster_radius_m: 25.6
+  cluster_radius_provenance: half_frozen_nominal_51p2m_map_stride
+  huber_k: 1.345
+  huber_weight: raw_orb_inlier_count
+  no_reference_tuning: true
+  anchor_projection_baseline: true
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  srt_gps_allowed: false
+  oracle_labels_allowed: false
+  candidate_regeneration_enabled: false
+  orb_rerun_enabled: false
+  projection_rerun_enabled: false
+  inlier_threshold_enabled: false
+  method_selection_enabled: false
+  consensus_accuracy_evaluation_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+  learned_model_enabled: false
