@@ -279,6 +279,41 @@ def collect_method_records(
                         )
                     )
 
+            optional_metric_paths = spec.get("optional_method_metric_paths", {})
+            for metric, template in optional_metric_paths.items():
+                json_path = render_path(
+                    str(template),
+                    method=method_key,
+                    target=target,
+                )
+                try:
+                    raw_value = resolve_json_path(report, json_path)
+                except KeyError:
+                    continue
+                value = to_float(raw_value)
+                for (
+                    normalized_metric,
+                    normalized_value,
+                    unit,
+                    numerator,
+                    denominator,
+                ) in normalize_hit_metric(metric, value, query_count):
+                    records.append(
+                        record(
+                            method=method,
+                            dataset=dataset,
+                            source_id=source_id,
+                            source=source,
+                            target=target,
+                            metric=normalized_metric,
+                            value=normalized_value,
+                            unit=unit,
+                            numerator=numerator,
+                            denominator=denominator,
+                            source_json_path=json_path,
+                        )
+                    )
+
         global_paths = spec.get("global_metric_paths", {})
         pair_count = (
             int(spec["pair_count"])
