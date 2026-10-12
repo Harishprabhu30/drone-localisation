@@ -1,0 +1,71 @@
+stage: RG2.3-B
+name: postfreeze_projection_consensus_accuracy_audit
+map_variant: 768_s256
+map_crs: EPSG:3346
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3b
+
+rg2_3a:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3a/rg2_3a_freeze_report.json
+  development_consensus: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_3a/development/rg2_3a_consensus_coordinates.csv
+  expected_development_consensus_sha256: c4189a61d56dbedea90fa67a17184ecee05ce92ad222cfb6f83fd4edd3c1ec09
+  expected_blind_stress_consensus_sha256: ba577e907b268ee5a323491763ab653e1d7079d0457b3e05b8e1c2868fff1e07
+  expected_development_rows: 8060
+  expected_development_queries: 403
+
+rg2_2:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/rg2_2_freeze_report.json
+  development_pair_evidence: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2/development/rg2_2_multi_tile_projection_evidence.csv
+  expected_development_pair_sha256: c75372f9db9670f7e339f886b8dadcb850512902559aa00f9b9b3c2dae3dc98e
+  expected_development_pairs: 9315
+
+rg2_0:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  tile_geometry: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_tile_geometry.csv
+
+development:
+  trajectory_spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+  expected_queries: 403
+
+audit_contract:
+  subsets:
+    - immediate
+    - full_overlap
+  projection_views:
+    - all_finite
+    - inside_only
+  primary_projection_view: all_finite
+  methods:
+    - coordinate_median
+    - geometric_median
+    - medoid
+    - radius_cluster_medoid
+    - inlier_huber_centroid
+  error_thresholds_m:
+    - 5.0
+    - 10.0
+    - 20.0
+    - 40.0
+    - 80.0
+  baselines:
+    - anchor_tile_center
+    - anchor_subtile_projection
+  oracle_diagnostics:
+    - best_immediate_frozen_projection
+    - best_full_overlap_frozen_projection
+  report_dispersion_error_association: true
+  deployment_method_selection_allowed: false
+  reference_tuning_allowed: false
+
+scientific_boundary:
+  development_reference_allowed: true
+  reference_after_consensus_freeze_only: true
+  blind_stress_loaded: false
+  blind_stress_reference_allowed: false
+  consensus_coordinates_mutable: false
+  orb_rerun_enabled: false
+  projection_rerun_enabled: false
+  consensus_rerun_enabled: false
+  method_tuning_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
