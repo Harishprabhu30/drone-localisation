@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import importlib.util
 import math
 import subprocess
 import sys
@@ -41,6 +42,40 @@ LIGHTGLUE_WIDTH_CONFIDENCE = 0.99
 
 SUPERPOINT_WEIGHT_FILE = "superpoint_v1.pth"
 LIGHTGLUE_WEIGHT_FILE = "superpoint_lightglue_v0-1_arxiv.pth"
+
+PINNED_CORE_BLOBS = {
+    "__init__.py": "b84d285cf2a29e3b17c8c2c052a45f856dcf89c0",
+    "superpoint.py": "d6d380eb5737b92ce417e3ed0e5db1ee9d4a1d04",
+    "lightglue.py": "485833515eb0a80866b3d078d3e43d39ddcd84ae",
+    "utils.py": "d1c1ab2e94716b1c54191a6ed5d01023036836c1",
+}
+
+
+def git_blob_sha1(path: Path) -> str:
+    data = path.read_bytes()
+    header = f"blob {len(data)}\0".encode("utf-8")
+    return hashlib.sha1(header + data).hexdigest()
+
+
+def verify_core_source(package_dir: Path) -> dict[str, str]:
+    observed: dict[str, str] = {}
+    mismatches: list[str] = []
+    for filename, expected in PINNED_CORE_BLOBS.items():
+        path = package_dir / filename
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        actual = git_blob_sha1(path)
+        observed[filename] = actual
+        if actual != expected:
+            mismatches.append(
+                f"{filename}: expected {expected}, observed {actual}"
+            )
+    if mismatches:
+        raise RuntimeError(
+            "Installed LightGlue core source does not match pinned commit "
+            f"{PINNED_COMMIT}: " + "; ".join(mismatches)
+        )
+    return observed
 
 
 def sha256_file(path: Path) -> str:
@@ -90,26 +125,51 @@ class SuperPointLightGlueAbsoluteFrontend:
     name = "superpoint_lightglue_absolute_v1"
 
     def __init__(self, lightglue_repo: Path, *, device_name: str = "cpu") -> None:
-        self.repo = Path(lightglue_repo).resolve()
-        if not (self.repo / "lightglue").is_dir():
-            raise FileNotFoundError(self.repo / "lightglue")
+        requested_repo = Path(lightglue_repo).expanduser()
+        self.repo: Path | None = None
+        self.source_mode: str
+        self.source_root: Path
+        self.resolved_git_commit: str | None = None
 
-        head = git_value(self.repo, "rev-parse", "HEAD")
-        if head != PINNED_COMMIT:
-            raise RuntimeError(
-                f"LightGlue checkout HEAD {head} != pinned {PINNED_COMMIT}"
+        if requested_repo.exists() and (requested_repo / "lightglue").is_dir():
+            self.repo = requested_repo.resolve()
+            head = git_value(self.repo, "rev-parse", "HEAD")
+            if head != PINNED_COMMIT:
+                raise RuntimeError(
+                    f"LightGlue checkout HEAD {head} != pinned {PINNED_COMMIT}"
+                )
+            dirty = git_value(
+                self.repo,
+                "status",
+                "--porcelain",
+                "--untracked-files=no",
             )
-        dirty = git_value(
-            self.repo,
-            "status",
-            "--porcelain",
-            "--untracked-files=no",
-        )
-        if dirty:
-            raise RuntimeError("Pinned LightGlue tracked files are modified")
+            if dirty:
+                raise RuntimeError("Pinned LightGlue tracked files are modified")
+            self.source_mode = "git_checkout"
+            self.source_root = self.repo / "lightglue"
+            self.resolved_git_commit = head
+            if str(self.repo) not in sys.path:
+                sys.path.insert(0, str(self.repo))
+        else:
+            spec = importlib.util.find_spec("lightglue")
+            locations = (
+                list(spec.submodule_search_locations or [])
+                if spec is not None
+                else []
+            )
+            if not locations:
+                raise RuntimeError(
+                    "LightGlue is neither vendored at "
+                    f"{requested_repo} nor importable as a Python package. "
+                    "Install the pinned official LightGlue package or provide "
+                    "third_party/LightGlue."
+                )
+            self.source_mode = "installed_package"
+            self.source_root = Path(locations[0]).resolve()
 
-        if str(self.repo) not in sys.path:
-            sys.path.insert(0, str(self.repo))
+        self.verified_core_blobs = verify_core_source(self.source_root)
+
         for module_name in list(sys.modules):
             if module_name == "lightglue" or module_name.startswith("lightglue."):
                 del sys.modules[module_name]
@@ -175,7 +235,10 @@ class SuperPointLightGlueAbsoluteFrontend:
             "name": self.name,
             "official_repository": OFFICIAL_REPOSITORY,
             "pinned_commit": PINNED_COMMIT,
-            "resolved_commit": git_value(self.repo, "rev-parse", "HEAD"),
+            "source_mode": self.source_mode,
+            "source_root": str(self.source_root),
+            "resolved_git_commit": self.resolved_git_commit,
+            "verified_core_blobs": dict(self.verified_core_blobs),
             "device": str(self.device),
             "feature_type": FEATURE_TYPE,
             "max_keypoints": MAX_KEYPOINTS,

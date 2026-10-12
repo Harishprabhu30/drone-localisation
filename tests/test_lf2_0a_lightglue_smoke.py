@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -14,6 +16,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from scripts.villoc.geometry.lf2_0a_lightglue_absolute_preflight_smoke import verify_config
 from uavloc.geometry.lightglue_absolute_frontend import (
+    git_blob_sha1,
     FEATURE_TYPE,
     LIGHTGLUE_DEPTH_CONFIDENCE,
     LIGHTGLUE_FILTER_THRESHOLD,
@@ -58,6 +61,16 @@ class LF20ATests(unittest.TestCase):
         cfg["scientific_boundary"]["reference_allowed"]=True
         with self.assertRaisesRegex(RuntimeError,"reference_allowed"):
             verify_config(cfg)
+
+    def test_git_blob_sha1(self):
+        payload = b"lightglue-source-check\n"
+        expected = hashlib.sha1(
+            f"blob {len(payload)}\0".encode("utf-8") + payload
+        ).hexdigest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source.py"
+            path.write_bytes(payload)
+            self.assertEqual(git_blob_sha1(path), expected)
 
     def test_script_help_direct_execution(self):
         script=REPO_ROOT/"scripts/villoc/geometry/lf2_0a_lightglue_absolute_preflight_smoke.py"

@@ -268,7 +268,11 @@ def main()->None:
             "script_sha256":sha256_file(Path(__file__).resolve()),
             "superpoint_weights_sha256":frontend_meta["superpoint_weights_sha256"],
             "lightglue_weights_sha256":frontend_meta["lightglue_weights_sha256"],
-            "lightglue_commit":frontend_meta["resolved_commit"],
+            "lightglue_pinned_commit":frontend_meta["pinned_commit"],
+            "lightglue_resolved_git_commit":frontend_meta["resolved_git_commit"],
+            "lightglue_source_mode":frontend_meta["source_mode"],
+            "lightglue_source_root":frontend_meta["source_root"],
+            "lightglue_verified_core_blobs":frontend_meta["verified_core_blobs"],
         },
         "outputs":{},
     }
@@ -286,7 +290,10 @@ def main()->None:
     freeze({evidence_path:evidence_bytes,report_path:report_bytes})
 
     print("Status:",report["status"])
-    print("LightGlue commit:",frontend_meta["resolved_commit"])
+    print("LightGlue pinned commit:",frontend_meta["pinned_commit"])
+    print("LightGlue source mode:",frontend_meta["source_mode"])
+    print("LightGlue source root:",frontend_meta["source_root"])
+    print("LightGlue resolved git commit:",frontend_meta["resolved_git_commit"])
     print("SuperPoint weights SHA256:",frontend_meta["superpoint_weights_sha256"])
     print("LightGlue weights SHA256:",frontend_meta["lightglue_weights_sha256"])
     print("Device:",frontend_meta["device"])
