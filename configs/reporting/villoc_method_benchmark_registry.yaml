@@ -82,6 +82,36 @@ sources:
       median_matches: trajectories.development.median_matches
       median_inliers: trajectories.development.median_inliers
 
+  lf1_1b_inliers:
+    report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf1_1b/lf1_1b_comparison_report.json
+    expected_status: PASS_LF1_1B_POSTFREEZE_ORB_XFEAT_COMPARISON
+    source_stage: LF1.1-B
+    required: true
+    expected_artifact:
+      json_path: outputs.common_feature_diagnostics.sha256
+      sha256: 3c0590625f7b772d69bbe92fb9a1ffddaf0414c25d76e1d9552c59cde6ca31aa
+    method_metric_paths:
+      top1_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top1
+      top3_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top3
+      top5_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top5
+      top10_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top10
+      top20_hits: frontends.{method}.labels.{target}.rankings.inliers.hits.top20
+
+  lf1_1b_valid_inliers:
+    report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf1_1b/lf1_1b_comparison_report.json
+    expected_status: PASS_LF1_1B_POSTFREEZE_ORB_XFEAT_COMPARISON
+    source_stage: LF1.1-B
+    required: true
+    expected_artifact:
+      json_path: outputs.common_feature_diagnostics.sha256
+      sha256: 3c0590625f7b772d69bbe92fb9a1ffddaf0414c25d76e1d9552c59cde6ca31aa
+    method_metric_paths:
+      top1_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top1
+      top3_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top3
+      top5_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top5
+      top10_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top10
+      top20_hits: frontends.{method}.labels.{target}.rankings.valid_then_inliers.hits.top20
+
 methods:
   - method_id: qv14_retrieval_rank
     display_name: QV1.4 retrieval rank
@@ -266,3 +296,42 @@ methods:
     source: lf1_1a
     targets: []
     notes: Reference-free frontend coverage only; accuracy comparison follows LF1.1-B.
+
+  - method_id: orb_raw_inliers_lf11b
+    display_name: ORB raw inlier ranking
+    family: frontend_comparison
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: raw inlier count
+    source: lf1_1b_inliers
+    method_key: orb
+    notes: Direct raw inlier ranking from LF1.1-B; no trained selector.
+
+  - method_id: xfeat_sparse_inliers
+    display_name: XFeat sparse raw inlier ranking
+    family: frontend_comparison
+    frontend: XFeat sparse
+    retrieval: QV1.4 Top20
+    selector: raw inlier count
+    source: lf1_1b_inliers
+    method_key: xfeat
+    notes: Pinned sparse XFeat direct inlier ranking from LF1.1-B.
+
+  - method_id: orb_valid_then_inliers_lf11b
+    display_name: ORB valid then inliers
+    family: frontend_comparison
+    frontend: ORB
+    retrieval: QV1.4 Top20
+    selector: homography-valid then inlier count
+    source: lf1_1b_valid_inliers
+    method_key: orb
+
+  - method_id: xfeat_sparse_valid_then_inliers
+    display_name: XFeat sparse valid then inliers
+    family: frontend_comparison
+    frontend: XFeat sparse
+    retrieval: QV1.4 Top20
+    selector: homography-valid then inlier count
+    source: lf1_1b_valid_inliers
+    method_key: xfeat
+    notes: Sparse XFeat homography validity rejected too few negative pairs to help ranking.
