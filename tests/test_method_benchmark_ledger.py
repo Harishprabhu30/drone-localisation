@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sys
+import yaml
 import tempfile
 import unittest
 from pathlib import Path
@@ -58,6 +59,17 @@ class MethodBenchmarkLedgerTests(unittest.TestCase):
             path.write_text('{"status":"PASS"} garbage', encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "Invalid JSON"):
                 load_json(path)
+
+    def test_registry_does_not_require_feature_count(self):
+        config_path = REPO_ROOT / "configs/reporting/villoc_method_benchmark_registry.yaml"
+        cfg = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        for source_id, source in cfg["sources"].items():
+            required = source.get("method_metric_paths", {})
+            self.assertNotIn(
+                "feature_count",
+                required,
+                msg=f"{source_id} must not require feature_count",
+            )
 
     def test_markdown_contains_report_table(self):
         record = MetricRecord(

@@ -30,9 +30,6 @@ sources:
       top5_hits: results.{target}.{method}.query_hits.top5
       top10_hits: results.{target}.{method}.query_hits.top10
       top20_hits: results.{target}.{method}.query_hits.top20
-    optional_method_metric_paths:
-      feature_count: results.{target}.{method}.feature_count
-
   gd1_3b:
     report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_3b/gd1_3b_report.json
     expected_status: PASS_GD1_3B_OOF_QUERY_RELATIVE_LOCALITY_AUDIT
@@ -47,7 +44,6 @@ sources:
       top3_hits: results.{target}.{method}.query_hits.top3
       top5_hits: results.{target}.{method}.query_hits.top5
       top10_hits: results.{target}.{method}.query_hits.top10
-      feature_count: results.{target}.{method}.feature_count
 
   gd1_0:
     report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/gd1_0_freeze_report.json
