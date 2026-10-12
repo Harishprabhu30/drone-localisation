@@ -1,6 +1,6 @@
 # Handoff — RG2 local map neighborhood / sub-tile consensus v1
 
-Status: **RG2.0 + RG2.1-A + RG2.1-B PASSED / RG2.2 NEXT**
+Status: **RG2.0 + RG2.1-A + RG2.1-B PASSED / RG2.2 CODE PREPARED, LOCAL FREEZE PENDING**
 
 Proposed branch:
 
@@ -550,3 +550,29 @@ tile-center proximity and containment are distinct labels.
 Decision: local neighborhoods are **not a substitute for global retrieval**.
 Proceed to RG2.2 for reference-free multi-tile sub-tile projection generation,
 where their role is tile-boundary invariance and continuous local refinement.
+
+
+---
+
+## 13. RG2.2 implementation checkpoint
+
+RG2.2 performs **reference-free multi-tile sub-tile projection generation** on the already frozen RG2.1-A full-overlap neighborhoods for both trajectories.
+
+Frozen pair counts entering geometry:
+
+    development   403 queries   9315 query/tile pairs
+    blind stress  123 queries   2955 query/tile pairs
+
+The geometry frontend is the historical R4.11 / RG1 ORB contract, moved without algorithm changes into src/uavloc/geometry/orb_subtile.py.
+
+Contract: CLAHE luma; downsize long side to 1024 only; ORB 1800; fastThreshold 7; edgeThreshold 15; patchSize 31; Hamming KNN; Lowe 0.80; RANSAC 5 px; minimum homography validity 4 inliers; H maps query pixel to satellite tile pixel; project processed-image center; raster outer-edge conversion uses the +0.5 pixel-center convention; CRS EPSG:3346.
+
+RG2.2 applies **no confidence threshold** such as the provisional RG1 inliers >= 6 gate. All frozen neighborhood pairs are tested and retained, including failed homographies. homography_ok therefore means only the historical minimum geometric validity required to form H; it is not a trusted localization decision.
+
+The output records finite_projection separately from homography_ok and projected_inside_tile so projective numerical failures cannot silently enter RG2.3.
+
+No reference, SRT/GPS, oracle labels, candidate reranking, consensus, bootstrap or temporal state are allowed. Development and blind-stress use the same reference-free generation path.
+
+Implementation files: configs/research/local_map_neighborhood_rg2_2.yaml; src/uavloc/geometry/orb_subtile.py; scripts/villoc/geometry/rg2_2_freeze_multi_tile_projections.py; tests/test_rg2_2_freeze_multi_tile_projections.py; RG2_2_REFERENCE_FREE_MULTI_TILE_PROJECTIONS.md.
+
+Stop after the local freeze. RG2.3 must consume only frozen/hash-verified RG2.2 development evidence when attaching reference; blind-stress evidence remains without accuracy labels.

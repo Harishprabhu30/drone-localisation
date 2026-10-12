@@ -1,0 +1,73 @@
+stage: RG2.2
+name: reference_free_multi_tile_subtile_projection_generation
+map_variant: 768_s256
+map_crs: EPSG:3346
+output_root: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_2
+
+rg2_0:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  expected_relationships_sha256: 1a9456cea5c951af30c63d5f1adaca3d82c3b8f1a275a841bf2d0a7d5fd71272
+
+rg2_1a:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/rg2_1a_freeze_report.json
+  development:
+    local_neighborhoods: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_local_neighborhoods.csv
+    expected_local_neighborhoods_sha256: ee708fc261b2833f663fb51a4fc0fd88c926a1a1234ae4d841a93269e8faa100
+    query_summaries: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_query_summaries.csv
+    expected_query_summaries_sha256: 15459ad6a5814a08264e15522627165975769d075a98ca5b731375d3c6436b6c
+  blind_stress:
+    local_neighborhoods: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/blind_stress/rg2_1a_local_neighborhoods.csv
+    expected_local_neighborhoods_sha256: 1d2fa9cabf7a69609bc94a32f8ff2c8c5282f76d47e0e231ccb8fc3d19ddd3b7
+    query_summaries: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/blind_stress/rg2_1a_query_summaries.csv
+    expected_query_summaries_sha256: ace22b4ddf67605d48137087ddfe4c7ce52dae27c0e641e3696d0f2bcbd285d3
+
+geometry_contract:
+  preprocess: clahe_luma
+  resize_long: 1024
+  orb_nfeatures: 1800
+  fast_threshold: 7
+  edge_threshold: 15
+  patch_size: 31
+  lowe_ratio: 0.80
+  ransac_threshold_px: 5.0
+  min_homography_inliers: 4
+  homography_direction: query_pixel_to_satellite_tile_pixel
+  query_point: processed_image_center
+  map_conversion: raster_outer_edge_pixel_center_offset_0p5
+
+generation:
+  candidate_set: full_overlap
+  preserve_immediate_membership: true
+  preserve_anchor_identity: true
+  freeze_failed_pairs: true
+  selection_threshold: none
+  consensus_enabled: false
+  pair_order: query_id_then_union_rank_then_tile_id
+  progress_every_pairs: 250
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  srt_gps_allowed: false
+  oracle_labels_allowed: false
+  retrieval_reranking_enabled: false
+  candidate_selection_enabled: false
+  inlier_gate_enabled: false
+  consensus_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+  learned_model_enabled: false
+
+trajectories:
+  development:
+    spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+    role: development
+    expected_queries: 403
+    expected_pair_rows: 9315
+  blind_stress:
+    spec: configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    role: blind_stress
+    expected_queries: 123
+    expected_pair_rows: 2955
