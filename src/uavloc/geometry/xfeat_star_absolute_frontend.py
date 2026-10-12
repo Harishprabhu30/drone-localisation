@@ -12,6 +12,15 @@ import cv2
 import numpy as np
 
 from uavloc.geometry.frontend_adapter import CandidateGeometryMeasurement, MatcherRuntime
+from uavloc.geometry.top20_geometric_evidence import (
+    _convex_hull_coverage,
+    _denominator_and_footprint,
+    _finite_summary,
+    _grid_support,
+    _jacobian_metrics,
+    _pca_minor_major_ratio,
+    _project_points,
+)
 from uavloc.geometry.xfeat_absolute_frontend import (
     MIN_HOMOGRAPHY_INLIERS,
     PINNED_COMMIT,
@@ -273,7 +282,101 @@ class XFeatStarAbsoluteFrontend:
             "inlier_ratio": float(inliers / max(1, len(qpts))),
             "projected_tile_u_px": float(u),
             "projected_tile_v_px": float(v),
+            "query_hull_coverage": 0.0,
+            "tile_hull_coverage": 0.0,
+            "query_grid_occupancy": 0.0,
+            "tile_grid_occupancy": 0.0,
+            "query_grid_entropy": 0.0,
+            "tile_grid_entropy": 0.0,
+            "query_pca_minor_major_ratio": 0.0,
+            "tile_pca_minor_major_ratio": 0.0,
+            "forward_error_median_px": math.nan,
+            "forward_error_p90_px": math.nan,
+            "forward_error_rmse_px": math.nan,
+            "backward_error_median_px": math.nan,
+            "backward_error_p90_px": math.nan,
+            "backward_error_rmse_px": math.nan,
+            "symmetric_error_median_px": math.nan,
+            "symmetric_error_p90_px": math.nan,
+            "symmetric_error_rmse_px": math.nan,
+            "homography_condition_number": math.nan,
+            "jacobian_det": math.nan,
+            "jacobian_s1": math.nan,
+            "jacobian_s2": math.nan,
+            "jacobian_anisotropy": math.nan,
+            "jacobian_rotation_deg": math.nan,
+            "jacobian_reflection": False,
+            "denominator_min_abs": math.nan,
+            "denominator_max_abs": math.nan,
+            "denominator_abs_ratio": math.nan,
+            "denominator_sign_consistent": False,
+            "footprint_finite": False,
+            "footprint_convex": False,
+            "footprint_area_fraction_tile": math.nan,
+            "footprint_inside_corner_fraction": 0.0,
+            "footprint_edge_ratio": math.nan,
         }
+
+        if inliers:
+            qi = qpts[inlier_mask].astype(float)
+            ti = tpts[inlier_mask].astype(float)
+            evidence["query_hull_coverage"] = _convex_hull_coverage(
+                qi, (int(q["height"]), int(q["width"]))
+            )
+            evidence["tile_hull_coverage"] = _convex_hull_coverage(
+                ti, (int(t["height"]), int(t["width"]))
+            )
+            _, qocc, qent = _grid_support(
+                qi, (int(q["height"]), int(q["width"]))
+            )
+            _, tocc, tent = _grid_support(
+                ti, (int(t["height"]), int(t["width"]))
+            )
+            evidence["query_grid_occupancy"] = float(qocc)
+            evidence["tile_grid_occupancy"] = float(tocc)
+            evidence["query_grid_entropy"] = float(qent)
+            evidence["tile_grid_entropy"] = float(tent)
+            evidence["query_pca_minor_major_ratio"] = _pca_minor_major_ratio(qi)
+            evidence["tile_pca_minor_major_ratio"] = _pca_minor_major_ratio(ti)
+
+        if homography_ok:
+            Hn = np.asarray(H, dtype=float)
+            qi = qpts[inlier_mask].astype(float)
+            ti = tpts[inlier_mask].astype(float)
+            forward = _project_points(Hn, qi)
+            ferr = np.linalg.norm(forward - ti, axis=1)
+            fstats = _finite_summary(ferr)
+            evidence["forward_error_median_px"] = fstats["median"]
+            evidence["forward_error_p90_px"] = fstats["p90"]
+            evidence["forward_error_rmse_px"] = fstats["rmse"]
+            try:
+                Hinv = np.linalg.inv(Hn)
+                backward = _project_points(Hinv, ti)
+                berr = np.linalg.norm(backward - qi, axis=1)
+            except (np.linalg.LinAlgError, cv2.error):
+                berr = np.full(len(qi), np.nan)
+            bstats = _finite_summary(berr)
+            evidence["backward_error_median_px"] = bstats["median"]
+            evidence["backward_error_p90_px"] = bstats["p90"]
+            evidence["backward_error_rmse_px"] = bstats["rmse"]
+            sym = np.sqrt(ferr * ferr + berr * berr)
+            sstats = _finite_summary(sym)
+            evidence["symmetric_error_median_px"] = sstats["median"]
+            evidence["symmetric_error_p90_px"] = sstats["p90"]
+            evidence["symmetric_error_rmse_px"] = sstats["rmse"]
+            try:
+                evidence["homography_condition_number"] = float(np.linalg.cond(Hn))
+            except np.linalg.LinAlgError:
+                evidence["homography_condition_number"] = math.inf
+            center_xy = (float(q["width"]) / 2.0, float(q["height"]) / 2.0)
+            evidence.update(_jacobian_metrics(Hn, center_xy))
+            evidence.update(
+                _denominator_and_footprint(
+                    Hn,
+                    (int(q["height"]), int(q["width"])),
+                    (int(t["height"]), int(t["width"])),
+                )
+            )
 
         return CandidateGeometryMeasurement(
             frontend_name=self.name,
