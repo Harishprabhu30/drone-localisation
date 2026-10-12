@@ -1,0 +1,58 @@
+stage: GD1.3-A
+name: reference_free_query_relative_locality_features
+output_root: outputs/research_runs/top20_geometric_discrimination_v1/gd1_3a
+
+gd1_0:
+  report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/gd1_0_freeze_report.json
+  development:
+    evidence: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/development/gd1_0_top20_geometric_evidence.csv
+    expected_sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+    expected_queries: 403
+    expected_pairs: 8060
+  blind_stress:
+    evidence: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/blind_stress/gd1_0_top20_geometric_evidence.csv
+    expected_sha256: 302bd878381f5befb26652a207f459e809f303b28f424c4fc0f784c75450cf74
+    expected_queries: 123
+    expected_pairs: 2460
+
+rg2_0:
+  report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  relationships: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_tile_relationships.csv
+  expected_relationships_sha256: 1a9456cea5c951af30c63d5f1adaca3d82c3b8f1a275a841bf2d0a7d5fd71272
+
+query_relative:
+  transforms:
+    - robust_z
+    - percentile
+    - missing
+  robust_scale: iqr_then_std_fallback
+  percentile_definition: average_rank_ascending_divide_n_minus_1
+
+locality:
+  graphs:
+    - nearby
+    - overlaps
+  component_features:
+    - component_size
+    - component_min_pool_rank
+    - component_mean_pool_rank
+    - component_reciprocal_rank_sum
+    - component_unique_source_views
+    - component_inliers_max
+    - component_inliers_median
+    - component_good_matches_max
+    - component_orientation_resultant_median
+    - component_jacobian_anisotropy_median
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  oracle_labels_allowed: false
+  reranking_enabled: false
+  selector_enabled: false
+  threshold_tuning_enabled: false
+  orb_rerun_enabled: false
+  learned_frontend_enabled: false
+  temporal_fusion_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
