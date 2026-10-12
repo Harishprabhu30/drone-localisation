@@ -1,6 +1,8 @@
 """LF1.2-C three-frontend comparison tests."""
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -16,6 +18,24 @@ from scripts.villoc.geometry.lf1_2c_postfreeze_three_frontend_comparison import 
 
 
 class LF12CTests(unittest.TestCase):
+    def test_script_help_direct_execution(self):
+        script = (
+            REPO_ROOT
+            / "scripts/villoc/geometry/lf1_2c_postfreeze_three_frontend_comparison.py"
+        )
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        process = subprocess.run(
+            [sys.executable, str(script), "--help"],
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertEqual(process.returncode, 0, msg=process.stderr)
+        self.assertIn("ORB vs sparse XFeat vs XFeat*", process.stdout)
+
     def test_config_boundary(self):
         cfg={
             "stage":"LF1.2-C",
