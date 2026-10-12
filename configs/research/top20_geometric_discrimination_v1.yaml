@@ -1,0 +1,119 @@
+stage: GD1.0
+name: reference_free_top20_geometric_evidence_freeze
+output_root: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0
+map_variant: 768_s256
+map_crs: EPSG:3346
+
+lineage:
+  rg2_4_closeout_commit: 1d7c4a801d6e735645244997e02e594c8b84bb3a
+  frozen_retrieval: qv1_4_center_unique_allview_fill20
+  final_budget: 20
+  rg2_0_report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  expected_rg2_0_relationships_sha256: 1a9456cea5c951af30c63d5f1adaca3d82c3b8f1a275a841bf2d0a7d5fd71272
+
+geometry_contract:
+  baseline_module: uavloc.geometry.orb_subtile
+  evidence_module: uavloc.geometry.top20_geometric_evidence
+  preprocess: clahe_luma
+  resize_long: 1024
+  orb_nfeatures: 1800
+  fast_threshold: 7
+  edge_threshold: 15
+  patch_size: 31
+  lowe_ratio: 0.80
+  ransac_threshold_px: 5.0
+  min_homography_inliers: 4
+  grid_size: 4
+
+evidence_groups:
+  correspondence_strength:
+    - good_matches
+    - inliers
+    - inlier_ratio
+    - good_match_distance_median
+    - inlier_match_distance_median
+    - lowe_ratio_actual_median
+    - lowe_ratio_actual_p90
+  spatial_support:
+    - query_bbox_coverage
+    - tile_bbox_coverage
+    - query_hull_coverage
+    - tile_hull_coverage
+    - query_grid_occupancy
+    - tile_grid_occupancy
+    - query_grid_entropy
+    - tile_grid_entropy
+    - query_pca_minor_major_ratio
+    - tile_pca_minor_major_ratio
+  residual_geometry:
+    - forward_error_median_px
+    - forward_error_p90_px
+    - forward_error_rmse_px
+    - backward_error_median_px
+    - backward_error_p90_px
+    - backward_error_rmse_px
+    - symmetric_error_median_px
+    - symmetric_error_p90_px
+    - symmetric_error_rmse_px
+  local_feature_consistency:
+    - orientation_resultant
+    - orientation_mad_deg
+    - log_scale_ratio_median
+    - log_scale_ratio_mad
+  homography_shape:
+    - homography_condition_number
+    - jacobian_det
+    - jacobian_s1
+    - jacobian_s2
+    - jacobian_anisotropy
+    - jacobian_rotation_deg
+    - jacobian_reflection
+  projective_stability:
+    - denominator_min_abs
+    - denominator_max_abs
+    - denominator_abs_ratio
+    - denominator_sign_consistent
+    - footprint_finite
+    - footprint_convex
+    - footprint_area_fraction_tile
+    - footprint_inside_corner_fraction
+    - footprint_edge_ratio
+
+scientific_boundary:
+  reference_allowed: false
+  reference_attachment_enabled: false
+  srt_gps_allowed: false
+  oracle_labels_allowed: false
+  reranking_enabled: false
+  candidate_selection_enabled: false
+  score_fusion_enabled: false
+  threshold_tuning_enabled: false
+  learned_frontend_enabled: false
+  temporal_fusion_enabled: false
+  bootstrap_enabled: false
+  state_enabled: false
+
+trajectories:
+  development:
+    spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+    frozen_top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+    expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+    expected_queries: 403
+    expected_pairs: 8060
+    role: development
+  blind_stress:
+    spec: configs/trajectories/villoc_blind_recorded_flight_final_001_v1.yaml
+    manifest: outputs/research_runs/trajectory_adapter_v1/ta3_blind_demo/blind_package/canonical_blind_manifest.csv
+    frozen_top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/blind_stress/rg2_1a_frozen_qv_top20.csv
+    expected_top20_sha256: 68bbf59d3b839cfd90aef50dfca30316cf02296218dd33db236450bbe8b62bd8
+    expected_queries: 123
+    expected_pairs: 2460
+    role: blind_stress
+
+generation:
+  process_all_top20_candidates: true
+  freeze_failed_pairs: true
+  pair_order: query_id_then_pool_rank
+  progress_every_pairs: 250
+  output_runtime_in_report: false
