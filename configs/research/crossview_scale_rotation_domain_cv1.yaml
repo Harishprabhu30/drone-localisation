@@ -1,0 +1,163 @@
+stage: CV1.0
+name: crossview_scale_rotation_domain_protocol_v1
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1
+
+lineage:
+  branch: research/crossview-scale-rotation-domain-v1
+  protocol_parent_commit: bd576840f5fb9ddfae6f9c7d63351708b87ccae0
+  frozen_retrieval: qv1_4_center_unique_allview_fill20
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  expected_gd1_0_development_sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+
+trajectory:
+  spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  frozen_top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+  gd1_0_evidence: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/development/gd1_0_top20_geometric_evidence.csv
+  expected_queries: 403
+  expected_pairs: 8060
+
+map:
+  variant: 768_s256
+  crs: EPSG:3346
+  source_gsd_m_per_px: 0.20
+  tile_size_px: 768
+  footprint_m: 153.6
+  stride_m: 51.2
+
+geometry_contract:
+  baseline_module: uavloc.geometry.orb_subtile
+  evidence_module: uavloc.geometry.top20_geometric_evidence
+  selector: raw_inliers
+  selector_tiebreak:
+    - pool_rank_asc
+    - tile_id_asc
+
+screen:
+  query_ids:
+    - 1
+    - 11
+    - 22
+    - 32
+    - 42
+    - 53
+    - 63
+    - 73
+    - 83
+    - 94
+    - 104
+    - 114
+    - 125
+    - 135
+    - 145
+    - 156
+    - 166
+    - 176
+    - 187
+    - 197
+    - 207
+    - 217
+    - 228
+    - 238
+    - 248
+    - 259
+    - 269
+    - 279
+    - 290
+    - 300
+    - 310
+    - 321
+    - 331
+    - 341
+    - 351
+    - 362
+    - 372
+    - 382
+    - 393
+    - 403
+  expected_queries: 40
+  expected_pairs_per_condition: 800
+
+transforms:
+  scale:
+    apply_after_frozen_query_preprocess: true
+    preserve_full_fov: true
+    conditions:
+      - id: scale_m2
+        factor: 0.6944444444444444
+      - id: scale_m1
+        factor: 0.8333333333333334
+      - id: baseline
+        factor: 1.0
+      - id: scale_p1
+        factor: 1.2
+      - id: scale_p2
+        factor: 1.44
+  rotation:
+    exact_quarter_turns: true
+    conditions:
+      - id: baseline
+        degrees: 0
+      - id: rot_90
+        degrees: 90
+      - id: rot_180
+        degrees: 180
+      - id: rot_270
+        degrees: 270
+
+cv1_1:
+  unique_conditions:
+    - baseline
+    - scale_m2
+    - scale_m1
+    - scale_p1
+    - scale_p2
+    - rot_90
+    - rot_180
+    - rot_270
+  expected_total_pairs: 6400
+  require_gd1_baseline_parity: true
+  progress_every_pairs: 200
+
+physical_gsd:
+  status: conditional_preflight_required
+  blind_altitude_m: 120.0
+  blind_pitch_deg: -90.0
+  map_gsd_m_per_px: 0.20
+  candidate_metadata:
+    geometry:
+      - rel_alt_m
+      - focal_len_mm
+      - dzoom_ratio
+      - gb_pitch_deg
+      - gb_roll_deg
+    appearance_only:
+      - fnum
+      - iso
+      - shutter
+      - ev
+    not_height_agl:
+      - abs_alt_m
+  required_before_activation:
+    - verify_focal_length_semantics
+    - verify_intrinsics_or_sensor_geometry
+    - verify_digital_zoom_semantics_or_constancy
+    - represent_camera_model_as_static_or_online_usable_input
+  srt_camera_metadata_allowed_for_transform_selection_before_freeze: false
+
+scientific_boundary:
+  reference_allowed: false
+  srt_allowed_for_cv1_1_transform_selection: false
+  oracle_labels_allowed: false
+  best_transform_per_query_allowed: false
+  best_transform_per_candidate_allowed: false
+  retrieval_changes_allowed: false
+  selector_formula_changes_allowed: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
+
+continuation_gate_uniform40:
+  containment_gain_min: 4
+  le80_gain_min: 4
+  catastrophic_gt200_reduction_min: 3
+  max_le40_projection_loss_if_using_catastrophic_gate: 2

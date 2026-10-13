@@ -4,7 +4,7 @@ Use this file as the navigation map for a new session.
 
 ## Start here
 1. `README.md` in this directory — canonical current state.
-2. `NEW_CHAT_BOOTSTRAP.md` — copy/paste prompt for a new chat.
+2. `NEW_CHAT_BOOTSTRAP.md` — copy/paste prompt for a new chat.\n3. `CV1_0_PROTOCOL.md` — frozen scale/rotation diagnostic protocol; read before CV1 implementation.
 
 ## Previous closeouts
 - `../../closeouts/learned_geometric_frontend_ablation_v1/README.md`
