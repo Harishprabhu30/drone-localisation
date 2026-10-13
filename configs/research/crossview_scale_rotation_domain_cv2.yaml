@@ -1,0 +1,111 @@
+stage: CV2.0
+name: sift_lightglue_crossview_diagnostic
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2
+
+lineage:
+  frozen_retrieval: qv1_4_center_unique_allview_fill20
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  cv1_uniform40_evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv1_1/cv1_1_uniform40_reference_free_evidence.csv
+  expected_cv1_uniform40_sha256: 4abfacb77cf9d1d4b09ea917e048b0f2191659907dc4391f7d8fc3aadf020666
+
+lightglue:
+  repo: third_party/LightGlue
+  pinned_commit: eb42fee2d71449efb0aa5c10549752b5d75384d8
+  device: cpu
+  feature_type: sift
+  sift:
+    backend: opencv
+    rootsift: true
+    max_keypoints: 4096
+    resize_long: 1024
+    nms_radius: 0
+    detection_threshold: 0.0066667
+    edge_threshold: 10
+    num_octaves: 4
+  matcher:
+    filter_threshold: 0.1
+    depth_confidence: 0.95
+    width_confidence: 0.99
+  geometry:
+    ransac_threshold_px: 5.0
+    min_homography_inliers: 4
+
+development:
+  spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+  expected_queries: 403
+  expected_pairs: 8060
+
+uniform40:
+  query_ids:
+    - 1
+    - 11
+    - 22
+    - 32
+    - 42
+    - 53
+    - 63
+    - 73
+    - 83
+    - 94
+    - 104
+    - 114
+    - 125
+    - 135
+    - 145
+    - 156
+    - 166
+    - 176
+    - 187
+    - 197
+    - 207
+    - 217
+    - 228
+    - 238
+    - 248
+    - 259
+    - 269
+    - 279
+    - 290
+    - 300
+    - 310
+    - 321
+    - 331
+    - 341
+    - 351
+    - 362
+    - 372
+    - 382
+    - 393
+    - 403
+  expected_queries: 40
+  expected_pairs: 800
+
+cv2_1_smoke:
+  query_ids:
+    - 1
+    - 207
+    - 403
+  pool_ranks:
+    - 1
+    - 10
+    - 20
+  expected_pairs: 9
+
+continuation_gate_uniform40:
+  max_top1_regression_queries_each_target: 2
+  min_top1_improvement_queries_any_target: 2
+  max_selected_projection_le40_regression_queries: 2
+  max_selected_projection_gt200_increase_queries: 2
+
+scientific_boundary:
+  reference_allowed: false
+  oracle_labels_allowed: false
+  scale_m2_applied_to_sift: false
+  threshold_tuning_allowed: false
+  matcher_profile_sweep_allowed: false
+  full403_allowed: false
+  candidate_reranking_allowed: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
