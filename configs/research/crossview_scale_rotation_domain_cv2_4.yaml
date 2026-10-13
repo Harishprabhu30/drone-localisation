@@ -1,0 +1,51 @@
+stage: CV2.4
+name: sift_lightglue_full403_reference_free_freeze
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_4
+
+protocol:
+  config: configs/research/crossview_scale_rotation_domain_cv2.yaml
+
+promotion:
+  source_stage: CV2.3
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_3/cv2_3_report.json
+  expected_status: PASS_CV2_3_POSTFREEZE_SIFT_LIGHTGLUE_COMPARISON
+  expected_decision: PROCEED_SIFT_LIGHTGLUE_FULL403
+  source_uniform40_evidence_sha256: c2d8f510db9a0fcc3740b06a898861371cea16da492d194326ab7a37a7494d36
+  no_retuning_after_uniform40: true
+
+cv2_2:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_2/cv2_2_freeze_report.json
+  evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_2/cv2_2_sift_lightglue_uniform40_reference_free_evidence.csv
+  expected_status: PASS_CV2_2_REFERENCE_FREE_SIFT_LIGHTGLUE_UNIFORM40_FREEZE
+  expected_evidence_sha256: c2d8f510db9a0fcc3740b06a898861371cea16da492d194326ab7a37a7494d36
+  expected_weights_sha256: 5b52b8d9982d43532dc042606b346bb9594c9f5a4bd6f64362c63866287b4ac0
+
+lineage:
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  expected_cv1_full403_scale_m2_sha256: 94353f763725f44f278192bcedcfd139ab136ecebf4f1dcc6e07487380964810
+  expected_gd1_0_full403_sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+
+development:
+  spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+  expected_queries: 403
+  expected_pairs: 8060
+
+generation:
+  pair_order: query_id_then_pool_rank
+  progress_every_pairs: 100
+  retain_failed_pairs: true
+  runtime_fields_frozen: false
+
+scientific_boundary:
+  reference_allowed: false
+  oracle_labels_allowed: false
+  scale_m2_applied_to_sift: false
+  frontend_parameters_mutable: false
+  threshold_tuning_allowed: false
+  matcher_profile_sweep_allowed: false
+  candidate_selection_allowed: false
+  reranking_allowed: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
