@@ -1,0 +1,48 @@
+stage: CV1.3
+name: full403_reference_free_scale_m2_freeze
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv1_3
+
+promotion:
+  source_stage: CV1.2
+  source_status: PASS_CV1_2_POSTFREEZE_UNIFORM40_EVALUATION
+  source_cv1_1_evidence_sha256: 4abfacb77cf9d1d4b09ea917e048b0f2191659907dc4391f7d8fc3aadf020666
+  promoted_condition: scale_m2
+  transform_family: scale
+  scale_factor: 0.6944444444444444
+  rotation_deg: 0
+  no_retuning_after_uniform40: true
+
+lineage:
+  protocol_config: configs/research/crossview_scale_rotation_domain_cv1.yaml
+  frozen_retrieval: qv1_4_center_unique_allview_fill20
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  baseline_gd1_0_evidence: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/development/gd1_0_top20_geometric_evidence.csv
+  expected_baseline_gd1_0_sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+
+trajectory:
+  spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  frozen_top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+  expected_queries: 403
+  expected_pairs: 8060
+
+map:
+  variant: 768_s256
+  crs: EPSG:3346
+
+generation:
+  process_all_top20_candidates: true
+  freeze_failed_pairs: true
+  progress_every_pairs: 200
+
+scientific_boundary:
+  reference_allowed: false
+  srt_allowed: false
+  oracle_labels_allowed: false
+  candidate_selection_allowed: false
+  reranking_allowed: false
+  threshold_tuning_allowed: false
+  transform_retuning_allowed: false
+  baseline_regeneration_allowed: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
