@@ -7,6 +7,8 @@ import sys
 import unittest
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT=Path(__file__).resolve().parents[1]
 SRC_ROOT=REPO_ROOT/"src"
 if str(REPO_ROOT) not in sys.path:
@@ -94,6 +96,18 @@ class LF21BTests(unittest.TestCase):
         cfg["aliked_lightglue"]["max_keypoints"]=1024
         with self.assertRaisesRegex(RuntimeError,"max_keypoints"):
             verify_config(cfg)
+
+    def test_real_yaml_config_matches_script_contract(self):
+        config_path=(
+            REPO_ROOT
+            / "configs/research/learned_geometric_frontend_lf2_1b.yaml"
+        )
+        cfg=yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        verify_config(cfg)
+        self.assertEqual(
+            cfg["lf2_0b_subset"]["expected_query_ids"],
+            EXPECTED_QUERY_IDS,
+        )
 
     def test_script_help_direct_execution(self):
         script=REPO_ROOT/"scripts/villoc/geometry/lf2_1b_freeze_aliked_lightglue_uniform40.py"

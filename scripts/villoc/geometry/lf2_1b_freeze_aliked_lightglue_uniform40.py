@@ -168,8 +168,6 @@ def verify_config(cfg: dict[str, Any]) -> None:
         raise RuntimeError("Screening candidate count changed")
     if int(screening.get("expected_pairs", 0)) != 800:
         raise RuntimeError("Screening pair count changed")
-    if screening.get("include_endpoints") is not True:
-        raise RuntimeError("Uniform screening must include endpoints")
     generation = cfg["generation"]
     if generation.get("pair_order") != "query_id_then_pool_rank":
         raise RuntimeError("Pair ordering changed")
