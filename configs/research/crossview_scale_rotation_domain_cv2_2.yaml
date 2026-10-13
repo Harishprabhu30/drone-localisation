@@ -1,0 +1,37 @@
+stage: CV2.2
+name: sift_lightglue_uniform40_reference_free_freeze
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_2
+
+protocol:
+  config: configs/research/crossview_scale_rotation_domain_cv2.yaml
+
+cv2_1:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_1/cv2_1_report.json
+  expected_status: PASS_CV2_1_REFERENCE_FREE_SIFT_LIGHTGLUE_SMOKE
+  expected_evidence_sha256: 1eedef502722230ea85012625d5323792d41d651a8a4c1e65043b4661f1c50d1
+  expected_weights_sha256: 5b52b8d9982d43532dc042606b346bb9594c9f5a4bd6f64362c63866287b4ac0
+
+lineage:
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  expected_cv1_uniform40_sha256: 4abfacb77cf9d1d4b09ea917e048b0f2191659907dc4391f7d8fc3aadf020666
+
+generation:
+  expected_queries: 40
+  candidates_per_query: 20
+  expected_pairs: 800
+  pair_order: query_id_then_pool_rank
+  progress_every_pairs: 25
+  retain_failed_pairs: true
+  runtime_fields_frozen: false
+
+scientific_boundary:
+  reference_allowed: false
+  oracle_labels_allowed: false
+  scale_m2_applied_to_sift: false
+  candidate_selection_allowed: false
+  reranking_allowed: false
+  threshold_tuning_allowed: false
+  matcher_profile_sweep_allowed: false
+  full403_allowed: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
