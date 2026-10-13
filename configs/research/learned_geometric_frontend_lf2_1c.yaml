@@ -1,0 +1,116 @@
+stage: LF2.1-C
+name: postfreeze_aliked_lightglue_uniform40_vs_superpoint_and_orb
+output_root: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_1c
+
+aliked_lightglue:
+  report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_1b/lf2_1b_freeze_report.json
+  evidence: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_1b/development/lf2_1b_aliked_lightglue_uniform40_top20_evidence.csv
+  expected_evidence_sha256: d87cab4cf37b3f4f51aa96846e0aef7a475077f0ec80f62c4d1dcabd470cec7d
+  expected_queries: 40
+  expected_pairs: 800
+
+superpoint_lightglue:
+  report: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_0b/lf2_0b_freeze_report.json
+  evidence: outputs/research_runs/learned_geometric_frontend_ablation_v1/lf2_0b/development/lf2_0b_lightglue_uniform40_top20_evidence.csv
+  expected_evidence_sha256: 6896dc66c725f2505a7319a2f5f0b08f9e63f5e5e5eff539fc58aac5d51ada3b
+  expected_queries: 40
+  expected_pairs: 800
+
+orb:
+  report: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/gd1_0_freeze_report.json
+  evidence: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/development/gd1_0_top20_geometric_evidence.csv
+  expected_evidence_sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+
+map:
+  rg2_0_report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  tile_geometry: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_tile_geometry.csv
+
+development:
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+
+labels:
+  - contains_query
+  - center_le40
+  - center_le80
+
+ranking:
+  topk: [1, 3, 5, 10, 20]
+  primary_selector: inliers
+  aliked_secondary_scores:
+    - evidence_match_score_sum
+    - evidence_match_score_mean
+    - evidence_match_score_median
+    - evidence_inlier_ratio
+  tie_break: pool_rank_then_tile_id
+
+primary_full_run_gate:
+  max_top1_regression_queries_each_target: 2
+  min_top1_improvement_queries_any_target: 2
+  max_selected_projection_le40_regression_queries: 2
+  max_selected_projection_gt200_increase_queries: 2
+
+secondary_formulation_gate:
+  min_top1_gain_over_aliked_inliers_on_two_targets: 4
+  max_top1_gap_to_orb_each_target: 2
+
+common_features:
+  - name: inliers
+    orb: inliers
+    superpoint_lightglue: inliers
+    aliked_lightglue: inliers
+  - name: inlier_ratio
+    orb: inlier_ratio
+    superpoint_lightglue: evidence_inlier_ratio
+    aliked_lightglue: evidence_inlier_ratio
+  - name: good_matches
+    orb: good_matches
+    superpoint_lightglue: good_matches
+    aliked_lightglue: good_matches
+  - name: query_hull_coverage
+    orb: query_hull_coverage
+    superpoint_lightglue: evidence_query_hull_coverage
+    aliked_lightglue: evidence_query_hull_coverage
+  - name: tile_hull_coverage
+    orb: tile_hull_coverage
+    superpoint_lightglue: evidence_tile_hull_coverage
+    aliked_lightglue: evidence_tile_hull_coverage
+  - name: query_grid_occupancy
+    orb: query_grid_occupancy
+    superpoint_lightglue: evidence_query_grid_occupancy
+    aliked_lightglue: evidence_query_grid_occupancy
+  - name: tile_grid_occupancy
+    orb: tile_grid_occupancy
+    superpoint_lightglue: evidence_tile_grid_occupancy
+    aliked_lightglue: evidence_tile_grid_occupancy
+  - name: symmetric_error_median_px
+    orb: symmetric_error_median_px
+    superpoint_lightglue: evidence_symmetric_error_median_px
+    aliked_lightglue: evidence_symmetric_error_median_px
+  - name: homography_condition_number
+    orb: homography_condition_number
+    superpoint_lightglue: evidence_homography_condition_number
+    aliked_lightglue: evidence_homography_condition_number
+  - name: jacobian_anisotropy
+    orb: jacobian_anisotropy
+    superpoint_lightglue: evidence_jacobian_anisotropy
+    aliked_lightglue: evidence_jacobian_anisotropy
+  - name: denominator_abs_ratio
+    orb: denominator_abs_ratio
+    superpoint_lightglue: evidence_denominator_abs_ratio
+    aliked_lightglue: evidence_denominator_abs_ratio
+  - name: footprint_area_fraction_tile
+    orb: footprint_area_fraction_tile
+    superpoint_lightglue: evidence_footprint_area_fraction_tile
+    aliked_lightglue: evidence_footprint_area_fraction_tile
+
+scientific_boundary:
+  development_reference_allowed: true
+  reference_after_all_screening_freezes_only: true
+  blind_stress_loaded: false
+  blind_stress_reference_allowed: false
+  full_403_aliked_lightglue_loaded: false
+  threshold_tuning_enabled: false
+  selector_training_enabled: false
+  frontend_parameters_mutable: false
+  bootstrap_enabled: false
+  state_enabled: false
