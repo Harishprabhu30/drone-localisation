@@ -17,6 +17,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0,str(SRC_ROOT))
 
 from scripts.villoc.geometry.lf2_1b_freeze_aliked_lightglue_uniform40 import (
+    frontend_kwargs_from_config,
     uniform_query_selection,
     verify_config,
 )
@@ -108,6 +109,28 @@ class LF21BTests(unittest.TestCase):
             cfg["lf2_0b_subset"]["expected_query_ids"],
             EXPECTED_QUERY_IDS,
         )
+
+    def test_real_yaml_frontend_kwargs(self):
+        import yaml
+
+        config_path=(
+            REPO_ROOT
+            / "configs/research/learned_geometric_frontend_lf2_1b.yaml"
+        )
+        cfg=yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        verify_config(cfg)
+        kwargs=frontend_kwargs_from_config(cfg)
+        self.assertTrue(
+            str(kwargs["lightglue_repo"]).endswith("third_party/LightGlue")
+        )
+        self.assertEqual(kwargs["device_name"], "cpu")
+        self.assertEqual(kwargs["max_keypoints"], 780)
+        self.assertEqual(kwargs["resize_long"], 1024)
+        self.assertAlmostEqual(kwargs["detection_threshold"], 0.2)
+        self.assertEqual(kwargs["nms_radius"], 2)
+        self.assertAlmostEqual(kwargs["filter_threshold"], 0.1)
+        self.assertAlmostEqual(kwargs["depth_confidence"], 0.95)
+        self.assertAlmostEqual(kwargs["width_confidence"], 0.99)
 
     def test_script_help_direct_execution(self):
         script=REPO_ROOT/"scripts/villoc/geometry/lf2_1b_freeze_aliked_lightglue_uniform40.py"

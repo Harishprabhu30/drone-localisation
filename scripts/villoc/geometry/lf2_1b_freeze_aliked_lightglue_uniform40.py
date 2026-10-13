@@ -180,6 +180,21 @@ def verify_config(cfg: dict[str, Any]) -> None:
             raise RuntimeError(f"{key} must be false")
 
 
+def frontend_kwargs_from_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    x = cfg["aliked_lightglue"]
+    return {
+        "lightglue_repo": resolve(x["repo"]),
+        "device_name": str(x["device"]),
+        "max_keypoints": int(x["max_keypoints"]),
+        "resize_long": int(x["resize_long"]),
+        "detection_threshold": float(x["detection_threshold"]),
+        "nms_radius": int(x["nms_radius"]),
+        "filter_threshold": float(x["filter_threshold"]),
+        "depth_confidence": float(x["depth_confidence"]),
+        "width_confidence": float(x["width_confidence"]),
+    }
+
+
 def verify_prior_inputs(cfg: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     smoke_block = cfg["lf2_1a"]
     smoke_path = resolve(smoke_block["report"])
@@ -427,14 +442,10 @@ def main() -> None:
     )
     print("selected query IDs:", ",".join(map(str, inputs["selected_query_ids"])))
 
+    frontend_kwargs = frontend_kwargs_from_config(cfg)
     frontend = ALIKEDLightGlueAbsoluteFrontend(
-        resolve(cfg["lightglue"]["repo"]),
-        device_name=str(cfg["lightglue"]["device"]),
-        max_keypoints=int(cfg["lightglue"]["max_keypoints"]),
-        resize_long=int(cfg["lightglue"]["resize_long"]),
-        filter_threshold=float(cfg["lightglue"]["filter_threshold"]),
-        depth_confidence=float(cfg["lightglue"]["depth_confidence"]),
-        width_confidence=float(cfg["lightglue"]["width_confidence"]),
+        frontend_kwargs.pop("lightglue_repo"),
+        **frontend_kwargs,
     )
     meta = frontend.describe()
     if meta["pinned_commit"] != PINNED_COMMIT:
