@@ -1,0 +1,90 @@
+stage: CV1.5
+name: scale_mechanism_and_camera_gsd_audit
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv1_5
+
+baseline:
+  evidence: outputs/research_runs/top20_geometric_discrimination_v1/gd1_0/development/gd1_0_top20_geometric_evidence.csv
+  expected_sha256: 91ba3381e463bd083f9355b517dbb93953e4423a4b366638c1a97419ea0aea3f
+
+scale_m2:
+  evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv1_3/cv1_3_full403_scale_m2_reference_free_evidence.csv
+  expected_sha256: 94353f763725f44f278192bcedcfd139ab136ecebf4f1dcc6e07487380964810
+  scale_factor: 0.6944444444444444
+
+trajectory:
+  spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  expected_queries: 403
+  expected_pairs: 8060
+  srt_alignment_max_error_ms: 50.0
+
+map:
+  source_gsd_m_per_px: 0.20
+  tile_geometry: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_tile_geometry.csv
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+
+camera_audit:
+  nominal_blind_altitude_m: 120.0
+  nominal_blind_pitch_deg: -90.0
+  original_resolution_px:
+    width: 3840
+    height: 2160
+  baseline_processed_long_edge_px: 1024
+  focal_length_semantics_verified: false
+  calibrated_intrinsics_available: false
+  camera_model_identified_in_repo: false
+  metadata_geometry_fields:
+    - focal_len_mm
+    - dzoom_ratio
+    - rel_alt_m
+    - gb_pitch_deg
+    - gb_roll_deg
+  metadata_explanatory_only:
+    - gb_yaw_deg
+    - abs_alt_m
+    - fnum
+    - iso
+    - shutter
+    - ev
+  forbidden_camera_output_fields:
+    - lat
+    - lon
+    - latitude
+    - longitude
+
+mechanism:
+  paired_metrics:
+    - good_matches
+    - inliers
+    - inlier_ratio
+    - query_bbox_coverage
+    - tile_bbox_coverage
+    - query_hull_coverage
+    - tile_hull_coverage
+    - orientation_resultant
+    - orientation_mad_deg
+    - log_scale_ratio_median
+    - log_scale_ratio_mad
+    - symmetric_error_median_px
+    - jacobian_anisotropy
+  keypoint_octaves:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+
+scientific_boundary:
+  development_reference_allowed_for_explanation: true
+  srt_camera_metadata_allowed_postfreeze: true
+  srt_gps_allowed_for_analysis: false
+  new_transform_conditions_allowed: false
+  transform_retuning_allowed: false
+  selector_changes_allowed: false
+  threshold_tuning_allowed: false
+  deployment_promotion_allowed: false
+  physical_gsd_claim_allowed: false
+  state_changes_allowed: false
