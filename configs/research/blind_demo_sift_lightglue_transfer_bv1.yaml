@@ -1,0 +1,59 @@
+stage: BV1.0
+name: blind_recorded_demo_768_s256_sift_lightglue_transfer_freeze
+output_root: outputs/research_runs/blind_demo_sift_lightglue_transfer_v1/bv1_0
+
+source_demo:
+  config: configs/demo_villoc_blind_recorded.yaml
+  run_root: outputs/demo_runs/blind_recorded_flight_final_001
+  blind_manifest: metadata/blind_query_manifest.csv
+  query_cache: descriptors/s8_11c_dinov2_queries_v_1fps_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  blind_freeze: evaluation/blind_submission_freeze.json
+  expected_submission_sha256: 734780591aa6438329f8992b362605f478b38c71d80ab800318afe95b46420a5
+  expected_queries: 123
+  expected_localization_state: PROVISIONAL_ABSOLUTE_LOCK
+
+map:
+  variant: 768_s256
+  tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+  descriptor_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  crs: EPSG:3346
+
+retrieval:
+  method: dinov2
+  descriptor_tag: dinov2_vits14_img518_center_square_avgpatch_cpu
+  top_k: 20
+  expected_pairs: 2460
+  reuse_query_cache: true
+  rerun_against_768_map_cache: true
+
+sift_lightglue:
+  repo: third_party/LightGlue
+  expected_commit: eb42fee2d71449efb0aa5c10549752b5d75384d8
+  expected_sift_blob: 802fc1c2eb9ee852691e0e4dd67455f822f8405f
+  expected_lightglue_blob: 485833515eb0a80866b3d078d3e43d39ddcd84ae
+  expected_weights_sha256: 5b52b8d9982d43532dc042606b346bb9594c9f5a4bd6f64362c63866287b4ac0
+  device: cpu
+  selector:
+    primary: inliers_desc
+    tiebreak: [dino_rank_asc, tile_id_asc]
+
+outputs:
+  candidate_pool: bv1_0_blind_dino_top20_768_s256.csv
+  pair_evidence: bv1_0_sift_lightglue_pair_reference_free_evidence.csv
+  selection_evidence: bv1_0_sift_lightglue_selection_reference_free_evidence.csv
+  report: bv1_0_report.json
+
+scientific_boundary:
+  source_blind_run_immutable: true
+  reference_allowed: false
+  srt_allowed: false
+  gps_allowed: false
+  oracle_allowed: false
+  evaluation_metrics_allowed: false
+  map_variant_change_from_demo_declared: true
+  candidate_pool_change_from_demo_declared: true
+  sift_parameter_tuning_allowed: false
+  bootstrap_executed: false
+  fusion_executed: false
+  postfreeze_truth_attachment_allowed_in_stage: false
+  oblique_experiment_allowed_in_stage: false
