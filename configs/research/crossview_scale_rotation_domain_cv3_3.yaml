@@ -1,0 +1,70 @@
+stage: CV3.3
+name: aerial_mast3r_compact_postfreeze_truth_evaluation
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_3
+
+cv3_2:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_2/cv3_2_freeze_report.json
+  pair_evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_2/cv3_2_pair_reference_free_evidence.csv
+  selection_evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_2/cv3_2_selection_reference_free_evidence.csv
+  expected_status: PASS_CV3_2_REFERENCE_FREE_COMPACT_FREEZE
+  expected_pair_sha256: a9c9f8e422f297d77d1c00c8416d74f6b54f9f47691597db5763c9634aaa3dd4
+  expected_selection_sha256: e5b7d036acb4d0d11daaff708886cd18fe85b51d4c6dea9921c8ee1dc5d6357f
+  expected_queries: 40
+  expected_pairs: 240
+
+sift_lightglue:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_2/cv2_2_freeze_report.json
+  evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_2/cv2_2_sift_lightglue_uniform40_reference_free_evidence.csv
+  expected_status: PASS_CV2_2_REFERENCE_FREE_SIFT_LIGHTGLUE_UNIFORM40_FREEZE
+  expected_sha256: c2d8f510db9a0fcc3740b06a898861371cea16da492d194326ab7a37a7494d36
+  expected_queries: 40
+  expected_pairs_full_top20: 800
+
+candidate_slice:
+  pool_ranks:
+    - 1
+    - 2
+    - 3
+    - 5
+    - 10
+    - 20
+  expected_pairs: 240
+
+map:
+  rg2_0_report: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_topology_preflight_report.json
+  tile_geometry: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_0/rg2_0_tile_geometry.csv
+
+development:
+  reference_attachment: outputs/research_runs/retrieval_candidate_pool_v2/r1_4_downstream_replay/runs/768_s256/evaluation/reference_attachment.csv
+
+ranking:
+  selector: inliers
+  tie_break:
+    - pool_rank_asc
+    - tile_id_asc
+  topk:
+    - 1
+    - 3
+    - 6
+
+continuation_gate_vs_sift_six_candidate:
+  min_top1_containment_gain: 3
+  min_top1_center_le80_gain: 3
+  min_unsafe_tail_reduction: 3
+  max_selected_projection_le40_loss_for_unsafe_gate: 2
+
+scientific_boundary:
+  both_reference_free_freezes_verified_before_truth: true
+  frozen_mast3r_selection_verified_before_truth: true
+  same_candidate_identities_required: true
+  development_reference_allowed: true
+  mast3r_mutable: false
+  sift_lightglue_mutable: false
+  threshold_tuning_allowed: false
+  selector_formula_mutable: false
+  learned_score_fusion_allowed: false
+  full_top20_allowed: false
+  full403_allowed: false
+  blind_stress_loaded: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
