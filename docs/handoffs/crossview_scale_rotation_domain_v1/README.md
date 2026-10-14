@@ -205,6 +205,15 @@ SIFT+LightGlue is now the strongest development frontend.
 Next predeclared family:
 CV3 aerial-domain model upper bound.
 
+
+Read the frozen SIFT+LightGlue deep-dive before reopening confidence, Top3
+selection, or backend migration:
+\`CV2_SIFT_LIGHTGLUE_DEEP_DIVE.md\`
+
+Sections 5 onward preserve original branch hypotheses/planning history. CV1 and
+CV2 are complete; do not restart them. The authoritative next-stage contract is
+\`CV3_0_PROTOCOL.md\`.
+
 ---
 
 ## 5. Current causal hypotheses

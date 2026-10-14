@@ -73,3 +73,13 @@ The goal is not to replace QV1.4 retrieval. It is to ask whether aerial-domain
 training further reduces wrong-locality selection inside the same frozen Top20.
 
 Do not download the full AerialMegaDepth training dataset for CV3.
+
+
+## Deep-dive record
+
+For Top-k behavior, oracle ceiling, selected-error bins, residual selector gap,
+runtime implications and future confidence/abstention clues, read:
+
+\`docs/handoffs/crossview_scale_rotation_domain_v1/CV2_SIFT_LIGHTGLUE_DEEP_DIVE.md\`
+
+This note is derived from the frozen CV2.5 report and does not reopen tuning.

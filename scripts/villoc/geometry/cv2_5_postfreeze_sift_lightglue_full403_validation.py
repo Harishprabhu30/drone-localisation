@@ -203,6 +203,165 @@ def summarize(frame: pd.DataFrame, topks: list[int]) -> tuple[dict[str,Any],pd.D
     }, sel
 
 
+def projection_bins(values: pd.Series, total: int) -> dict[str, int]:
+    """Bucket selected/oracle projection errors without hiding non-finite cases."""
+    a = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    finite = a[np.isfinite(a)]
+    nonfinite = int(total - len(finite))
+    return {
+        "le40": int((finite <= 40.0).sum()),
+        "gt40_le80": int(((finite > 40.0) & (finite <= 80.0)).sum()),
+        "gt80_le200": int(((finite > 80.0) & (finite <= 200.0)).sum()),
+        "gt200": int((finite > 200.0).sum()),
+        "nonfinite": nonfinite,
+        "unsafe_tail": int(nonfinite + (finite > 200.0).sum()),
+    }
+
+
+def topk_capture_of_available(summary: dict[str, Any]) -> dict[str, Any]:
+    """Describe how strongly ranking concentrates candidates already available in Top20."""
+    out: dict[str, Any] = {}
+    for label, ranks in summary["ranking"].items():
+        available = int(ranks["top20"])
+        block: dict[str, Any] = {"available_top20": available}
+        for k in (1, 3, 5, 10, 20):
+            count = int(ranks[f"top{k}"])
+            block[f"top{k}"] = count
+            block[f"top{k}_capture_fraction_of_top20"] = (
+                float(count / available) if available else None
+            )
+        out[label] = block
+    return out
+
+
+def build_deep_dive(
+    summaries: dict[str, Any],
+    selected: dict[str, pd.DataFrame],
+    comparison: dict[str, Any],
+    sift_raw: pd.DataFrame,
+    *,
+    decision: str,
+    source_report_sha256: str,
+) -> dict[str, Any]:
+    """Create a derived interpretation sidecar without changing the frozen CV2.5 report."""
+    selected_bins = {
+        name: projection_bins(frame["projection_error_m"], len(frame))
+        for name, frame in selected.items()
+    }
+
+    selection_vs_oracle_gap: dict[str, Any] = {}
+    for name, summary in summaries.items():
+        selected_proj = summary["selected_projection"]
+        oracle_proj = summary["oracle_best_finite_projection"]
+        selection_vs_oracle_gap[name] = {
+            "unsafe_tail_gap_selected_minus_oracle": int(
+                selected_proj["unsafe_tail"] - oracle_proj["unsafe_tail"]
+            ),
+            "le40_gap_oracle_minus_selected": int(
+                oracle_proj["le40"] - selected_proj["le40"]
+            ),
+            "le80_gap_oracle_minus_selected": int(
+                oracle_proj["le80"] - selected_proj["le80"]
+            ),
+        }
+
+    sift_h = bool_series(sift_raw["homography_ok"])
+    sift_finite = bool_series(sift_raw["finite_projection"])
+    qids = pd.to_numeric(sift_raw["query_id"], errors="raise").astype(int)
+    per_query_h = sift_h.groupby(qids).sum()
+
+    sift = summaries["sift_lightglue"]
+    scale = summaries["orb_scale_m2"]
+    top20_center40 = int(sift["ranking"]["center_le40"]["top20"])
+    top3_center40 = int(sift["ranking"]["center_le40"]["top3"])
+
+    return {
+        "stage": "CV2.5_DEEP_DIVE",
+        "status": "FROZEN_DERIVED_INTERPRETATION",
+        "source_stage": "CV2.5",
+        "source_validation_report_sha256": source_report_sha256,
+        "decision": decision,
+        "topk_rankings": {
+            name: summary["ranking"] for name, summary in summaries.items()
+        },
+        "topk_capture_of_available_top20": {
+            name: topk_capture_of_available(summary)
+            for name, summary in summaries.items()
+        },
+        "oracle_geometric_ceiling": {
+            name: summary["oracle_best_finite_projection"]
+            for name, summary in summaries.items()
+        },
+        "selected_projection_bins": selected_bins,
+        "selection_vs_oracle_gap": selection_vs_oracle_gap,
+        "sift_lightglue_reference_free_pair_geometry": {
+            "pairs": int(len(sift_raw)),
+            "homography_ok_pairs": int(sift_h.sum()),
+            "finite_projection_pairs": int(sift_finite.sum()),
+            "queries_all20_homographies": int((per_query_h == 20).sum()),
+            "queries_no_homography": int((per_query_h == 0).sum()),
+        },
+        "sift_lightglue_specific": {
+            "median_top1_top2_inlier_margin": float(
+                sift["median_top1_top2_inlier_margin"]
+            ),
+            "selected_unsafe_tail": int(sift["selected_projection"]["unsafe_tail"]),
+            "oracle_unsafe_tail": int(
+                sift["oracle_best_finite_projection"]["unsafe_tail"]
+            ),
+            "selected_minus_oracle_unsafe_gap": int(
+                sift["selected_projection"]["unsafe_tail"]
+                - sift["oracle_best_finite_projection"]["unsafe_tail"]
+            ),
+            "oracle_le40": int(sift["oracle_best_finite_projection"]["le40"]),
+            "oracle_le80": int(sift["oracle_best_finite_projection"]["le80"]),
+            "center_le40_top3": top3_center40,
+            "center_le40_top20_available": top20_center40,
+            "center_le40_top3_capture_fraction_of_top20": (
+                float(top3_center40 / top20_center40)
+                if top20_center40 else None
+            ),
+        },
+        "sift_vs_scale_m2": {
+            "selected_comparison": comparison,
+            "top1_contains_delta": int(
+                sift["selected_top1"]["contains_query"]
+                - scale["selected_top1"]["contains_query"]
+            ),
+            "top1_center_le40_delta": int(
+                sift["selected_top1"]["center_le40"]
+                - scale["selected_top1"]["center_le40"]
+            ),
+            "top1_center_le80_delta": int(
+                sift["selected_top1"]["center_le80"]
+                - scale["selected_top1"]["center_le80"]
+            ),
+            "selected_le40_delta": int(
+                sift["selected_projection"]["le40"]
+                - scale["selected_projection"]["le40"]
+            ),
+            "unsafe_tail_reduction": int(
+                scale["selected_projection"]["unsafe_tail"]
+                - sift["selected_projection"]["unsafe_tail"]
+            ),
+            "oracle_le40_delta": int(
+                sift["oracle_best_finite_projection"]["le40"]
+                - scale["oracle_best_finite_projection"]["le40"]
+            ),
+            "oracle_le80_delta": int(
+                sift["oracle_best_finite_projection"]["le80"]
+                - scale["oracle_best_finite_projection"]["le80"]
+            ),
+        },
+        "future_research_clues_not_authorized_actions": [
+            "The selected-vs-oracle unsafe gap indicates unused geometric evidence, but does not define a deployable selector.",
+            "The strong center<=40 Top3 capture suggests possible secondary selection headroom; any such selector must be frozen and evaluated OOF/blind-safe.",
+            "The large SIFT Top1-Top2 inlier margin is frontend-specific and must not be thresholded on development truth without separate calibration.",
+            "CPU/CUDA migration requires backend-parity evidence before CUDA results are mixed with the frozen CPU accuracy claim.",
+        ],
+    }
+
+
 def compare(scale: pd.DataFrame, sift: pd.DataFrame) -> tuple[dict[str,Any],pd.DataFrame]:
     a=scale.add_prefix("scale_").rename(columns={"scale_query_id":"query_id"})
     b=sift.add_prefix("sift_").rename(columns={"sift_query_id":"query_id"})
@@ -332,10 +491,24 @@ def main() -> None:
     summary_path=outroot/"cv2_5_full403_frontend_summary.csv"
     audit_path=outroot/"cv2_5_sift_vs_scale_selected_audit.csv"
     report_path=outroot/"cv2_5_validation_report.json"
+    deep_dive_path=outroot/"cv2_5_deep_dive.json"
+
+    # Keep the original CV2.5 report bytes unchanged. The deep-dive is a
+    # separate derived sidecar so existing frozen outputs remain valid.
+    report_bytes=deterministic_json(report)
+    deep_dive=build_deep_dive(
+        summaries,
+        selected,
+        comparison,
+        sift_raw,
+        decision=decision,
+        source_report_sha256=hashlib.sha256(report_bytes).hexdigest(),
+    )
     write_immutable({
         summary_path:deterministic_csv(summary),
         audit_path:deterministic_csv(audit),
-        report_path:deterministic_json(report),
+        report_path:report_bytes,
+        deep_dive_path:deterministic_json(deep_dive),
     })
 
     print("Status:",report["status"])
@@ -352,6 +525,7 @@ def main() -> None:
     print("Jetson CUDA evidence used: False")
     print("Threshold tuned: False")
     print("Report:",report_path)
+    print("Deep-dive report:",deep_dive_path)
 
 
 if __name__=="__main__":

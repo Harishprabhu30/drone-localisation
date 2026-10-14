@@ -8,7 +8,7 @@ ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0,str(ROOT))
 
-from scripts.villoc.geometry.cv2_5_postfreeze_sift_lightglue_full403_validation import evaluate_gate, verify_config
+from scripts.villoc.geometry.cv2_5_postfreeze_sift_lightglue_full403_validation import evaluate_gate, projection_bins, verify_config
 
 class CV25Tests(unittest.TestCase):
     def setUp(self):
@@ -17,6 +17,19 @@ class CV25Tests(unittest.TestCase):
     def test_contract(self):
         verify_config(self.cfg)
         self.assertFalse(self.cfg["scientific_boundary"]["jetson_cuda_evidence_used"])
+
+
+    def test_projection_bins_preserve_catastrophic_and_nonfinite_cases(self):
+        import numpy as np
+        import pandas as pd
+        values=pd.Series([5.0,40.0,41.0,80.0,81.0,200.0,201.0,np.nan])
+        b=projection_bins(values,8)
+        self.assertEqual(b["le40"],2)
+        self.assertEqual(b["gt40_le80"],2)
+        self.assertEqual(b["gt80_le200"],2)
+        self.assertEqual(b["gt200"],1)
+        self.assertEqual(b["nonfinite"],1)
+        self.assertEqual(b["unsafe_tail"],2)
 
     def test_gate_promotes_meaningful_tail_gain(self):
         scale={"selected_top1":{"contains_query":305,"center_le40":163,"center_le80":293},"selected_projection":{"le40":319,"unsafe_tail":63}}
