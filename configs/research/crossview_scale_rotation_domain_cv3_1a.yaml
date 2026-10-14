@@ -1,0 +1,53 @@
+stage: CV3.1A
+name: aerial_mast3r_environment_source_preflight
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_1a
+
+upstream:
+  repository: https://github.com/kvuong2711/aerial-megadepth.git
+  local_repo: third_party/aerial-megadepth
+  pinned_commit: cdf478ff4fdaf888fb91c940bc48d55095e2cdbd
+  mast3r_root: third_party/aerial-megadepth/mast3r
+  checkpoint_id: kvuong2711/checkpoint-aerial-mast3r
+  checkpoint_base_model: naver/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric
+
+protocol:
+  source: docs/handoffs/crossview_scale_rotation_domain_v1/CV3_0_PROTOCOL.md
+  image_load_size: 512
+  dtype: float32
+  require_cuda: true
+  allow_autocast: false
+  allow_fp16: false
+  allow_dataset_download: false
+  allow_model_download: false
+
+frozen_lineage:
+  qv1_4_top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  sift_lightglue_full403: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_4/cv2_4_sift_lightglue_full403_reference_free_evidence.csv
+  expected_sift_lightglue_sha256: c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0
+
+required_source_files:
+  - mast3r/mast3r/model.py
+  - mast3r/mast3r/fast_nn.py
+  - mast3r/dust3r/dust3r/inference.py
+  - mast3r/dust3r/dust3r/utils/image.py
+
+required_python_imports:
+  - torch
+  - torchvision
+  - numpy
+  - scipy
+  - cv2
+  - einops
+  - huggingface_hub
+
+scientific_boundary:
+  reference_allowed: false
+  oracle_labels_allowed: false
+  checkpoint_download_allowed: false
+  model_inference_allowed: false
+  aerialmegadepth_dataset_allowed: false
+  threshold_tuning_allowed: false
+  uniform40_allowed: false
+  full403_allowed: false
+  state_changes_allowed: false
