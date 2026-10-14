@@ -62,10 +62,36 @@ def memavailable_bytes() -> int:
     return -1
 
 
+def checkpoint_files_from_snapshot(
+    snapshot_dir: Path,
+    filenames: list[str],
+) -> dict[str, Path]:
+    """Return named snapshot paths without dereferencing Hub-cache symlinks.
+
+    Hugging Face snapshots contain filenames (for example config.json and
+    model.safetensors) that may be symlinks into the cache's blobs directory.
+    Calling Path.resolve() on those files destroys the snapshot layout needed
+    by PyTorchModelHubMixin.from_pretrained(local_directory).
+    """
+    snapshot_dir = snapshot_dir.expanduser()
+    if not snapshot_dir.is_dir():
+        raise RuntimeError(f"Checkpoint snapshot directory missing: {snapshot_dir}")
+
+    files: dict[str, Path] = {}
+    for filename in filenames:
+        path = snapshot_dir / filename
+        if not path.is_file():
+            raise RuntimeError(
+                f"Checkpoint snapshot missing required file {filename}: {path}"
+            )
+        files[filename] = path
+    return files
+
+
 def main() -> None:
     import yaml
     import torch
-    from huggingface_hub import hf_hub_download
+    from huggingface_hub import snapshot_download
 
     parser = argparse.ArgumentParser(
         description="CV3.1B0 checkpoint acquisition and FP32 model-load gate"
@@ -109,18 +135,27 @@ def main() -> None:
     print("Dataset download: False")
     print("Image inference: False")
 
-    downloaded: dict[str, Path] = {}
     download_started = time.perf_counter()
-    for filename in checkpoint["files"]:
-        path = Path(
-            hf_hub_download(
-                repo_id=repo_id,
-                filename=str(filename),
-                revision=revision,
-            )
-        ).resolve()
-        downloaded[str(filename)] = path
+    snapshot_dir = Path(
+        snapshot_download(
+            repo_id=repo_id,
+            revision=revision,
+            allow_patterns=[str(x) for x in checkpoint["files"]],
+        )
+    ).expanduser()
     download_seconds = float(time.perf_counter() - download_started)
+
+    # Critical: do NOT resolve() snapshot file paths. The Hub cache intentionally
+    # exposes named files in snapshots/<commit>/ as symlinks into blobs/. The
+    # named snapshot directory is what from_pretrained(local_directory) needs.
+    downloaded = checkpoint_files_from_snapshot(
+        snapshot_dir,
+        [str(x) for x in checkpoint["files"]],
+    )
+    if snapshot_dir.name != revision:
+        raise RuntimeError(
+            f"Unexpected checkpoint snapshot revision directory: {snapshot_dir}"
+        )
 
     model_path = downloaded[str(checkpoint["model_filename"])]
     observed_model_sha = sha256_file(model_path)
@@ -137,9 +172,11 @@ def main() -> None:
         raise RuntimeError(f"Unexpected model size: {model_size}")
 
     parents = {path.parent for path in downloaded.values()}
-    if len(parents) != 1:
-        raise RuntimeError("Checkpoint files did not resolve to one snapshot directory")
-    checkpoint_dir = next(iter(parents))
+    if parents != {snapshot_dir}:
+        raise RuntimeError(
+            "Checkpoint files are not preserved inside the pinned snapshot directory"
+        )
+    checkpoint_dir = snapshot_dir
 
     output_root = resolve(cfg["output_root"])
     output_root.mkdir(parents=True, exist_ok=True)

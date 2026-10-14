@@ -76,3 +76,28 @@ dtype or authorize FP16/autocast.
 If FP32 model load is blocked:
 stop the Jetson MASt3R attempt and reassess compute hardware. Do not silently
 change precision/model architecture.
+
+
+## First Jetson attempt diagnostic
+
+The first CV3.1B0 attempt downloaded and verified the correct pinned checkpoint,
+but the worker failed before model loading because the parent script called
+`Path.resolve()` on Hugging Face snapshot symlinks. This converted paths such
+as:
+
+`snapshots/<commit>/config.json`
+
+into their backing:
+
+`blobs/<hash>`
+
+and then passed the `blobs/` directory to
+`AsymmetricMASt3R.from_pretrained()`.
+
+That directory has no named `config.json`, so the failure was a loader-path
+defect, **not evidence of Jetson FP32 memory failure**.
+
+The corrected implementation uses `snapshot_download()`, preserves the named
+snapshot directory, and includes a symlink-layout regression test.
+
+Do not change precision/model settings because of the first blocked attempt.

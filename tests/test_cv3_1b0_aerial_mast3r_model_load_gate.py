@@ -1,7 +1,9 @@
 """CV3.1B0 checkpoint/model-load gate contract tests."""
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -12,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.villoc.geometry.cv3_1b0_aerial_mast3r_model_load_gate import (
+    checkpoint_files_from_snapshot,
     verify_config,
 )
 
@@ -30,6 +33,30 @@ class CV31B0Tests(unittest.TestCase):
         )
         self.assertEqual(self.cfg["model"]["dtype"], "float32")
         self.assertEqual(self.cfg["model"]["device"], "cuda")
+
+    def test_snapshot_symlinks_are_not_resolved_to_blob_parent(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            blobs = root / "blobs"
+            snapshot = root / "snapshots" / "abc123"
+            blobs.mkdir(parents=True)
+            snapshot.mkdir(parents=True)
+            (blobs / "configblob").write_text("{}", encoding="utf-8")
+            (blobs / "modelblob").write_bytes(b"model")
+            os.symlink(blobs / "configblob", snapshot / "config.json")
+            os.symlink(blobs / "modelblob", snapshot / "model.safetensors")
+
+            files = checkpoint_files_from_snapshot(
+                snapshot,
+                ["config.json", "model.safetensors"],
+            )
+
+            self.assertEqual(files["config.json"].parent, snapshot)
+            self.assertEqual(files["model.safetensors"].parent, snapshot)
+            self.assertNotEqual(
+                files["model.safetensors"].resolve().parent,
+                files["model.safetensors"].parent,
+            )
 
     def test_no_inference_or_dataset(self):
         self.assertFalse(self.cfg["model"]["inference_allowed"])
