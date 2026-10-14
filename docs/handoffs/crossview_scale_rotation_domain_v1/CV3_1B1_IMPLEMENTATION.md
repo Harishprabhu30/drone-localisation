@@ -94,3 +94,20 @@ PASS means only:
 It is not an accuracy result.
 
 Post-freeze truth is still forbidden in CV3.1B1.
+
+
+## First Jetson inference attempt diagnostic
+
+The first CV3.1B1 Jetson attempt reached the worker's final result-writing step
+after the nine-pair processing loop, but strict JSON serialization failed
+because unavailable projection fields were represented internally as NaN.
+
+This is a serialization defect, not evidence of model/inference failure.
+Non-finite geometry values are legitimate when a pair does not produce a valid
+homography/projection.
+
+The corrected worker converts non-finite JSON-facing values to `null` while
+preserving the existing CSV evidence behavior and the frozen matching/geometry
+contract. Progress trace JSON is also written strictly after this fix.
+
+No model, dtype, threshold, resize, matching, RANSAC, or asset identity changed.

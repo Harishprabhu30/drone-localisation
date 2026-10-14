@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 from scripts.villoc.geometry.cv3_1b1_aerial_mast3r_smoke import verify_config
 from scripts.villoc.geometry.cv3_1b1_prepare_smoke_bundle import verify_config as verify_bundle_config
 from uavloc.geometry.aerial_mast3r_smoke import (
+    json_safe,
     mast3r_image_geometry,
     processed_to_canonical_xy,
 )
@@ -32,6 +33,22 @@ class CV31B1Tests(unittest.TestCase):
         self.assertEqual(self.cfg["sample"]["query_ids"], [1,207,403])
         self.assertEqual(self.cfg["sample"]["pool_ranks"], [1,10,20])
         self.assertFalse(self.cfg["scientific_boundary"]["reference_allowed"])
+
+
+    def test_json_safe_converts_nonfinite_geometry_to_null(self):
+        payload = {
+            "ok": 1.25,
+            "nan": float("nan"),
+            "posinf": float("inf"),
+            "neginf": float("-inf"),
+            "nested": [np.float32("nan"), np.int64(7), np.bool_(True)],
+        }
+        safe = json_safe(payload)
+        self.assertEqual(safe["ok"], 1.25)
+        self.assertIsNone(safe["nan"])
+        self.assertIsNone(safe["posinf"])
+        self.assertIsNone(safe["neginf"])
+        self.assertEqual(safe["nested"], [None, 7, True])
 
     def test_query_resize_geometry(self):
         g = mast3r_image_geometry(3840,2160,size=512,square_ok=False)

@@ -109,3 +109,20 @@ def tile_pixel_to_map(
 
 def finite_pair(e: float, n: float) -> bool:
     return bool(math.isfinite(e) and math.isfinite(n))
+
+
+def json_safe(value):
+    """Convert non-finite/numpy scalar values into strict JSON-compatible values."""
+    if isinstance(value, dict):
+        return {str(k): json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        value = float(value)
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    return value

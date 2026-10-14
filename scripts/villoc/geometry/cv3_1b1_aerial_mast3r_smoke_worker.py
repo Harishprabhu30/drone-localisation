@@ -24,6 +24,7 @@ from PIL import Image, ImageOps
 
 from uavloc.geometry.aerial_mast3r_smoke import (
     finite_pair,
+    json_safe,
     mast3r_image_geometry,
     processed_to_canonical_xy,
     tile_pixel_to_map,
@@ -47,7 +48,9 @@ def image_size(path: Path) -> tuple[int, int]:
 def append_trace(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+        handle.write(
+            json.dumps(json_safe(payload), sort_keys=True, allow_nan=False) + "\n"
+        )
         handle.flush()
 
 
@@ -300,7 +303,7 @@ def main() -> None:
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        json.dumps(json_safe(payload), indent=2, sort_keys=True, allow_nan=False) + "\n",
         encoding="utf-8",
     )
     print("Worker status:", payload["status"])
