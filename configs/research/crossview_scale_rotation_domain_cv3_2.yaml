@@ -1,0 +1,131 @@
+stage: CV3.2
+name: aerial_mast3r_uniform40_six_candidate_reference_free_screen
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_2
+
+lineage:
+  expected_top20_sha256: 0a7832c6f0997a33851343fd7df537d2f6410211ac0e38e7ec4325899d8df47e
+  spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+  top20: outputs/research_runs/local_map_neighborhood_subtile_consensus_v1/rg2_1a/development/rg2_1a_frozen_qv_top20.csv
+
+cv3_1b1:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_1b1/cv3_1b1_smoke_report.json
+  evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_1b1/cv3_1b1_reference_free_evidence.csv
+  expected_status: PASS_CV3_1B1_REFERENCE_FREE_AERIAL_MAST3R_SMOKE
+  expected_evidence_sha256: 6b44199c32e6d54a13c4e47b1aa58c9b4fdd69cc2c2c05be44eba514790a1d44
+
+uniform40:
+  query_ids:
+    - 1
+    - 11
+    - 22
+    - 32
+    - 42
+    - 53
+    - 63
+    - 73
+    - 83
+    - 94
+    - 104
+    - 114
+    - 125
+    - 135
+    - 145
+    - 156
+    - 166
+    - 176
+    - 187
+    - 197
+    - 207
+    - 217
+    - 228
+    - 238
+    - 248
+    - 259
+    - 269
+    - 279
+    - 290
+    - 300
+    - 310
+    - 321
+    - 331
+    - 341
+    - 351
+    - 362
+    - 372
+    - 382
+    - 393
+    - 403
+  pool_ranks:
+    - 1
+    - 2
+    - 3
+    - 5
+    - 10
+    - 20
+  expected_queries: 40
+  expected_pairs: 240
+
+bundle:
+  root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_2/compact_bundle
+  manifest_filename: bundle_manifest.csv
+  report_filename: bundle_report.json
+
+upstream:
+  source_root: third_party/aerial-megadepth
+  mast3r_root: third_party/aerial-megadepth/mast3r
+  expected_source_commit: cdf478ff4fdaf888fb91c940bc48d55095e2cdbd
+
+checkpoint:
+  repo_id: kvuong2711/checkpoint-aerial-mast3r
+  revision: 5ee8e004c8795e0c299b5f43acda27d0e02bcd97
+  files:
+    - config.json
+    - model.safetensors
+  model_filename: model.safetensors
+  expected_model_sha256: 093c3b4b3ad8294673774aae106309d5f6a1a975976bae574075fb7c5f94a67d
+
+model:
+  image_load_size: 512
+  square_ok: false
+  device: cuda
+  dtype: float32
+  batch_size: 1
+  autocast_allowed: false
+  fp16_allowed: false
+
+matching:
+  method: extract_correspondences_nonsym
+  subsample: 4
+  pixel_tol: 3
+  match_confidence: 0.3
+  processed_border_px: 3
+
+geometry:
+  coordinate_space: canonical_original_image_pixels
+  ransac_threshold_px: 5.0
+  min_homography_inliers: 4
+  query_center: canonical_image_center
+  raster_pixel_center_convention: true
+
+selector:
+  primary: homography_inliers_desc
+  tiebreak:
+    - pool_rank_asc
+    - tile_id_asc
+  freeze_selection_before_truth: true
+
+worker:
+  timeout_seconds: 7200
+
+scientific_boundary:
+  reference_allowed: false
+  oracle_labels_allowed: false
+  aerialmegadepth_dataset_allowed: false
+  threshold_tuning_allowed: false
+  learned_score_fusion_allowed: false
+  full_top20_allowed: false
+  full403_allowed: false
+  state_changes_allowed: false
+  temporal_fusion_allowed: false
+  accuracy_claim_allowed: false
