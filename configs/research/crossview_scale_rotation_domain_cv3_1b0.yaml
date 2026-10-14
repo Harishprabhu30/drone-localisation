@@ -1,0 +1,50 @@
+stage: CV3.1B0
+name: aerial_mast3r_checkpoint_and_fp32_model_load_gate
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_1b0
+
+cv3_1a:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/cv3/cv3_1a/cv3_1a_environment_report.json
+  expected_status: PASS_CV3_1A_ENVIRONMENT_SOURCE_PREFLIGHT
+  expected_report_sha256: eddabfb304cd57290a27d21d025cc20c630f154a694844c28052d64dce6a8400
+
+upstream:
+  source_root: third_party/aerial-megadepth
+  mast3r_root: third_party/aerial-megadepth/mast3r
+  expected_source_commit: cdf478ff4fdaf888fb91c940bc48d55095e2cdbd
+
+checkpoint:
+  repo_id: kvuong2711/checkpoint-aerial-mast3r
+  revision: 5ee8e004c8795e0c299b5f43acda27d0e02bcd97
+  files:
+    - config.json
+    - model.safetensors
+  model_filename: model.safetensors
+  expected_model_sha256: 093c3b4b3ad8294673774aae106309d5f6a1a975976bae574075fb7c5f94a67d
+  expected_model_size_bytes_min: 2700000000
+  expected_model_size_bytes_max: 2850000000
+
+model:
+  class: mast3r.model.AsymmetricMASt3R
+  device: cuda
+  dtype: float32
+  eval_mode: true
+  inference_allowed: false
+  autocast_allowed: false
+  fp16_allowed: false
+
+memory:
+  low_headroom_warning_gib: 1.5
+  worker_timeout_seconds: 900
+  require_unload_attempt: true
+
+scientific_boundary:
+  reference_allowed: false
+  oracle_labels_allowed: false
+  aerialmegadepth_dataset_allowed: false
+  image_loading_allowed: false
+  pair_inference_allowed: false
+  correspondence_extraction_allowed: false
+  threshold_tuning_allowed: false
+  uniform40_allowed: false
+  full403_allowed: false
+  state_changes_allowed: false
