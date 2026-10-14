@@ -173,6 +173,40 @@ Do not resume generic sparse XFeat/SuperPoint/ALIKED threshold tuning unless new
 
 ---
 
+## 4A. Current branch result after CV1/CV2
+
+CV1 and CV2 have now been completed on this branch.
+
+Strongest current **development** frontend:
+\`SIFT + LightGlue\` using the pinned official SIFT-specific LightGlue model.
+
+Full403 result:
+- Top1 containment: 349/403
+- Top1 center <=40 m: 205/403
+- Top1 center <=80 m: 346/403
+- selected projection median: 4.988 m
+- RMSE: 224.799 m
+- p95: 635.898 m
+- selected projection <=40 m: 367/403
+- selected projection <=80 m: 368/403
+- unsafe tail (>200 m or non-finite): 30/403
+- median Top1-Top2 inlier margin: 34.0
+
+Frozen SIFT+LightGlue full403 evidence SHA256:
+\`c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0\`
+
+Decision:
+\`PROMOTE_SIFT_LIGHTGLUE_AS_STRONGER_DEVELOPMENT_FRONTEND\`
+
+This supersedes Section 3's wording that ORB is the strongest current
+local-geometry control. ORB remains the historical frozen control;
+SIFT+LightGlue is now the strongest development frontend.
+
+Next predeclared family:
+CV3 aerial-domain model upper bound.
+
+---
+
 ## 5. Current causal hypotheses
 
 These are **hypotheses**, not proven explanations.
