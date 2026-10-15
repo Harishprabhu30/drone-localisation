@@ -1,0 +1,37 @@
+stage: FA1.0
+name: sift_lightglue_residual_failure_audit
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_0
+
+source:
+  cv2_5_config: configs/research/crossview_scale_rotation_domain_cv2_5.yaml
+  expected_sift_sha256: c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0
+  expected_scale_m2_sha256: 94353f763725f44f278192bcedcfd139ab136ecebf4f1dcc6e07487380964810
+  expected_queries: 403
+  expected_pairs: 8060
+
+case_contract:
+  oracle_rescuable:
+    selected_error_gt_m: 40.0
+    oracle_error_le_m: 40.0
+    expected_count: 19
+  catastrophic_damage:
+    scale_m2_error_le_m: 200.0
+    sift_error_gt_m: 200.0
+    nonfinite_is_unsafe: true
+    expected_count: 10
+  severe_regression:
+    scale_m2_error_le_m: 40.0
+    sift_error_gt_m: 200.0
+    nonfinite_is_unsafe: true
+    expected_count: 7
+  temporal_radius_queries: 2
+
+scientific_boundary:
+  postfreeze_development_truth_allowed: true
+  frozen_evidence_mutable: false
+  matcher_rerun_allowed: false
+  threshold_tuning_allowed: false
+  selector_change_allowed: false
+  confidence_rule_training_allowed: false
+  blind_data_loaded: false
+  temporal_fusion_changed: false
