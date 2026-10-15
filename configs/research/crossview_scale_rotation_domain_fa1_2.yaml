@@ -1,0 +1,37 @@
+stage: FA1.2
+name: sift_lightglue_visual_semantic_failure_review
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_2
+
+fa1_0:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_0/fa1_0_report.json
+  case_inventory: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_0/fa1_0_case_inventory.csv
+  expected_status: PASS_FA1_0_FROZEN_SIFT_FAILURE_AUDIT
+  expected_union_queries: 20
+
+fa1_1:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_1/fa1_1_report.json
+  sift_pair_diagnostics: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_1/fa1_1_sift_pair_diagnostics.csv
+  overlay_root: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_1/overlays
+  expected_status: PASS_FA1_1_TARGETED_PAIR_GEOMETRY_DIAGNOSTICS
+  expected_sift_pairs: 40
+  expected_oracle_pairs: 19
+  expected_scale_m2_severe_pairs: 7
+
+source:
+  trajectory_spec: configs/trajectories/villoc_traj01_90deg_stable120m_v1.yaml
+  manifest: outputs/research_runs/trajectory_adapter_v1/ta2_traj01/blind_package/canonical_blind_manifest.csv
+
+visualization:
+  image_max_side_px: 900
+  montage_dpi: 180
+  contact_sheet_columns: 4
+  contact_sheet_thumb_px: 480
+
+scientific_boundary:
+  development_truth_metadata_visible: true
+  matcher_rerun_allowed: false
+  selector_change_allowed: false
+  threshold_tuning_allowed: false
+  confidence_rule_training_allowed: false
+  automated_semantic_labeling_allowed: false
+  blind_data_loaded: false
