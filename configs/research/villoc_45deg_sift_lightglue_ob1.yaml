@@ -1,0 +1,51 @@
+stage: OB1.0
+name: villoc_45deg_current_stack_sift_lightglue_stress
+output_root: outputs/research_runs/oblique_sift_lightglue_stress_v1/ob1_0
+
+source:
+  dataset_config: configs/dataset_villoc_45deg.yaml
+  query_manifest: outputs/villoc/45_deg/metadata/s8_5_uav_frames_index_v_1fps.csv
+  expected_queries: 112
+
+map:
+  variant: 768_s256
+  tile_index: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+  descriptor_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+  crs: EPSG:3346
+
+retrieval:
+  descriptor_tag: dinov2_vits14_img518_center_square_avgpatch_cpu
+  image_size: 518
+  crop_mode: center_square
+  pooling: avgpatch
+  device: cpu
+  top_k: 20
+  expected_pairs: 2240
+
+sift_lightglue:
+  repo: third_party/LightGlue
+  expected_commit: eb42fee2d71449efb0aa5c10549752b5d75384d8
+  expected_sift_blob: 802fc1c2eb9ee852691e0e4dd67455f822f8405f
+  expected_lightglue_blob: 485833515eb0a80866b3d078d3e43d39ddcd84ae
+  expected_weights_sha256: 5b52b8d9982d43532dc042606b346bb9594c9f5a4bd6f64362c63866287b4ac0
+  device: cpu
+  selector:
+    primary: inliers_desc
+    tiebreak: [pool_rank_asc, tile_id_asc]
+
+evaluation:
+  center_thresholds_m: [40.0, 80.0]
+  unsafe_projection_threshold_m: 200.0
+  retrieval_topk: [1, 5, 10, 20]
+
+scientific_boundary:
+  rebuild_oblique_retrieval_for_current_stack: true
+  use_768_s256: true
+  use_img518_dino: true
+  sift_parameters_changed: false
+  threshold_tuning_allowed: false
+  selector_change_allowed: false
+  reference_used_before_freeze: false
+  truth_attached_only_after_freeze: true
+  projected_query_center_vs_body_is_stress_metric: true
+  oblique_footprint_offset_not_corrected: true
