@@ -111,7 +111,7 @@ def load_ortho_preview(path: Path, max_dim: int = 2200):
         ).astype(np.float32)
 
         bounds = ds.bounds
-        crs = str(ds.crs)
+        crs = ds.crs
 
     if data.shape[0] == 1:
         data = np.repeat(data, 3, axis=0)
@@ -134,6 +134,50 @@ def load_ortho_preview(path: Path, max_dim: int = 2200):
 
     extent = [bounds.left, bounds.right, bounds.bottom, bounds.top]
     return image, extent, crs
+
+
+def is_lks94_lithuania_tm(crs) -> bool:
+    """Accept EPSG:3346 or an equivalent LKS94 / Lithuania TM definition."""
+    if crs is None:
+        return False
+
+    try:
+        if crs.to_epsg() == 3346:
+            return True
+    except Exception:
+        pass
+
+    try:
+        expected = rasterio.crs.CRS.from_epsg(3346)
+        if crs == expected:
+            return True
+    except Exception:
+        pass
+
+    # Some GeoTIFFs carry the correct projection parameters but omit the
+    # projected-CRS EPSG authority, so to_epsg() can return None.
+    try:
+        params = crs.to_dict()
+        proj = str(params.get("proj", "")).lower()
+        ellps = str(params.get("ellps", "")).upper()
+        units = str(params.get("units", "")).lower()
+        lon0 = float(params.get("lon_0"))
+        lat0 = float(params.get("lat_0", 0.0))
+        k = float(params.get("k", params.get("k_0")))
+        x0 = float(params.get("x_0"))
+        y0 = float(params.get("y_0", 0.0))
+        return bool(
+            proj == "tmerc"
+            and ellps in {"GRS80", "GRS 1980"}
+            and units in {"m", "metre", "meter"}
+            and abs(lon0 - 24.0) <= 1e-9
+            and abs(lat0 - 0.0) <= 1e-9
+            and abs(k - 0.9998) <= 1e-12
+            and abs(x0 - 500000.0) <= 1e-6
+            and abs(y0 - 0.0) <= 1e-6
+        )
+    except Exception:
+        return False
 
 
 def load_bv12(root: Path):
@@ -388,8 +432,11 @@ def main():
     orb_traj, orb_lock_query, orb_accepted = load_orb_submission(orb_path)
 
     image, extent, crs = load_ortho_preview(ortho_path)
-    if crs != "EPSG:3346":
-        raise RuntimeError(f"Expected EPSG:3346 orthophoto, observed {crs}")
+    if not is_lks94_lithuania_tm(crs):
+        raise RuntimeError(
+            "Expected LKS94 / Lithuania TM (EPSG:3346-equivalent) orthophoto, "
+            f"observed {crs}"
+        )
 
     sift_lock_query = report.get("matured_at_query_id")
     sift_lock_query = int(sift_lock_query) if sift_lock_query is not None else None
