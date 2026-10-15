@@ -1,0 +1,41 @@
+stage: FA1.1
+name: sift_lightglue_targeted_pair_geometry_diagnostics
+output_root: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_1
+
+fa1_0:
+  report: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_0/fa1_0_report.json
+  case_inventory: outputs/research_runs/crossview_scale_rotation_domain_v1/fa1_0/fa1_0_case_inventory.csv
+  expected_status: PASS_FA1_0_FROZEN_SIFT_FAILURE_AUDIT
+  expected_oracle_rescuable: 19
+  expected_catastrophic_damage: 10
+  expected_severe_regression: 7
+  expected_union_queries: 20
+
+frozen_frontends:
+  cv2_4_config: configs/research/crossview_scale_rotation_domain_cv2_4.yaml
+  sift_evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv2/cv2_4/cv2_4_sift_lightglue_full403_reference_free_evidence.csv
+  expected_sift_sha256: c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0
+  scale_m2_evidence: outputs/research_runs/crossview_scale_rotation_domain_v1/cv1_3/cv1_3_full403_scale_m2_reference_free_evidence.csv
+  expected_scale_m2_sha256: 94353f763725f44f278192bcedcfd139ab136ecebf4f1dcc6e07487380964810
+  lightglue_weights_sha256: 5b52b8d9982d43532dc042606b346bb9594c9f5a4bd6f64362c63866287b4ac0
+  scale_m2_factor: 0.6944444444444444
+
+diagnostics:
+  rerun_sift_selected: true
+  rerun_sift_oracle: true
+  rerun_scale_m2_orb_for_severe: true
+  export_inlier_correspondences: true
+  export_pair_overlays: true
+  overlay_max_side_px: 900
+  parity_projection_tolerance_m: 0.01
+
+scientific_boundary:
+  postfreeze_development_truth_used_only_for_case_selection: true
+  targeted_matcher_rerun_allowed: true
+  frozen_evidence_mutable: false
+  frontend_parameters_mutable: false
+  threshold_tuning_allowed: false
+  selector_change_allowed: false
+  confidence_rule_training_allowed: false
+  blind_data_loaded: false
+  accuracy_recomputed: false
