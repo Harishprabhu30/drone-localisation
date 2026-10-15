@@ -33,6 +33,10 @@ DEFAULT_ORTHO = ROOT / (
     "data/processed/villoc/90_deg/maps/ort10lt_2024_2026/"
     "ort10lt_2024_2026_aoi300m.tif"
 )
+DEFAULT_MASTER_ORTHO = ROOT / (
+    "data/raw/villoc/90_deg/maps/ort10lt_2024_2026/master/"
+    "ort10lt_2024_2026_master.tif"
+)
 DEFAULT_BV12_ROOT = ROOT / (
     "outputs/research_runs/blind_demo_sift_lightglue_transfer_v1/bv1_2"
 )
@@ -57,6 +61,36 @@ def resolve_optional(value: Path | None, default: Path) -> Path:
     if not path.is_absolute():
         path = ROOT / path
     return path.resolve()
+
+
+def choose_orthophoto(user_path: Path | None) -> Path:
+    if user_path is not None:
+        return resolve_optional(user_path, DEFAULT_ORTHO)
+    if DEFAULT_MASTER_ORTHO.is_file():
+        return DEFAULT_MASTER_ORTHO.resolve()
+    return DEFAULT_ORTHO.resolve()
+
+
+def finite_plot_bounds(point_sets, margin_m: float = 200.0):
+    xs = []
+    ys = []
+    for x_values, y_values in point_sets:
+        x = pd.to_numeric(pd.Series(x_values), errors="coerce").to_numpy(float)
+        y = pd.to_numeric(pd.Series(y_values), errors="coerce").to_numpy(float)
+        good = np.isfinite(x) & np.isfinite(y)
+        if good.any():
+            xs.append(x[good])
+            ys.append(y[good])
+    if not xs:
+        return None
+    x = np.concatenate(xs)
+    y = np.concatenate(ys)
+    return (
+        float(x.min() - margin_m),
+        float(y.min() - margin_m),
+        float(x.max() + margin_m),
+        float(y.max() + margin_m),
+    )
 
 
 def bool_series(series: pd.Series) -> pd.Series:
@@ -90,7 +124,11 @@ def find_orb_submission(user_path: Path | None) -> Path:
     )
 
 
-def load_ortho_preview(path: Path, max_dim: int = 2200):
+def load_ortho_preview(
+    path: Path,
+    requested_bounds=None,
+    max_dim: int = 2600,
+):
     if not path.is_file():
         raise FileNotFoundError(path)
 
@@ -100,17 +138,49 @@ def load_ortho_preview(path: Path, max_dim: int = 2200):
         else:
             indexes = [1]
 
-        scale = min(1.0, float(max_dim) / max(ds.width, ds.height))
-        out_w = max(1, int(round(ds.width * scale)))
-        out_h = max(1, int(round(ds.height * scale)))
+        if requested_bounds is None:
+            window = None
+            bounds = ds.bounds
+            src_width = ds.width
+            src_height = ds.height
+        else:
+            left, bottom, right, top = requested_bounds
+            rb = ds.bounds
+            clipped = (
+                max(float(left), float(rb.left)),
+                max(float(bottom), float(rb.bottom)),
+                min(float(right), float(rb.right)),
+                min(float(top), float(rb.top)),
+            )
+            if clipped[0] >= clipped[2] or clipped[1] >= clipped[3]:
+                raise RuntimeError(
+                    "Requested visualization area does not overlap the orthophoto."
+                )
+            window = rasterio.windows.from_bounds(
+                *clipped,
+                transform=ds.transform,
+            ).round_offsets().round_lengths()
+            bounds_tuple = rasterio.windows.bounds(window, ds.transform)
+            bounds = rasterio.coords.BoundingBox(
+                left=bounds_tuple[0],
+                bottom=bounds_tuple[1],
+                right=bounds_tuple[2],
+                top=bounds_tuple[3],
+            )
+            src_width = max(1, int(window.width))
+            src_height = max(1, int(window.height))
+
+        scale = min(1.0, float(max_dim) / max(src_width, src_height))
+        out_w = max(1, int(round(src_width * scale)))
+        out_h = max(1, int(round(src_height * scale)))
 
         data = ds.read(
             indexes,
+            window=window,
             out_shape=(len(indexes), out_h, out_w),
             resampling=Resampling.bilinear,
         ).astype(np.float32)
 
-        bounds = ds.bounds
         crs = ds.crs
 
     if data.shape[0] == 1:
@@ -388,10 +458,15 @@ def load_orb_submission(path: Path) -> tuple[pd.DataFrame, int | None, pd.DataFr
     return mapped, lock_query, accepted
 
 
-def plot_background(ax, image, extent):
+def plot_background(ax, image, extent, view_bounds=None):
     ax.imshow(image, extent=extent, origin="upper")
-    ax.set_xlim(extent[0], extent[1])
-    ax.set_ylim(extent[2], extent[3])
+    if view_bounds is None:
+        ax.set_xlim(extent[0], extent[1])
+        ax.set_ylim(extent[2], extent[3])
+    else:
+        left, bottom, right, top = view_bounds
+        ax.set_xlim(left, right)
+        ax.set_ylim(bottom, top)
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlabel("Easting [m] — EPSG:3346")
     ax.set_ylabel("Northing [m] — EPSG:3346")
@@ -406,11 +481,17 @@ def main():
     parser.add_argument("--orthophoto", type=Path, default=None)
     parser.add_argument("--orb-submission", type=Path, default=None)
     parser.add_argument("--out-dir", type=Path, default=None)
+    parser.add_argument(
+        "--map-margin-m",
+        type=float,
+        default=200.0,
+        help="Map margin around all plotted ORB/SIFT points.",
+    )
     args = parser.parse_args()
 
     bv12_root = resolve_optional(args.bv12_root, DEFAULT_BV12_ROOT)
     relative_path = resolve_optional(args.relative_csv, DEFAULT_RELATIVE)
-    ortho_path = resolve_optional(args.orthophoto, DEFAULT_ORTHO)
+    ortho_path = choose_orthophoto(args.orthophoto)
     orb_path = find_orb_submission(args.orb_submission)
 
     out_dir = (
@@ -431,7 +512,26 @@ def main():
     )
     orb_traj, orb_lock_query, orb_accepted = load_orb_submission(orb_path)
 
-    image, extent, crs = load_ortho_preview(ortho_path)
+    view_bounds = finite_plot_bounds(
+        [
+            (orb_traj["estimated_map_x"], orb_traj["estimated_map_y"]),
+            (sift_traj["map_x"], sift_traj["map_y"]),
+            (
+                sift_supported["projected_easting"],
+                sift_supported["projected_northing"],
+            ),
+            (
+                sift_held["projected_easting"],
+                sift_held["projected_northing"],
+            ),
+        ],
+        margin_m=float(args.map_margin_m),
+    )
+
+    image, extent, crs = load_ortho_preview(
+        ortho_path,
+        requested_bounds=view_bounds,
+    )
     if not is_lks94_lithuania_tm(crs):
         raise RuntimeError(
             "Expected LKS94 / Lithuania TM (EPSG:3346-equivalent) orthophoto, "
@@ -445,7 +545,7 @@ def main():
     # Figure 1 — causal trajectory comparison.
     # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(12, 10))
-    plot_background(ax, image, extent)
+    plot_background(ax, image, extent, view_bounds=view_bounds)
 
     if len(orb_traj):
         ax.plot(
@@ -492,7 +592,7 @@ def main():
     # Figure 2 — accepted / held evidence.
     # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(12, 10))
-    plot_background(ax, image, extent)
+    plot_background(ax, image, extent, view_bounds=view_bounds)
 
     if len(orb_traj):
         ax.plot(
@@ -578,6 +678,7 @@ def main():
 
     print("PASS_BV1_2_BLIND_VISUAL_DIAGNOSTICS")
     print("Orthophoto:", ortho_path)
+    print("Plot bounds:", view_bounds)
     print("Historical ORB submission:", orb_path)
     print("ORB map-aligned rows:", len(orb_traj))
     print("ORB lock query:", orb_lock_query)
