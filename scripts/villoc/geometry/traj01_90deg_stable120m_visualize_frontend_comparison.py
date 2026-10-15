@@ -155,25 +155,44 @@ def main():
     scale_err = pd.to_numeric(audit["scale_projection_error_m"], errors="coerce")
     sift_err = pd.to_numeric(audit["sift_projection_error_m"], errors="coerce")
 
+    def error_bin(values: pd.Series) -> pd.Series:
+        finite = np.isfinite(values)
+        out = pd.Series("unsafe", index=values.index, dtype=object)
+        out.loc[finite & (values <= 40.0)] = "le40"
+        out.loc[finite & (values > 40.0) & (values <= 200.0)] = "mid40_200"
+        return out
+
+    audit["scale_error_bin"] = error_bin(scale_err)
+    audit["sift_error_bin"] = error_bin(sift_err)
+    audit["transition"] = (
+        audit["scale_error_bin"].astype(str)
+        + "_to_"
+        + audit["sift_error_bin"].astype(str)
+    )
+
+    # Backward-compatible aggregate flags used by earlier CV2.5 visual notes.
     audit["sift_rescue_to_le40"] = (
-        ((~np.isfinite(scale_err)) | (scale_err > 40.0))
-        & np.isfinite(sift_err)
-        & (sift_err <= 40.0)
+        audit["scale_error_bin"].isin(["mid40_200", "unsafe"])
+        & audit["sift_error_bin"].eq("le40")
     )
     audit["sift_catastrophic_rescue"] = (
-        ((~np.isfinite(scale_err)) | (scale_err > 200.0))
-        & np.isfinite(sift_err)
-        & (sift_err <= 200.0)
+        audit["scale_error_bin"].eq("unsafe")
+        & audit["sift_error_bin"].isin(["le40", "mid40_200"])
     )
     audit["sift_damage_from_le40"] = (
-        np.isfinite(scale_err)
-        & (scale_err <= 40.0)
-        & ((~np.isfinite(sift_err)) | (sift_err > 40.0))
+        audit["scale_error_bin"].eq("le40")
+        & audit["sift_error_bin"].isin(["mid40_200", "unsafe"])
     )
     audit["sift_catastrophic_damage"] = (
-        np.isfinite(scale_err)
-        & (scale_err <= 200.0)
-        & ((~np.isfinite(sift_err)) | (sift_err > 200.0))
+        audit["scale_error_bin"].isin(["le40", "mid40_200"])
+        & audit["sift_error_bin"].eq("unsafe")
+    )
+
+    transition_counts = (
+        audit.groupby(["scale_error_bin", "sift_error_bin"])
+        .size()
+        .unstack(fill_value=0)
+        .reindex(index=["le40", "mid40_200", "unsafe"], columns=["le40", "mid40_200", "unsafe"], fill_value=0)
     )
 
     ref_frame = reference[["gt_x", "gt_y"]].reset_index()
@@ -208,42 +227,43 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # ---------------------------------------------------------
-    # Figure 1 — reference + selected absolute trajectories.
+    # Figure 1 — reference path + independent absolute estimates.
+    # Do NOT connect estimates: every query is an independent localization.
     # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(13, 11))
     viz.plot_background(ax, image, extent, view_bounds=view_bounds)
 
     ax.plot(
         ref_frame["gt_x"], ref_frame["gt_y"],
-        linewidth=2.4, label="Reference trajectory",
+        linewidth=2.6, label="Reference trajectory",
     )
 
     original_f = finite_xy(original, "projected_easting", "projected_northing")
     scale_f = finite_xy(scale, "projected_easting", "projected_northing")
     sift_f = finite_xy(sift, "projected_easting", "projected_northing")
 
-    ax.plot(
+    ax.scatter(
         original_f["projected_easting"], original_f["projected_northing"],
-        linewidth=1.0, alpha=0.55, label="Original ORB selected positions",
+        s=10, alpha=0.22, marker=".", label="Original ORB selected estimates",
     )
-    ax.plot(
+    ax.scatter(
         scale_f["projected_easting"], scale_f["projected_northing"],
-        linewidth=1.4, alpha=0.75, label="scale_m2 ORB selected positions",
+        s=15, alpha=0.38, marker="o", label="scale_m2 ORB selected estimates",
     )
-    ax.plot(
+    ax.scatter(
         sift_f["projected_easting"], sift_f["projected_northing"],
-        linewidth=1.8, alpha=0.9, label="SIFT+LightGlue selected positions",
+        s=18, alpha=0.55, marker="x", label="SIFT+LightGlue selected estimates",
     )
 
     ax.set_title(
-        "traj01_90deg_stable120m — full403 absolute frontend comparison\n"
-        "Reference vs original ORB vs scale_m2 ORB vs SIFT+LightGlue"
+        "traj01_90deg_stable120m — full403 independent absolute estimates\n"
+        "Reference path with ORB / scale_m2 ORB / SIFT+LightGlue selected positions"
     )
     ax.legend(loc="best")
     ax.grid(alpha=0.2)
     fig.tight_layout()
     trajectory_path = (
-        out_dir / "traj01_90deg_stable120m_frontend_trajectory_comparison_ortho.png"
+        out_dir / "traj01_90deg_stable120m_frontend_selected_scatter_ortho.png"
     )
     fig.savefig(trajectory_path, dpi=220)
     plt.close(fig)
@@ -268,54 +288,34 @@ def main():
         s=20, alpha=0.55, marker=".", label="SIFT+LightGlue selected",
     )
 
-    rescued = audit[audit["sift_rescue_to_le40"]].copy()
-    catastrophic_rescued = audit[audit["sift_catastrophic_rescue"]].copy()
-    damaged = audit[audit["sift_damage_from_le40"]].copy()
-    catastrophic_damaged = audit[audit["sift_catastrophic_damage"]].copy()
+    transition_specs = [
+        ("unsafe_to_le40", "*", 95, "ORB unsafe -> SIFT <=40 m"),
+        ("unsafe_to_mid40_200", "P", 80, "ORB unsafe -> SIFT 40-200 m"),
+        ("mid40_200_to_le40", "s", 70, "ORB 40-200 m -> SIFT <=40 m"),
+        ("le40_to_mid40_200", "X", 75, "ORB <=40 m -> SIFT 40-200 m"),
+        ("le40_to_unsafe", "^", 95, "SEVERE: ORB <=40 m -> SIFT unsafe"),
+        ("mid40_200_to_unsafe", "D", 80, "ORB 40-200 m -> SIFT unsafe"),
+    ]
 
-    if len(rescued):
-        ax.scatter(
-            rescued["sift_projected_easting"],
-            rescued["sift_projected_northing"],
-            s=75, marker="*", label=f"SIFT rescue to <=40 m ({len(rescued)})",
-        )
-    if len(catastrophic_rescued):
-        ax.scatter(
-            catastrophic_rescued["sift_projected_easting"],
-            catastrophic_rescued["sift_projected_northing"],
-            s=70, marker="s",
-            label=f"SIFT rescue from ORB >200/nonfinite ({len(catastrophic_rescued)})",
-        )
-    if len(damaged):
-        finite_damage = finite_xy(
-            damaged,
+    for transition, marker, size, label in transition_specs:
+        group = audit[audit["transition"] == transition].copy()
+        finite_group = finite_xy(
+            group,
             "sift_projected_easting",
             "sift_projected_northing",
         )
-        if len(finite_damage):
+        if len(finite_group):
             ax.scatter(
-                finite_damage["sift_projected_easting"],
-                finite_damage["sift_projected_northing"],
-                s=65, marker="X",
-                label=f"SIFT loss from ORB <=40 m ({len(damaged)})",
-            )
-    if len(catastrophic_damaged):
-        finite_damage = finite_xy(
-            catastrophic_damaged,
-            "sift_projected_easting",
-            "sift_projected_northing",
-        )
-        if len(finite_damage):
-            ax.scatter(
-                finite_damage["sift_projected_easting"],
-                finite_damage["sift_projected_northing"],
-                s=80, marker="^",
-                label=f"SIFT catastrophic damage ({len(catastrophic_damaged)})",
+                finite_group["sift_projected_easting"],
+                finite_group["sift_projected_northing"],
+                s=size,
+                marker=marker,
+                label=f"{label} ({len(group)})",
             )
 
     ax.set_title(
         "traj01_90deg_stable120m — selected-point comparison\n"
-        "Promoted scale_m2 ORB vs SIFT+LightGlue with rescue/damage highlights"
+        "Promoted scale_m2 ORB vs SIFT+LightGlue — mutually exclusive error transitions"
     )
     ax.legend(loc="best")
     ax.grid(alpha=0.2)
@@ -342,8 +342,24 @@ def main():
     print("SIFT catastrophic rescues:", int(audit["sift_catastrophic_rescue"].sum()))
     print("SIFT losses from ORB <=40 m:", int(audit["sift_damage_from_le40"].sum()))
     print("SIFT catastrophic damages:", int(audit["sift_catastrophic_damage"].sum()))
-    print("Trajectory figure:", trajectory_path)
-    print("Selected-points figure:", points_path)
+    print()
+    print("Exclusive scale_m2 ORB -> SIFT error transition matrix:")
+    print(transition_counts.to_string())
+    print()
+    print(
+        "Severe ORB<=40 -> SIFT unsafe:",
+        int((audit["transition"] == "le40_to_unsafe").sum()),
+    )
+    print(
+        "ORB<=40 -> SIFT 40-200:",
+        int((audit["transition"] == "le40_to_mid40_200").sum()),
+    )
+    print(
+        "ORB40-200 -> SIFT unsafe:",
+        int((audit["transition"] == "mid40_200_to_unsafe").sum()),
+    )
+    print("Selected-scatter figure:", trajectory_path)
+    print("Transition figure:", points_path)
 
 
 if __name__ == "__main__":
