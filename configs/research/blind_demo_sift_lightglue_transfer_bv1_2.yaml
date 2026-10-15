@@ -1,0 +1,48 @@
+stage: BV1.2
+name: blind_minimum_confident_v2_sift_lightglue_transfer
+output_root: outputs/research_runs/blind_demo_sift_lightglue_transfer_v1/bv1_2
+
+bv1_0:
+  report: outputs/research_runs/blind_demo_sift_lightglue_transfer_v1/bv1_0/bv1_0_report.json
+  pair_evidence: outputs/research_runs/blind_demo_sift_lightglue_transfer_v1/bv1_0/bv1_0_sift_lightglue_pair_reference_free_evidence.csv
+  expected_status: PASS_BV1_0_BLIND_768_S256_SIFT_LIGHTGLUE_TRANSFER_FREEZE
+  expected_candidate_pool_sha256: d067432aa63c060fe61673c136127fc6f823ce0dfc9976234584ac8f60b20454
+  expected_pair_sha256: 71ca0ed935bda71d010327799aec11dfb92f6e6825ac76de468edd93030285fb
+  expected_selection_sha256: adbb714b479d1a1d67881d3d99a29cce3f976c235a27b81398217c8973c6e3b1
+
+source_demo:
+  run_root: outputs/demo_runs/blind_recorded_flight_final_001
+  relative_csv: metadata/s8_xfeat_relative_frontend/s8r4_xfeat_relative_trajectory_blind_raw.csv
+  manifest_csv: metadata/blind_query_manifest.csv
+  expected_queries: 123
+
+policy:
+  candidate_count: 4
+  evidence_queries: 4
+  minimum_unique_tile_ids: 3
+  minimum_visual_span_px: 100.0
+  minimum_map_span_m: 50.0
+  median_measurement_residual_limit_m: 51.2
+  maximum_measurement_residual_limit_m: 102.4
+  map_spacing_m: 51.2
+  maturity_support_required: 3
+  activation_threshold_m: 12.8
+  tracking_threshold_m: 12.8
+  ranking:
+    primary: inliers_desc
+    tiebreak: [dino_rank_asc, tile_id_asc]
+
+scientific_boundary:
+  reference_allowed: false
+  srt_allowed: false
+  gps_allowed: false
+  oracle_allowed: false
+  evaluation_metrics_allowed: false
+  bv1_0_evidence_immutable: true
+  thresholds_tuned_after_blind_result: false
+  candidate_count_changed: false
+  evidence_frame_count_changed: false
+  state_machine_thresholds_changed: false
+  orb_recompute_allowed: false
+  absolute_locked_allowed: false
+  fusion_executed: false
