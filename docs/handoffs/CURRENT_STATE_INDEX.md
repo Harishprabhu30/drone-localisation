@@ -39,3 +39,26 @@ research/crossview-scale-rotation-domain-v1
 - confidence/abstention is not yet frozen.
 - true physical UAV-to-orthophoto GSD normalization remains unfinished.
 - localization research is parked while the physical drone is instrumented.
+
+
+## Operationalization update
+
+The current stack now has a canonical one-command reference-free runner:
+
+~~~text
+scripts/villoc/run_localization_pipeline.py
+configs/localization/current_stack_reference_free.yaml
+~~~
+
+It preserves the historical ORB/demo orchestrator for reproducibility while
+running DINOv2 Top20 -> SIFT+LightGlue -> Top4 minimum_confident_v2 on 768_s256.
+Neutral project-facing outputs are written under metadata/, absolute/,
+map_state/, trajectories/, provenance/ and summary/.
+
+The next active development branch should be:
+`hardware/work-drone-instrumentation-v1`.
+
+Known Jetson MAVLink tooling already exists in a local `mavtools` workspace
+and must be inspected/migrated rather than recreated. The immediate hardware
+focus is camera/telemetry/network timing characterization followed by a
+stationary/hover relative-estimation dataset.

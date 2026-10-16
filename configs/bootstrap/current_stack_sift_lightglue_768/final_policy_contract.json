@@ -1,0 +1,51 @@
+{
+  "stage": "CURRENT_STACK_SIFT_LIGHTGLUE_768_FINAL_POLICY_CONTRACT",
+  "status": "PASS_CURRENT_STACK_SIFT_LIGHTGLUE_768_FINAL_POLICY_CONTRACT",
+  "method_name": "minimum_confident_v2",
+  "research_status": "TRANSFERRED_FROZEN_POLICY_FOR_CURRENT_SIFT_LIGHTGLUE_STACK",
+  "architecture_contract": {
+    "sha256": "8535e1c4e3c539f68436b8e7941c14d9ff233dfc754eaa2a64f1329888dce0a2"
+  },
+  "final_policy": {
+    "name": "activate_quarter_track_quarter",
+    "selection_basis": "carry forward the already frozen safety-first quarter/quarter policy; not reselected or tuned using new/current-stack accuracy labels",
+    "activation_threshold_fraction_of_map_spacing": 0.25,
+    "activation_threshold_m": 12.8,
+    "tracking_threshold_fraction_of_map_spacing": 0.25,
+    "tracking_threshold_m": 12.8,
+    "maturity_support_required": 3,
+    "performance_optimality_claimed": false,
+    "safety_priority": true
+  },
+  "absolute_frontend": {
+    "candidate_depth_dino": 20,
+    "bootstrap_top_m": 4,
+    "verifier": "SIFT+LightGlue",
+    "candidate_ranking": "inliers DESC -> DINO rank ASC -> tile_id ASC",
+    "map_measurement": "continuous SIFT+LightGlue sub-tile projection",
+    "tile_variant": "768_s256"
+  },
+  "state_machine": {
+    "initial": "ACQUISITION",
+    "mature": "TRACKING",
+    "tracking_update": "minimum-innovation accept-or-hold",
+    "safe_fallback": "NO_PROVISIONAL_LOCK"
+  },
+  "operating_envelope": {
+    "camera_view": "near-nadir validated; oblique stress-tested but degraded",
+    "map_requirement": "prepared georeferenced orthophoto with matching 768_s256 img518 DINO cache",
+    "relative_frontend": "XFeat",
+    "visual_metric_scale": "approximately stationary over bootstrap/tracking interval"
+  },
+  "known_limitations": [
+    "single global visual-to-map similarity is not validated for large scale changes",
+    "SIFT+LightGlue residual failures concentrate in weak/tied vegetation-heavy cases",
+    "45-degree oblique imagery materially degrades locality selection",
+    "NO_PROVISIONAL_LOCK is a valid safe result"
+  ],
+  "output_contract": {
+    "positive": "PROVISIONAL_ABSOLUTE_LOCK",
+    "negative": "NO_PROVISIONAL_LOCK",
+    "forbidden": "ABSOLUTE_LOCKED"
+  }
+}

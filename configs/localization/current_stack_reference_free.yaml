@@ -1,0 +1,95 @@
+dataset:
+  name: villoc_current_stack_reference_free
+  sequence_name: recorded_flight
+  raw_root: data/raw/villoc/demonstration
+  output_root: outputs/localization_runs/current_stack_reference_free_001
+
+streams:
+  V:
+    modality: rgb
+    role: primary_visual
+    video: DJI_20260807171627_0003_V_trimmed.MP4
+    fps_expected: 29.97
+    reference_available: false
+
+reference_free:
+  enabled: true
+  sample_rate_fps: 1.0
+  assumed_rel_alt_m: 122.0
+  assumed_gimbal_pitch_deg: -90.0
+  view_assumption: near_nadir
+  freeze_before_evaluation: true
+
+map:
+  reuse_existing_map: true
+  map_source: ort10lt_2024_2026
+  crs: EPSG:3346
+  canonical_aoi_tif: data/processed/villoc/90_deg/maps/ort10lt_2024_2026/ort10lt_2024_2026_aoi300m.tif
+  primary_variant: 768_s256
+  tile_variants:
+    768_s256:
+      tiles_dir: data/processed/villoc/research/retrieval_candidate_pool_v2/r1/tiles_768_s256
+      index_csv: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/s8_9_satellite_tile_index_768_s256.csv
+
+retrieval:
+  method: dinov2
+  top_k: 20
+  descriptor_tag: dinov2_vits14_img518_center_square_avgpatch_cpu
+  map_descriptor_cache: outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+
+absolute_localization:
+  verifier:
+    method: sift_lightglue
+    repo: third_party/LightGlue
+    expected_commit: eb42fee2d71449efb0aa5c10549752b5d75384d8
+    expected_sift_blob: 802fc1c2eb9ee852691e0e4dd67455f822f8405f
+    expected_lightglue_blob: 485833515eb0a80866b3d078d3e43d39ddcd84ae
+    expected_weights_sha256: 5b52b8d9982d43532dc042606b346bb9594c9f5a4bd6f64362c63866287b4ac0
+  selector:
+    primary: inliers_desc
+    tiebreak: [dino_rank_asc, tile_id_asc]
+  authority_candidate_count: 4
+
+relative_localization:
+  frontend: xfeat
+
+bootstrap:
+  backend: minimum_confident_v2
+  candidate_interface: projected_absolute_candidates_v1
+  implementation: scripts/villoc/blind_demo/bootstrap/minimum_confident_projected_candidates.py
+  architecture_contract: configs/bootstrap/current_stack_sift_lightglue_768/architecture_contract.json
+  architecture_contract_sha256: 8535e1c4e3c539f68436b8e7941c14d9ff233dfc754eaa2a64f1329888dce0a2
+  final_policy_contract: configs/bootstrap/current_stack_sift_lightglue_768/final_policy_contract.json
+  final_policy_contract_sha256: c4a3fa2fdb9c2f86e2b6805a0d74be94430ac111cdfa49381e4209d65e38a6ce
+  canonical_map_state_schema: villoc.blind_map_state.v1
+  canonical_timeline_schema: villoc.blind_map_state_timeline.v1
+  temporal_authority: minimum_confident_v2
+
+export:
+  target_crs: EPSG:4326
+
+rules:
+  online_allowed:
+    - video_frames
+    - assumed_relative_altitude
+    - assumed_gimbal_pitch
+    - orthophoto_tiles
+    - map_tile_geometry
+    - dino_descriptor_similarity
+    - dino_rank
+    - sift_lightglue_geometric_evidence
+    - xfeat_relative_motion
+    - causal_temporal_consistency
+    - previously_accepted_reference_free_map_states
+  forbidden_before_freeze:
+    - srt
+    - gps
+    - gnss
+    - latitude_reference
+    - longitude_reference
+    - reference_trajectory
+    - oracle_tile_identity
+    - ground_truth_error
+    - rmse
+    - p95
+    - evaluation_derived_alignment

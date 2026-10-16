@@ -956,10 +956,28 @@ evaluation script that loads oracle data.
 
 **Important operational note:**
 
-As of this documentation commit, the repository does **not** yet expose one
-fully dataset-agnostic CLI for the promoted current SIFT+LightGlue stack.
+The repository now exposes a canonical one-command runner for the promoted
+current SIFT+LightGlue stack:
 
-Do **not** replace it with:
+~~~bash
+python scripts/villoc/run_localization_pipeline.py \
+  --config configs/localization/current_stack_reference_free.yaml \
+  --video <recorded_flight.mp4> \
+  --run-id <unique_run_id>
+~~~
+
+The runner reuses the proven reference-free orchestration stages, but its
+absolute frontend is now explicitly:
+
+~~~text
+DINOv2 img518 Top20
+    -> SIFT+LightGlue on all Top20
+    -> inliers DESC / DINO rank ASC / tile_id ASC
+    -> Top4 projected observations
+    -> minimum_confident_v2
+~~~
+
+Do **not** replace this current-stack verifier with:
 
 ~~~text
 s8_12e1b_lightglue_top20_verifier_reranker.py
@@ -981,15 +999,13 @@ scripts/villoc/geometry/cv2_4_freeze_sift_lightglue_full403.py
 scripts/villoc/geometry/ob1_0_45deg_current_stack_sift_lightglue.py
 ~~~
 
-When a new dataset arrives, the preferred engineering action is:
+When a new dataset arrives, use the canonical runner above for the
+reference-free execution. It consumes the prepared map assets from the run YAML
+and writes neutral project-facing artifacts while preserving compatibility
+files needed by the historical downstream helpers.
 
-> create one generic current-stack dataset runner that accepts
-> query manifest + Top20 CSV + 768 tile index + optional reference attachment,
-> while preserving the pinned SIFT+LightGlue parameters.
-
-Until that generic runner exists, instantiate a **new dataset-specific frozen
-stage** from the OB1.0/CV2.4 contract rather than editing a completed frozen
-experiment in place.
+The historical recorded-flight orchestrator remains untouched for exact replay.
+Do not edit completed frozen experiments in place.
 
 The new stage must preserve:
 
@@ -1231,33 +1247,97 @@ without depending on chat history.
 
 ---
 
-### 18.17 Current operational gap to close before the next external demo
+### 18.17 Canonical one-command current-stack runner
 
-Before the next new external dataset is expected, it is worth creating one
-generic command such as:
+The former orchestration gap is now closed by:
 
 ~~~text
-python scripts/villoc/run_current_absolute_stack.py --config <dataset-run-config>
+scripts/villoc/run_localization_pipeline.py
+configs/localization/current_stack_reference_free.yaml
 ~~~
 
-It should orchestrate only:
+The historical ORB/demo orchestrator is intentionally preserved unchanged for
+reproducibility. The new runner reuses its proven ingestion, relative-motion,
+DINO retrieval, map-state, temporal-authority, export, visualization and freeze
+stages, but replaces the hard-coded ORB verifier with the promoted
+SIFT+LightGlue projected-candidate interface.
 
 ~~~mermaid
 flowchart LR
-    Q[Canonical query manifest] --> D[DINO img518 query cache]
-    M[768_s256 map cache] --> R[Top20 retrieval]
+    V[Recorded RGB video] --> Q[Reference-free query manifest]
+    Q --> X[XFeat relative trajectory]
+    Q --> D[DINO img518 query cache]
+    M[768_s256 map cache] --> R[DINO Top20]
     D --> R
-    R --> S[SIFT+LightGlue Top20]
-    S --> F[Reference-free freeze]
-    F --> E[Optional post-freeze reference evaluation]
-    E --> B[Metrics + figures + evidence bundle]
+    R --> S[SIFT+LightGlue Top20 verification]
+    S --> C[Canonical projected-candidate evidence]
+    C --> T[Top4 minimum_confident_v2]
+    X --> T
+    T --> A[Causal map-state timeline]
+    A --> O[Estimated trajectory]
+    O --> F[Reference-free freeze]
+    F --> P[Neutral canonical run package]
 ~~~
 
-That runner should **call existing frozen components**, not duplicate their
-implementations.
+Dry-run first:
 
-Building this wrapper is recommended engineering work; it is not necessary to
-reopen algorithm selection.
+~~~bash
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+
+python scripts/villoc/run_localization_pipeline.py \
+  --config configs/localization/current_stack_reference_free.yaml \
+  --video data/raw/villoc/<dataset>/<video>.MP4 \
+  --run-id <unique_run_id> \
+  --dry-run
+~~~
+
+Then execute:
+
+~~~bash
+python scripts/villoc/run_localization_pipeline.py \
+  --config configs/localization/current_stack_reference_free.yaml \
+  --video data/raw/villoc/<dataset>/<video>.MP4 \
+  --run-id <unique_run_id>
+~~~
+
+Default execution devices preserve the frozen CPU absolute-frontend contract.
+The runner can select CPU/CUDA for DINO query encoding and XFeat, but
+SIFT+LightGlue remains CPU-only in this canonical command until CUDA parity is
+separately demonstrated.
+
+Canonical project-facing outputs are:
+
+~~~text
+metadata/localization_query_manifest.csv
+absolute/geometric_candidate_evidence.csv
+absolute/selected_absolute_observations.csv
+absolute/absolute_query_summary.csv
+map_state/map_state.json
+map_state/map_state_timeline.json
+map_state/temporal_authority_timeline.csv
+trajectories/estimated_trajectory.csv
+provenance/output_freeze.json
+provenance/run_manifest.json
+summary/localization_run_summary.md
+~~~
+
+A few historical filenames such as blind_query_manifest.csv and
+submission_estimated_trajectory.csv are still created internally because frozen
+downstream helpers consume them. They are compatibility artifacts, not the
+preferred project-facing names.
+
+The bootstrap no longer recomputes ORB geometry under the SIFT stack.
+SIFT+LightGlue owns candidate homography/projection; minimum_confident_v2
+consumes those already-projected candidates and owns only the four-frame
+similarity hypothesis plus causal ACQUISITION/TRACKING authority.
+
+For a scientific benchmark with hidden GT/SRT, run and freeze this pipeline
+first. Attach the reference only afterward using a separate evaluation stage.
+The reference-free runner intentionally has no GT/SRT/GPS input path.
+
+Before a completely new sensor/domain, still use the 20-query x Top5 smoke
+described in Section 18.15 rather than immediately spending a full Top20 run.
 
 ---
 

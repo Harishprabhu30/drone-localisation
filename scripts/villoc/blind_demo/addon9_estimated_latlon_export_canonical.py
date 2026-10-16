@@ -6,7 +6,7 @@ Consumes
 --------
 1. Stage-09 downstream-compatible fused trajectory.
 2. Stage-09 temporal-authority report.
-3. Blind DINO/ORB query summary.
+3. Reference-free DINO + geometric-verifier query summary.
 4. Optional map tile index for map-bound sanity.
 
 Purpose
@@ -673,21 +673,65 @@ def main():
 
 
     # ========================================================
-    # Blind DINO + ORB evidence
+    # Reference-free DINO + geometric-verifier evidence
     # ========================================================
 
-    qsum = pd.read_csv(
-        qsum_path,
-        usecols=[
-            "query_id",
-            "original_top1_tile_id",
-            "original_top1_dino_score",
-            "reranked_top1_tile_id",
-            "reranked_top1_verifier_score",
-            "reranked_top1_hybrid_score",
-            "reranked_top1_inliers",
-        ],
-    )
+    qsum = pd.read_csv(qsum_path)
+
+    neutral_required = {
+        "query_id",
+        "dino_top1_tile_id",
+        "dino_top1_score",
+        "absolute_selected_tile_id",
+        "absolute_verifier",
+        "absolute_selected_inliers",
+        "absolute_confidence_score",
+    }
+    legacy_required = {
+        "query_id",
+        "original_top1_tile_id",
+        "original_top1_dino_score",
+        "reranked_top1_tile_id",
+        "reranked_top1_verifier_score",
+        "reranked_top1_hybrid_score",
+        "reranked_top1_inliers",
+    }
+
+    if neutral_required.issubset(qsum.columns):
+        qsum = qsum.copy()
+        qsum["__dino_top1_tile_id"] = qsum["dino_top1_tile_id"]
+        qsum["__dino_top1_score"] = qsum["dino_top1_score"]
+        qsum["__absolute_selected_tile_id"] = qsum["absolute_selected_tile_id"]
+        qsum["__absolute_verifier"] = qsum["absolute_verifier"]
+        qsum["__absolute_verifier_score"] = pd.to_numeric(
+            qsum["absolute_confidence_score"], errors="coerce"
+        )
+        qsum["__absolute_confidence_score"] = pd.to_numeric(
+            qsum["absolute_confidence_score"], errors="coerce"
+        )
+        qsum["__absolute_inliers"] = pd.to_numeric(
+            qsum["absolute_selected_inliers"], errors="coerce"
+        )
+    elif legacy_required.issubset(qsum.columns):
+        qsum = qsum.copy()
+        qsum["__dino_top1_tile_id"] = qsum["original_top1_tile_id"]
+        qsum["__dino_top1_score"] = qsum["original_top1_dino_score"]
+        qsum["__absolute_selected_tile_id"] = qsum["reranked_top1_tile_id"]
+        qsum["__absolute_verifier"] = "orb_legacy"
+        qsum["__absolute_verifier_score"] = pd.to_numeric(
+            qsum["reranked_top1_verifier_score"], errors="coerce"
+        )
+        qsum["__absolute_confidence_score"] = pd.to_numeric(
+            qsum["reranked_top1_hybrid_score"], errors="coerce"
+        )
+        qsum["__absolute_inliers"] = pd.to_numeric(
+            qsum["reranked_top1_inliers"], errors="coerce"
+        )
+    else:
+        raise RuntimeError(
+            "Absolute query summary matches neither the neutral current-stack "
+            "schema nor the historical compatibility schema."
+        )
 
 
     qsum[
@@ -727,18 +771,14 @@ def main():
 
 
     require(
-        not out[
-            "original_top1_tile_id"
-        ].isna().any(),
+        not out["__dino_top1_tile_id"].isna().any(),
         "Missing DINO Top-1 evidence.",
     )
 
 
     require(
-        not out[
-            "reranked_top1_tile_id"
-        ].isna().any(),
-        "Missing ORB selected evidence.",
+        not out["__absolute_selected_tile_id"].isna().any(),
+        "Missing selected geometric-verifier evidence.",
     )
 
 
@@ -919,9 +959,7 @@ def main():
     # ========================================================
 
     confidence_score = pd.to_numeric(
-        out[
-            "reranked_top1_hybrid_score"
-        ],
+        out["__absolute_confidence_score"],
         errors="coerce",
     )
 
@@ -1020,38 +1058,33 @@ def main():
                 correction_source,
 
             "dino_top1_tile_id":
-                out[
-                    "original_top1_tile_id"
-                ],
+                out["__dino_top1_tile_id"],
 
             "dino_top1_score":
-                pd.to_numeric(
-                    out[
-                        "original_top1_dino_score"
-                    ],
-                    errors="coerce",
-                ),
+                pd.to_numeric(out["__dino_top1_score"], errors="coerce"),
 
+            "absolute_selected_tile_id":
+                out["__absolute_selected_tile_id"],
+
+            "absolute_verifier":
+                out["__absolute_verifier"],
+
+            "absolute_verifier_score":
+                pd.to_numeric(out["__absolute_verifier_score"], errors="coerce"),
+
+            "absolute_inliers":
+                pd.to_numeric(out["__absolute_inliers"], errors="coerce"),
+
+            # Historical column aliases retained only so frozen downstream
+            # visualization/report scripts can replay older runs.
             "orb_selected_tile_id":
-                out[
-                    "reranked_top1_tile_id"
-                ],
+                out["__absolute_selected_tile_id"],
 
             "orb_score":
-                pd.to_numeric(
-                    out[
-                        "reranked_top1_verifier_score"
-                    ],
-                    errors="coerce",
-                ),
+                pd.to_numeric(out["__absolute_verifier_score"], errors="coerce"),
 
             "orb_inliers":
-                pd.to_numeric(
-                    out[
-                        "reranked_top1_inliers"
-                    ],
-                    errors="coerce",
-                ),
+                pd.to_numeric(out["__absolute_inliers"], errors="coerce"),
 
             "runtime_relative_ms":
                 runtime_relative_ms,
@@ -1509,7 +1542,7 @@ def main():
 
         "confidence_contract": {
             "confidence_score_source":
-                "reranked_top1_hybrid_score",
+                "absolute verifier evidence",
 
             "confidence_score_is_probability":
                 False,
@@ -1519,8 +1552,8 @@ def main():
 
             "note":
                 (
-                    "The ORB hybrid score is exported "
-                    "as retrieval/verifier evidence. "
+                    "The geometric-verifier score is exported "
+                    "as candidate evidence and is not a calibrated probability. "
                     "R3-v2 map-state confidence is represented "
                     "separately by localization_state, "
                     "map_state_trust, and causal state events."

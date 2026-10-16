@@ -100,11 +100,25 @@ Known prior bench context that must be revalidated and saved:
 - normal telemetry streams were not yet confirmed
 - next planned test was requesting ATTITUDE at 2 Hz
 
-The earlier hardware scripts/commands were not saved properly.
+Additional Jetson state:
+- a local mavtools workspace already contains check_battery_status.py,
+  check_pixhawk.py, led_control.py and preflight_checks.py;
+- saved preflight message/parameter/report artifacts also exist;
+- pymavlink is installed in a dedicated mavtools virtual environment;
+- these files are not yet in Git and must be reviewed/migrated, not recreated;
+- do not commit the mavtools venv itself.
+
+The current localization stack now has a canonical one-command runner:
+scripts/villoc/run_localization_pipeline.py with
+configs/localization/current_stack_reference_free.yaml.
 
 Immediate next action:
-create and commit reproducible read-only platform/network/MAVLink/camera probes,
-save their logs, then recover camera intrinsics/extrinsics/AGL/timestamps needed
-for the physical UAV-to-orthophoto GSD experiment.
+create hardware/work-drone-instrumentation-v1 in a dedicated Jetson worktree,
+review/migrate the existing mavtools scripts, characterize MAVLink rates/jitter,
+split the camera pipeline so localization receives raw unoverlaid frames,
+characterize 4G/Wi-Fi/radio securely, and build a synchronized
+camera/IMU/attitude/altitude recorder. Then collect stationary/hover data for
+the next relative-estimation phase. Absolute-localization research remains
+parked until physical camera/GSD geometry is available.
 
 The user runs commands and pastes outputs. Never fabricate execution.

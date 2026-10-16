@@ -1170,7 +1170,7 @@ def save_confidence_vs_time(
         ],
         linewidth=1.25,
         label=(
-            "ORB/DINO hybrid confidence score"
+            "Absolute-verifier evidence score"
         ),
     )
 
@@ -1207,11 +1207,11 @@ def save_confidence_vs_time(
     )
 
     ax.set_ylabel(
-        "Hybrid confidence score"
+        "Absolute-verifier evidence score"
     )
 
     ax.set_title(
-        "Blind absolute-localization confidence vs time"
+        "Reference-free absolute-localization evidence vs time"
     )
 
     ax.grid(
@@ -2194,9 +2194,9 @@ def save_folium_map(
                 f"frame={int(row['sequence_frame_id'])}<br>"
                 f"time={float(row['timestamp_s']):.3f}s<br>"
                 f"source={row['correction_source']}<br>"
-                f"tile={row['orb_selected_tile_id']}<br>"
-                f"score={float(row['orb_score']):.3f}<br>"
-                f"inliers={int(row['orb_inliers'])}"
+                f"tile={row['absolute_selected_tile_id'] if 'absolute_selected_tile_id' in row.index else row['orb_selected_tile_id']}<br>"
+                f"score={float(row['absolute_verifier_score'] if 'absolute_verifier_score' in row.index else row['orb_score']):.3f}<br>"
+                f"inliers={int(row['absolute_inliers'] if 'absolute_inliers' in row.index else row['orb_inliers'])}"
             ),
         ).add_to(
             fmap

@@ -1,0 +1,62 @@
+{
+  "stage": "CURRENT_STACK_SIFT_LIGHTGLUE_768_AUTHORITY_CONTRACT",
+  "status": "PASS_CURRENT_STACK_PROJECTED_CANDIDATE_AUTHORITY_CONTRACT",
+  "scope": "current promoted SIFT+LightGlue/768_s256 reference-free authority adapter; minimum_confident_v2 mathematics unchanged",
+  "absolute_observation": {
+    "candidate_source": "DINOv2 Top20 -> SIFT+LightGlue projected candidates",
+    "candidate_count": 4,
+    "verifier": "SIFT+LightGlue",
+    "ranking": "inliers DESC -> DINO retrieval rank ASC -> tile_id ASC",
+    "map_measurement": "continuous query-image-center projection through SIFT+LightGlue homography into 768_s256 tile, converted to EPSG:3346",
+    "tile_variant": "768_s256"
+  },
+  "relative_geometry": {
+    "source": "XFeat reference-free relative trajectory",
+    "gt_alignment": false
+  },
+  "bootstrap_hypothesis": {
+    "evidence_queries": 4,
+    "candidate_combinations": "explicit Top-4 Cartesian enumeration",
+    "transform": "least-squares 2D similarity",
+    "minimum_unique_tile_ids": 3,
+    "minimum_visual_span_px": 100.0,
+    "minimum_map_span_m": 50.0,
+    "median_measurement_residual_limit_m": 51.2,
+    "maximum_measurement_residual_limit_m": 102.4
+  },
+  "state_machine": {
+    "initial_mode": "ACQUISITION",
+    "acquisition_behavior": "current reference-free leader may replace provisional state; innovation contributes to maturity support but does not block recovery before maturity",
+    "maturity_support_required": 3,
+    "maturity_signal": "consecutive minimum current Top-4 projected-candidate innovations within activation gate",
+    "mature_mode": "TRACKING",
+    "tracking_behavior": "predict current map position from last accepted similarity transform and XFeat; accept compatible current leader or HOLD",
+    "state_hold_allowed": true
+  },
+  "candidate_policy_family": {
+    "map_spacing_m": 51.2,
+    "activation_thresholds": {
+      "quarter_spacing": 12.8,
+      "half_spacing": 25.6
+    },
+    "tracking_thresholds": {
+      "quarter_spacing": 12.8,
+      "half_spacing": 25.6
+    },
+    "maturity_support_required": 3,
+    "final_policy_selected": false
+  },
+  "output_contract": {
+    "allowed_positive_state": "PROVISIONAL_ABSOLUTE_LOCK",
+    "allowed_negative_state": "NO_PROVISIONAL_LOCK",
+    "forbidden_state": "ABSOLUTE_LOCKED",
+    "reference_before_output_freeze": false
+  },
+  "provenance": {
+    "policy_math_source": "minimum_confident_v2",
+    "sift_transfer_evidence": "BV1.2",
+    "policy_thresholds_changed": false,
+    "candidate_count_changed": false,
+    "evidence_frame_count_changed": false
+  }
+}
