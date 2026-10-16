@@ -82,3 +82,27 @@ Agent-friendly development depends more on stable interfaces than on long prompt
 - tests that can distinguish infrastructure regressions from research-result changes.
 
 GitHub automation and coding agents should be introduced only after these contracts exist. Agents should work through protected branches/PRs rather than directly mutating the frozen baseline.
+
+
+---
+
+## Current canonical research handoff — 2026-10-16
+
+The current research state has moved beyond the older CV3-first handoff.
+
+Read these files first:
+
+1. CURRENT_BEST_VILLOC_LOCALIZATION_STACK.md
+2. crossview_scale_rotation_domain_v1/FA1_OB1_CLOSEOUT.md
+3. PHYSICAL_DRONE_TRANSITION_HANDOFF_20261016.md
+4. CURRENT_STATE_INDEX.md
+
+Current decision:
+
+- SIFT+LightGlue is the promoted absolute frontend.
+- residual failure analysis is closed;
+- current-stack 45-degree stress is closed;
+- localization research is parked;
+- physical-drone instrumentation is the next phase;
+- true physical UAV/map GSD normalization will be reopened after camera and
+  Pixhawk geometry/telemetry are documented.

@@ -11,10 +11,20 @@ The repository contains the complete development path from method review and dat
 
 > **Current project state**
 >
-> - The evaluated Villoc pipeline is complete and quantitatively documented on `main`.
-> - A complete recorded-flight Blind Demo Run has been orchestrated without GPS/SRT/reference input during localization.
-> - Current absolute-localization research continues on `research/minimum-confident-bootstrap`.
-> - The Blind Demo can establish a **provisional** map state, but robust absolute initialization and candidate selection remain ongoing research problems.
+> - The evaluated relative/absolute Villoc pipeline and recorded-flight blind
+>   orchestration remain available.
+> - Current absolute-frontend research is on
+>   `research/crossview-scale-rotation-domain-v1`.
+> - SIFT+LightGlue is the strongest promoted development absolute frontend:
+>   367/403 selected projections are <=40 m on the stable120m development
+>   trajectory, with an unsafe tail of 30/403.
+> - FA1 residual failure analysis and the OB1.0 45-degree current-stack stress
+>   test are complete.
+> - The next project phase is physical-drone instrumentation so camera
+>   calibration, Pixhawk telemetry, AGL/range, timing, and real UAV-frame GSD
+>   can be measured before reopening scale-normalization/deployment work.
+> - Canonical current handoff:
+>   `docs/handoffs/CURRENT_STATE_INDEX.md`.
 
 ---
 

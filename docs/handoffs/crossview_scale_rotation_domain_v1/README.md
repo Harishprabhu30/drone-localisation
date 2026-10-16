@@ -1,3 +1,111 @@
+# Canonical current state — 2026-10-16
+
+> **This section supersedes older "immediate next action" text later in this
+> file wherever there is a conflict. Historical sections below are retained
+> because they explain why the current architecture exists.**
+
+Current branch:
+
+research/crossview-scale-rotation-domain-v1
+
+Current status:
+
+- CV1 scale/rotation diagnostics: complete.
+- CV2 SIFT+LightGlue: complete and promoted.
+- CV3 aerial-MASt3R compact upper bound: complete and closed.
+- BV1 blind SIFT transfer: complete.
+- FA1 residual SIFT failure analysis: complete.
+- OB1.0 current-stack 45-degree stress: complete.
+- localization research: **parked pending physical-drone instrumentation**.
+
+Canonical current documents:
+
+1. ../CURRENT_BEST_VILLOC_LOCALIZATION_STACK.md
+2. FA1_OB1_CLOSEOUT.md
+3. ../PHYSICAL_DRONE_TRANSITION_HANDOFF_20261016.md
+4. CONTEXT_INDEX.md
+5. NEW_CHAT_BOOTSTRAP.md
+
+## Strongest current frontend
+
+SIFT + LightGlue full403:
+
+- Top1 containment: 349 / 403
+- Top1 center <=40: 205 / 403
+- Top1 center <=80: 346 / 403
+- selected projection <=40: 367 / 403
+- selected projection <=80: 368 / 403
+- unsafe tail: 30 / 403
+- median projection: 4.988 m
+- RMSE: 224.799 m
+- p95: 635.898 m
+- oracle <=40: 386 / 403
+- oracle <=80: 392 / 403
+
+Frozen evidence:
+
+c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0
+
+## Residual failure interpretation
+
+FA1 found 19 oracle-rescuable SIFT failures and 10 catastrophic SIFT damages.
+
+Strongest warning signals:
+
+- temporal inconsistency;
+- SIFT-vs-scale_m2 ORB disagreement;
+- weak / tied inlier evidence;
+- lower inlier ratio;
+- retrieval-vs-geometry conflict.
+
+Manual failure review is predominantly vegetation-heavy / mixed vegetation,
+not dense street-heavy urban scenes.
+
+Do not implement "vegetation => ORB."
+
+Proposed next authority:
+
+**SIFT primary + ORB challenger + causal past-only temporal authority + abstention.**
+
+This is proposed, not yet frozen.
+
+## Oblique result
+
+OB1.0 current-stack 45-degree test:
+
+- 112 queries / 2,240 pairs
+- DINO Top20 contains body: 112 / 112
+- Top20 center <=40 available: 86 / 112
+- SIFT selected contains body: 47 / 112
+- selected tile-center <=40 / <=80: 4 / 44
+- median selected tile-center error: 86.58 m
+- projected center/body unsafe: 2 / 112
+
+Conclusion:
+
+45-degree view materially degrades locality selection. Retrieval does not
+collapse. Oblique camera-center/body geometry is a separate issue.
+
+## Why research is being parked now
+
+The unfinished true UAV-to-map GSD normalization requires real camera geometry.
+
+The next phase is to inspect the physical work drone and record:
+
+- camera model and streams;
+- intrinsics/distortion;
+- camera/body/gimbal extrinsics;
+- Pixhawk telemetry;
+- attitude;
+- AGL/range source;
+- timestamps/synchronization;
+- Jetson/Pixhawk network topology.
+
+Once that is documented, reopen the physical GSD-normalization experiment.
+
+---
+
+
 # Canonical handoff — cross-view scale / rotation / domain study v1
 
 Status: **ACTIVE DIRECTION / START HERE IN A NEW CHAT**

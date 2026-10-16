@@ -1,60 +1,110 @@
-# New-chat bootstrap prompt
+# New-chat bootstrap prompt — current state
 
-Copy the text below into a new ChatGPT chat for this project.
+We are continuing Harishprabhu30/drone-localisation.
 
----
+Do not treat this as a new localization project.
 
-We are continuing the existing \`Harishprabhu30/drone-localisation\` VILLOC
-research project. Do not treat this as a new localization project and do not
-reset the scientific context.
+Active research branch:
 
-Active branch:
-\`research/crossview-scale-rotation-domain-v1\`
+research/crossview-scale-rotation-domain-v1
 
-Before proposing code, use the GitHub connector and read these files in order:
+Before proposing code, read in this order:
 
-1. \`docs/handoffs/crossview_scale_rotation_domain_v1/README.md\`
-2. \`docs/handoffs/crossview_scale_rotation_domain_v1/CV2_CLOSEOUT.md\`
-3. \`docs/handoffs/crossview_scale_rotation_domain_v1/CV2_SIFT_LIGHTGLUE_DEEP_DIVE.md\`
-4. \`docs/handoffs/crossview_scale_rotation_domain_v1/CV3_0_PROTOCOL.md\`
-5. \`docs/closeouts/learned_geometric_frontend_ablation_v1/README.md\`
-6. \`docs/closeouts/top20_geometric_discrimination_gd1_3b/README.md\`
-7. \`docs/handoffs/retrieval_candidate_pool_v2/README.md\`
-8. \`docs/README_villoc_traj01_s8_full_pipeline_fusion_closeout.md\`
-9. \`docs/demo/blind_recorded_flight_final_001/README.md\`
+1. docs/handoffs/CURRENT_BEST_VILLOC_LOCALIZATION_STACK.md
+2. docs/handoffs/crossview_scale_rotation_domain_v1/FA1_OB1_CLOSEOUT.md
+3. docs/handoffs/PHYSICAL_DRONE_TRANSITION_HANDOFF_20261016.md
+4. docs/handoffs/crossview_scale_rotation_domain_v1/README.md
+5. docs/handoffs/crossview_scale_rotation_domain_v1/CONTEXT_INDEX.md
 
-Then summarize the current frozen state before changing the repo.
+Then inspect only the exact configs/scripts needed by the requested stage.
 
-Critical current state:
-- the main problem remains reliable absolute UAV localization inside frozen
-  QV1.4 Top20;
-- QV1.4 retrieval remains frozen;
-- SIFT+LightGlue is the strongest development frontend;
-- frozen full403 SIFT+LightGlue evidence SHA256:
-  \`c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0\`;
-- full403 SIFT+LightGlue:
-  Top1 containment 349/403, Top1 <=40 205/403, Top1 <=80 346/403,
-  selected <=40 367/403, selected <=80 368/403, unsafe tail 30/403;
-- SIFT oracle projection <=40 is 386/403, <=80 is 392/403, unsafe tail 5/403;
-- median SIFT Top1-Top2 inlier margin is 34;
-- the residual bottleneck is increasingly wrong-locality selection/confidence,
-  while SIFT also materially improves the candidate-level geometric ceiling;
-- CV1 scale_m2 remains a frozen causal control; do not apply it to SIFT unless
-  a future protocol explicitly reopens that question;
-- do not tune SIFT/LightGlue further on full403 development truth;
-- Jetson/CUDA migration is parked until cross-view accuracy-family selection is
-  complete;
-- CV3 is the current next stage: pretrained aerial-MASt3R upper bound using the
-  official AerialMegaDepth checkpoint;
-- do not download the full AerialMegaDepth training dataset;
-- do not jump to deployment/networking/triangulation yet;
-- keep development truth detached until each reference-free evidence stage is
-  frozen;
-- make small auditable GitHub commits;
-- the user runs local commands and pastes outputs; never fabricate execution.
+## Current frozen state
+
+Primary development dataset:
+villoc_traj01_90deg_stable120m, 403 queries.
+
+Map:
+768_s256, EPSG:3346, approximately 153.6 m footprint and 51.2 m stride.
+
+Candidate generator:
+DINOv2 ViT-S/14 img518 center_square avgpatch Top20.
+
+Strongest development absolute frontend:
+SIFT + LightGlue.
+
+Frozen SIFT evidence SHA256:
+c0031242f0b359f1bfa3c87ea47ac428393ed3e8e03d7b5c6d0822e8822cb8a0
+
+Full403:
+- containment 349/403
+- center<=40 205/403
+- center<=80 346/403
+- selected projection<=40 367/403
+- selected projection<=80 368/403
+- unsafe 30/403
+
+scale_m2 ORB remains the frozen classical control and a proposed challenger.
+
+FA1:
+- 19 oracle-rescuable SIFT failures
+- 10 catastrophic SIFT damages
+- 7 severe ORB<=40 -> SIFT unsafe
+- temporal consistency and SIFT/ORB disagreement are the strongest diagnostic
+  warning signals
+- neighborhood candidate density is not the main missing signal
+- manual residual failures are mostly vegetation-heavy/mixed vegetation
+
+OB1.0:
+- 112 oblique queries
+- current 768_s256 + img518 stack
+- Top20 contains body 112/112
+- SIFT selected contains body 47/112
+- selected tile-center <=40/<=80 = 4/44
+- median tile-center 86.58 m
+- substantial viewpoint degradation, but no retrieval collapse
+
+Blind SIFT transfer:
+- BV1.2 state PROVISIONAL_ABSOLUTE_LOCK
+- first leader q8
+- matured q11
+- no SRT/GPS/reference during localization
+
+## Current scientific boundary
+
+- Do not tune SIFT/LightGlue on full403 truth.
+- Do not create a confidence threshold from FA1 labels.
+- Do not treat +/-2 FA1 temporal diagnostics as causal runtime logic.
+- Do not implement "vegetation => ORB."
+- Do not claim 45-degree projected image-center error is identical to UAV-body
+  localization error.
+- Do not claim thermal support; it is a future cross-spectral hypothesis.
+- Do not claim true UAV-to-map physical GSD normalization is completed.
+
+## Current project direction
+
+Localization research is parked temporarily.
+
+The next phase is the physical work drone.
+
+Known prior bench context that must be revalidated and saved:
+- Jetson Orin NX
+- Pixhawk 6X
+- Pixhawk link on enP8p1s0
+- Jetson target 192.168.144.15/24
+- Pixhawk 192.168.144.14
+- ping previously passed
+- MAVLink heartbeat previously passed
+- system/component 1/1
+- ArduPilot quadcopter
+- firmware 4.7.1
+- normal telemetry streams were not yet confirmed
+- next planned test was requesting ATTITUDE at 2 Hz
+
+The earlier hardware scripts/commands were not saved properly.
 
 Immediate next action:
-follow \`CV3_0_PROTOCOL.md\` and begin only with CV3.1 environment/model smoke.
-Do not jump directly to uniform40/full403 Aerial-MASt3R and do not fine-tune.
+create and commit reproducible read-only platform/network/MAVLink/camera probes,
+save their logs, then recover camera intrinsics/extrinsics/AGL/timestamps needed
+for the physical UAV-to-orthophoto GSD experiment.
 
----
+The user runs commands and pastes outputs. Never fabricate execution.
