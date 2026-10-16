@@ -539,7 +539,729 @@ Do not reconstruct missing hashes from memory.
 
 ---
 
-## 18. Immediate development direction
+## 18. New dataset execution runbook — team demo and scientific benchmark
+
+This section is the practical re-entry path when a **new recorded flight or
+dataset** is provided in the future.
+
+The objective is to prevent a new session from reconstructing the pipeline from
+memory or accidentally evaluating a different frontend.
+
+### 18.1 First decide what kind of run is being requested
+
+There are four independent questions.
+
+| Question | Option A | Option B |
+|---|---|---|
+| Geography | same mapped AOI | new geographic area |
+| Evaluation | hidden reference available | blind/no reference |
+| Camera | near-nadir RGB | oblique / changing attitude |
+| Modality | RGB | thermal / other |
+
+The standard validated path is:
+
+> **RGB + known/prepared orthophoto + DINOv2 img518 Top20 + 768_s256 +
+> SIFT+LightGlue**
+
+Thermal is not part of the standard run. Use the small thermal smoke described
+earlier before attempting a full benchmark.
+
+For oblique imagery, report tile/locality metrics separately from
+query-center-vs-UAV-body projection error.
+
+---
+
+### 18.2 Two reporting modes
+
+#### Mode A — team / operational demo
+
+Use this when no trustworthy hidden reference is available.
+
+Allowed claims:
+
+- dataset processed successfully;
+- number of frames/queries;
+- retrieval and matcher execution success;
+- selected candidate/map observations;
+- map-state lock/HOLD behavior;
+- relative/map-aligned trajectory when available;
+- runtime/resource use;
+- qualitative map visualization.
+
+Do **not** report RMSE, <=40 m accuracy, or "correct localization percentage"
+without an isolated reference.
+
+#### Mode B — scientific benchmark
+
+Use this when SRT/GNSS/RTK/reference is available.
+
+Rule:
+
+~~~text
+prepare reference
+        |
+        +--> keep out of retrieval / verifier / acceptance
+        |
+reference-free localization output
+        |
+        v
+freeze output + hashes
+        |
+        v
+attach reference
+        |
+        v
+metrics / plots / failure analysis
+~~~
+
+Reference may be used for:
+
+- synchronization;
+- predeclared dataset/map preparation;
+- post-freeze evaluation;
+- sanity checks.
+
+Reference must not be used to:
+
+- choose DINO candidates;
+- choose SIFT winner;
+- choose correction;
+- tune an error threshold after seeing answers;
+- cherry-pick "good" frames for the headline result.
+
+---
+
+### 18.3 Create a dataset identity before running anything
+
+Use one stable name everywhere.
+
+Example:
+
+~~~bash
+export DATASET=client_flight_20261016
+export CFG=configs/dataset_${DATASET}.yaml
+export OUT=outputs/villoc/${DATASET}
+export STREAM=V
+export SAMPLE_FPS=1
+~~~
+
+Create the new dataset config from the closest existing config:
+
+~~~bash
+cp configs/dataset_villoc_traj01_90deg_stable120m.yaml "$CFG"
+~~~
+
+Then edit, at minimum:
+
+~~~text
+dataset.name
+dataset.sequence_name
+dataset.raw_root
+dataset.processed_root
+dataset.output_root
+
+streams.V.video
+streams.V.srt
+streams.V.fps_expected
+streams.V.resolution_expected
+
+dataset.view_angle_group
+reference.source
+map/reuse policy
+~~~
+
+Do not leave old dataset names or paths in the copied config.
+
+Recommended raw layout:
+
+~~~text
+data/raw/villoc/<dataset>/
+    <video>.MP4
+    <telemetry/reference>.SRT
+    optional additional streams
+~~~
+
+Recommended output layout:
+
+~~~text
+outputs/villoc/<dataset>/
+    metadata/
+    reports/
+    descriptors/
+    retrieval/
+    figures/
+    logs/
+~~~
+
+Before the run, record:
+
+~~~bash
+mkdir -p "$OUT/logs"
+
+git rev-parse HEAD | tee "$OUT/logs/git_commit.txt"
+git status --short | tee "$OUT/logs/git_status.txt"
+python --version | tee "$OUT/logs/python_version.txt"
+~~~
+
+A team result should always be traceable to one Git commit.
+
+---
+
+### 18.4 DJI/VILLOC-style MP4 + SRT ingestion
+
+These commands apply when the new dataset follows the current Villoc/DJI
+MP4+SRT format.
+
+Activate the environment:
+
+~~~bash
+cd /Users/harishprabhu/Documents/drone-localisation
+source .drone_venv/bin/activate
+export PYTHONPATH=$PWD/src
+~~~
+
+Parse SRT:
+
+~~~bash
+python scripts/villoc/s8_1_parse_villoc_srt.py   --config "$CFG"   2>&1 | tee "$OUT/logs/s8_1_parse_srt.log"
+~~~
+
+Extract 1 Hz benchmark frames:
+
+~~~bash
+python scripts/villoc/s8_2_extract_sampled_frames.py   --config "$CFG"   --stream "$STREAM"   --sample-rate-fps "$SAMPLE_FPS"   --overwrite   2>&1 | tee "$OUT/logs/s8_2_extract_frames.log"
+~~~
+
+Build the reference trajectory:
+
+~~~bash
+python scripts/villoc/s8_3_build_reference_trajectory.py   --config "$CFG"   --stream "$STREAM"   --sample-rate-fps "$SAMPLE_FPS"   2>&1 | tee "$OUT/logs/s8_3_reference_trajectory.log"
+~~~
+
+The reference trajectory exists for later evaluation. Do not feed its position
+columns into retrieval or verification.
+
+Audit image quality:
+
+~~~bash
+python scripts/villoc/s8_4_visual_frame_audit.py   --config "$CFG"   --stream "$STREAM"   --sample-rate-fps "$SAMPLE_FPS"   2>&1 | tee "$OUT/logs/s8_4_visual_audit.log"
+~~~
+
+Build the query index:
+
+~~~bash
+python scripts/villoc/s8_5_build_uav_frame_index.py   --config "$CFG"   --stream "$STREAM"   --sample-rate-fps "$SAMPLE_FPS"   --golden-n 20   2>&1 | tee "$OUT/logs/s8_5_query_index.log"
+~~~
+
+For a different recorder format, do **not** fabricate an SRT file merely to
+satisfy these scripts. Instead export a canonical query manifest from the
+recorder.
+
+At minimum the absolute stack needs stable:
+
+~~~text
+query_id
+token0_id
+image_path
+timestamp
+~~~
+
+Reference position/attitude fields should be stored separately or clearly
+marked evaluation-only.
+
+---
+
+### 18.5 Same AOI — reuse the promoted current map
+
+If the new flight is inside the already prepared Vilnius AOI, reuse these
+current assets instead of regenerating the map:
+
+~~~text
+768_s256 tiles:
+data/processed/villoc/research/retrieval_candidate_pool_v2/r1/tiles_768_s256
+
+768_s256 tile index:
+outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/metadata/
+s8_9_satellite_tile_index_768_s256.csv
+
+DINOv2 img518 map cache:
+outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors/
+s8_11b_dinov2_map_768_s256_dinov2_vits14_img518_center_square_avgpatch_cpu.npz
+~~~
+
+The new dataset config should expose a 768_s256 tile variant pointing to that
+tile index.
+
+Do not silently fall back to 512_s256 simply because an older config already
+contains it.
+
+---
+
+### 18.6 New geographic area — prepare a new map first
+
+If the flight is outside the current AOI, obtain a georeferenced RGB orthophoto
+with known CRS and pixel resolution.
+
+Prefer a mission/predeclared AOI. Avoid using a very tight GT-derived crop that
+artificially tells retrieval where the vehicle must be.
+
+Define:
+
+~~~bash
+export MASTER_TIF=/path/to/master_orthophoto.tif
+export AOI_TIF=data/processed/villoc/$DATASET/maps/aoi.tif
+export TILES_DIR=data/processed/villoc/$DATASET/maps/tiles_768_s256
+export TILE_INDEX=$OUT/metadata/s8_9_satellite_tile_index_768_s256.csv
+~~~
+
+If reference data is available for dataset-preparation bounds, create the bbox
+plan:
+
+~~~bash
+python scripts/villoc/s8_6_build_map_bbox_plan.py   --config "$CFG"   --stream "$STREAM"   --sample-rate-fps "$SAMPLE_FPS"   2>&1 | tee "$OUT/logs/s8_6_map_bbox.log"
+~~~
+
+Validate the source GeoTIFF:
+
+~~~bash
+python scripts/villoc/s8_7a_validate_map_geotiff.py   --config "$CFG"   --tif "$MASTER_TIF"   --name master_orthophoto   --tile-size-px 768   --stride-px 256   2>&1 | tee "$OUT/logs/s8_7a_validate_map.log"
+~~~
+
+Crop the predeclared AOI when required:
+
+~~~bash
+python scripts/villoc/s8_8_crop_master_aoi.py   --config "$CFG"   --src-tif "$MASTER_TIF"   --output-name "$(basename "$AOI_TIF")"   2>&1 | tee "$OUT/logs/s8_8_crop_aoi.log"
+~~~
+
+Generate the current map geometry:
+
+~~~bash
+python scripts/villoc/s8_9_generate_reference_tiles.py   --config "$CFG"   --src-tif "$AOI_TIF"   --tiles-dir "$TILES_DIR"   --tile-size-px 768   --stride-px 256   --image-format jpg   --jpeg-quality 95   --overwrite   2>&1 | tee "$OUT/logs/s8_9_tiles_768_s256.log"
+~~~
+
+Audit the tile index:
+
+~~~bash
+python scripts/villoc/s8_10a_audit_tile_index_integrity.py   --config "$CFG"   --variant "768_s256:768:256:$TILES_DIR:$TILE_INDEX"   2>&1 | tee "$OUT/logs/s8_10a_tile_integrity.log"
+~~~
+
+Before continuing, verify:
+
+- CRS is correct;
+- physical pixel size is plausible;
+- tile footprint is known;
+- tile count is non-zero;
+- there are no duplicate tile IDs;
+- the intended mission area is covered.
+
+For a new map whose source GSD is not approximately 0.20 m/px, **do not claim
+that 768 px still represents 153.6 m**. Recompute the physical footprint and
+record it.
+
+---
+
+### 18.7 Build the canonical benchmark manifest when reference exists
+
+For the current Villoc benchmark tooling, S8.10B can create the canonical
+manifest and oracle relation for evaluation.
+
+For a single 768_s256 variant:
+
+~~~bash
+python scripts/villoc/s8_10b_uav_tile_oracle_audit.py   --config "$CFG"   --variant "768_s256:$TILE_INDEX"   2>&1 | tee "$OUT/logs/s8_10b_oracle_audit.log"
+~~~
+
+Expected canonical manifest:
+
+~~~text
+$OUT/metadata/s8_10b_canonical_uav_query_manifest.csv
+~~~
+
+The manifest contains reference fields for evaluation, but descriptor/ranking
+code must consume only model-safe columns.
+
+For a genuinely blind demonstration, use a blind/reference-free manifest
+instead of an oracle-bearing benchmark manifest.
+
+---
+
+### 18.8 Build DINOv2 img518 query descriptors
+
+Current descriptor protocol:
+
+~~~text
+dinov2_vits14
+img518
+center_square
+avgpatch
+L2 normalized
+~~~
+
+For the same AOI, reuse the frozen map descriptor cache and build only the new
+query cache.
+
+Example:
+
+~~~bash
+export QUERY_CSV=$OUT/metadata/s8_10b_canonical_uav_query_manifest.csv
+export MAP_CACHE_ROOT=outputs/research_runs/retrieval_candidate_pool_v2/r1_map_pyramid/descriptors
+export MAP_CACHE_TAG=dinov2_vits14_img518_center_square_avgpatch_cpu
+
+python scripts/villoc/s8_11bc_build_dinov2_caches.py   --config "$CFG"   --query-csv "$QUERY_CSV"   --image-size 518   --crop-mode center_square   --pooling avgpatch   --device cpu   --reuse-map-caches   --map-cache-root "$MAP_CACHE_ROOT"   --map-cache-tag "$MAP_CACHE_TAG"   2>&1 | tee "$OUT/logs/s8_11bc_dino_cache.log"
+~~~
+
+For a new geographic area, build the 768_s256 map cache once under that
+dataset's map-cache directory rather than reusing the Vilnius cache.
+
+Do not compare a new dataset using img224 if the claim is intended to represent
+the current promoted stack.
+
+---
+
+### 18.9 DINO retrieval / candidate availability
+
+For a reference-backed benchmark, the existing independent retrieval evaluator
+can rank candidates and report oracle availability:
+
+~~~bash
+python scripts/villoc/s8_11d_independent_dinov2_retrieval.py   --config "$CFG"   --map-cache-root "$MAP_CACHE_ROOT"   --image-size 518   --crop-mode center_square   --pooling avgpatch   --device-tag cpu   2>&1 | tee "$OUT/logs/s8_11d_retrieval.log"
+~~~
+
+Record at least:
+
+- Top1;
+- Top5;
+- Top10;
+- Top20;
+- containment availability;
+- center <=40 m availability;
+- center <=80 m availability.
+
+This separates:
+
+> retrieval failure
+
+from:
+
+> correct candidate present but verifier/selector failure.
+
+That distinction must be preserved in every new-dataset report.
+
+For blind/no-reference use, use the blind retrieval path rather than an
+evaluation script that loads oracle data.
+
+---
+
+### 18.10 Current promoted SIFT+LightGlue execution
+
+**Important operational note:**
+
+As of this documentation commit, the repository does **not** yet expose one
+fully dataset-agnostic CLI for the promoted current SIFT+LightGlue stack.
+
+Do **not** replace it with:
+
+~~~text
+s8_12e1b_lightglue_top20_verifier_reranker.py
+~~~
+
+for a "current stack" claim. That script belongs to an older LightGlue
+frontend/policy and is not equivalent to the promoted SIFT-specific frontend.
+
+The promoted implementation is:
+
+~~~text
+src/uavloc/geometry/sift_lightglue_absolute_frontend.py
+~~~
+
+and its frozen contracts are demonstrated by:
+
+~~~text
+scripts/villoc/geometry/cv2_4_freeze_sift_lightglue_full403.py
+scripts/villoc/geometry/ob1_0_45deg_current_stack_sift_lightglue.py
+~~~
+
+When a new dataset arrives, the preferred engineering action is:
+
+> create one generic current-stack dataset runner that accepts
+> query manifest + Top20 CSV + 768 tile index + optional reference attachment,
+> while preserving the pinned SIFT+LightGlue parameters.
+
+Until that generic runner exists, instantiate a **new dataset-specific frozen
+stage** from the OB1.0/CV2.4 contract rather than editing a completed frozen
+experiment in place.
+
+The new stage must preserve:
+
+~~~text
+SIFT/OpenCV + RootSIFT
+max keypoints 4096
+long edge 1024
+LightGlue SIFT model
+filter threshold 0.1
+depth confidence 0.95
+width confidence 0.99
+RANSAC 5 px
+minimum 4 inliers
+query-center projection
+selector:
+    inliers DESC
+    DINO pool rank ASC
+    tile_id ASC
+Top20 candidate budget
+~~~
+
+It must also:
+
+1. write pair-level reference-free evidence;
+2. write one selected observation/query;
+3. freeze hashes before attaching GT;
+4. preserve failed pairs rather than silently dropping them;
+5. report matcher/runtime counts;
+6. never tune SIFT based on the new dataset's answer labels during the same
+   benchmark.
+
+This generic runner is a small **operationalization task**, not a new research
+question.
+
+---
+
+### 18.11 Optional relative + blind bootstrap demonstration
+
+If the goal is to show the **whole localization system** rather than absolute
+frontend accuracy only, also run:
+
+~~~text
+relative frontend
+        +
+DINO Top20
+        +
+SIFT+LightGlue absolute observations
+        +
+minimum_confident_v2
+        +
+map alignment / temporal authority
+~~~
+
+For a new flight, preserve:
+
+- reference unavailable to localization;
+- Top4 observation hypothesis interface;
+- causal evidence only;
+- HOLD/relative-only behavior if no lock is trustworthy;
+- output freeze before post-run evaluation.
+
+Do not force a map lock simply to make the demonstration look successful.
+
+A safe no-lock result is preferable to a confident wrong locality.
+
+---
+
+### 18.12 Post-freeze evaluation bundle
+
+When hidden reference is available, attach it only after the reference-free
+output is frozen.
+
+Every new dataset report should include at minimum:
+
+#### Dataset / geometry
+
+- query count;
+- duration;
+- path length if reference permits;
+- camera orientation regime;
+- altitude/AGL range;
+- image resolution;
+- map source;
+- map date;
+- CRS;
+- source map GSD;
+- tile physical footprint;
+- tile stride.
+
+#### Retrieval
+
+- Top1/5/10/20 useful-candidate availability;
+- containment availability;
+- center <=40 / <=80 availability.
+
+#### SIFT+LightGlue
+
+- selected containment;
+- selected tile-center <=40 / <=80;
+- selected projected <=40 / <=80;
+- median;
+- RMSE;
+- p95;
+- unsafe >200/non-finite;
+- Top20 oracle values;
+- selected matches/inliers;
+- Top1-Top2 inlier margin.
+
+#### Full system when executed
+
+- relative-only drift;
+- lock state;
+- first leader;
+- maturity query;
+- accepted/HOLD updates;
+- final trajectory RMSE/p95/final error/drift;
+- percentage of map-aligned poses.
+
+#### Runtime
+
+- descriptor-cache time;
+- retrieval/query;
+- SIFT extraction/query;
+- LightGlue/pair;
+- candidate count/query;
+- total absolute-localization latency;
+- CPU/GPU/device.
+
+---
+
+### 18.13 Required visuals for a team presentation
+
+Produce a compact evidence set rather than screenshots chosen after seeing the
+answer.
+
+Recommended:
+
+1. dataset contact sheet;
+2. map AOI + reference path if evaluation is allowed;
+3. DINO Top1/Top5/Top20 retrieval examples;
+4. SIFT selected candidate + correspondence overlay;
+5. estimated vs reference path;
+6. position error versus distance/time;
+7. failure examples;
+8. runtime summary;
+9. one architecture diagram;
+10. comparison table against the frozen stable120m baseline.
+
+For oblique data also show the camera-view geometry caveat.
+
+For vegetation-heavy failures include both selected and alternative/oracle
+candidate evidence when post-freeze truth is authorized.
+
+---
+
+### 18.14 Stop / sanity gates
+
+Do not proceed blindly through the whole pipeline.
+
+Stop and investigate if:
+
+- frame/SRT timestamps are badly misaligned;
+- image read failures occur;
+- map CRS is missing/wrong;
+- map does not cover the flight;
+- DINO query/map descriptor protocol differs;
+- Top20 availability collapses;
+- SIFT produces widespread non-finite homographies;
+- the new dataset uses a materially different camera modality;
+- a reference-bearing column accidentally enters ranking;
+- outputs from an older run would be overwritten.
+
+A weak result is still scientifically useful if the run contract is clean.
+
+---
+
+### 18.15 Fast smoke before a full expensive run
+
+For a completely new camera/domain, do **not** immediately spend hours on
+Top20 for every frame.
+
+First run approximately:
+
+~~~text
+20 representative queries
+x
+Top5 candidates
+=
+100 pairs
+~~~
+
+Use uniformly sampled queries, not hand-picked easy frames.
+
+Continue to full Top20 only if:
+
+- images decode correctly;
+- DINO retrieval is not obviously collapsed;
+- SIFT produces usable correspondences/homographies;
+- runtime is understood;
+- the map/query modality is compatible.
+
+This rule is especially important for:
+
+- thermal;
+- night imagery;
+- strongly oblique imagery;
+- different sensor/FOV;
+- very different altitude;
+- different map season/source.
+
+---
+
+### 18.16 What should be frozen for every future team dataset
+
+Create one run root containing:
+
+~~~text
+config snapshot
+Git commit
+environment summary
+query manifest
+map/tile metadata
+DINO query-cache metadata
+Top20 candidate CSV
+SIFT pair evidence
+selected-observation CSV
+reference-free freeze report + SHA256s
+post-freeze evaluation report
+runtime/resource report
+figures
+notes / known limitations
+~~~
+
+The point is that a future team member should be able to answer:
+
+> Which code, map, model, parameters and data produced this number?
+
+without depending on chat history.
+
+---
+
+### 18.17 Current operational gap to close before the next external demo
+
+Before the next new external dataset is expected, it is worth creating one
+generic command such as:
+
+~~~text
+python scripts/villoc/run_current_absolute_stack.py --config <dataset-run-config>
+~~~
+
+It should orchestrate only:
+
+~~~mermaid
+flowchart LR
+    Q[Canonical query manifest] --> D[DINO img518 query cache]
+    M[768_s256 map cache] --> R[Top20 retrieval]
+    D --> R
+    R --> S[SIFT+LightGlue Top20]
+    S --> F[Reference-free freeze]
+    F --> E[Optional post-freeze reference evaluation]
+    E --> B[Metrics + figures + evidence bundle]
+~~~
+
+That runner should **call existing frozen components**, not duplicate their
+implementations.
+
+Building this wrapper is recommended engineering work; it is not necessary to
+reopen algorithm selection.
+
+---
+
+## 19. Immediate development direction
 
 Do **not** immediately add another matcher.
 
